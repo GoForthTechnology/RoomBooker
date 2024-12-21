@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "610453083826",
+    "project_id": "roombooker-5e947",
+    "storage_bucket": "roombooker-5e947.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:610453083826:android:0ef35aa24f49d96dd21bab",
+        "android_client_info": {
+          "package_name": "org.goforthtech.roombooker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAny3qKV-m0yHye_OBYph8pR-ULhtJHEoQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
