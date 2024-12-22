@@ -10,10 +10,10 @@ class NewBookingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Booking'),
+        title: const Text('New Booking Request'),
       ),
       body: Center(
-        child: NewBookingForm(),
+        child: SingleChildScrollView(child: NewBookingForm()),
       ),
     );
   }
