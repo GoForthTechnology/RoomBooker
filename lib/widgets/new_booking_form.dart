@@ -20,6 +20,8 @@ class NewBookingFormState extends State<NewBookingForm> {
   final eventStartTimeController = TextEditingController();
   final eventEndTimeController = TextEditingController();
   final eventDateController = TextEditingController();
+  final doorsLockTimeController = TextEditingController();
+  final doorsUnlockTimeController = TextEditingController();
   String selectedRoom = 'Stewardship Hall'; // Default value for dropdown
 
   @override
@@ -89,11 +91,10 @@ class NewBookingFormState extends State<NewBookingForm> {
                 return null;
               },
             ),
-            Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                    "Select a time slot on the calendar to set the event date and time",
-                    style: Theme.of(context).textTheme.headlineSmall)),
+            const Instructions(
+              text:
+                  "Please select a time slot on the calendar to set the event date and time",
+            ),
             SizedBox(
               height: 1100,
               child: Card(child: CalendarWidget(
@@ -120,6 +121,26 @@ class NewBookingFormState extends State<NewBookingForm> {
               controller: eventEndTimeController,
               labelText: 'Event End Time',
               validationMessage: 'Please enter the event end time',
+              minimumTime: parseTimeOfDay(eventStartTimeController.text),
+            ),
+            const Instructions(
+              text:
+                  "Please select when you would like the doors to be unlocked and locked",
+            ),
+            TimeField(
+              controller: doorsUnlockTimeController,
+              labelText: 'Doors Unlock Time',
+              validationMessage:
+                  'When would you like the doors to be unlocked?',
+            ),
+            TimeField(
+              controller: doorsLockTimeController,
+              labelText: 'Doors Lock Time',
+              validationMessage: 'When would you like the doors to be locked?',
+              minimumTime: parseTimeOfDay(eventStartTimeController.text),
+            ),
+            const Instructions(
+              text: "Additional information",
             ),
             TextFormField(
               controller: messageController,
@@ -244,12 +265,14 @@ class TimeField extends StatelessWidget {
   final TextEditingController controller;
   final String labelText;
   final String? validationMessage;
+  final TimeOfDay? minimumTime;
 
   const TimeField(
       {super.key,
       required this.controller,
       required this.labelText,
-      this.validationMessage});
+      this.validationMessage,
+      this.minimumTime});
 
   @override
   Widget build(BuildContext context) {
@@ -267,6 +290,15 @@ class TimeField extends StatelessWidget {
           context: context,
           initialTime: initialTime,
         );
+        if (minimumTime != null && minimumTime!.isAfter(pickedTime!)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content:
+                  Text('Time must be after ${minimumTime!.format(context)}'),
+            ),
+          );
+          return;
+        }
         if (pickedTime != null) {
           final roundedTime = roundToNearest30Minutes(pickedTime);
           controller.text = roundedTime.format(context);
@@ -285,6 +317,9 @@ class TimeField extends StatelessWidget {
 
 // Parse a string in the format "HH:MM AM/PM" to a TimeOfDay object
 TimeOfDay? parseTimeOfDay(String time) {
+  if (time.isEmpty) {
+    return null;
+  }
   var parts = time.split(":");
   return TimeOfDay(
     hour: int.parse(parts[0]),
@@ -372,10 +407,26 @@ class Heading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Text(
           text,
           style: Theme.of(context).textTheme.headlineMedium,
+        ));
+  }
+}
+
+class Instructions extends StatelessWidget {
+  final String text;
+
+  const Instructions({super.key, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(
+          text,
+          style: Theme.of(context).textTheme.headlineSmall,
         ));
   }
 }
