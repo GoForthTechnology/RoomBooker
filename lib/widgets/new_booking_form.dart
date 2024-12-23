@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:room_booker/widgets/calendar_widget.dart';
 
 class NewBookingForm extends StatefulWidget {
-  NewBookingForm({super.key});
+  const NewBookingForm({super.key});
 
   @override
-  _NewBookingFormState createState() => _NewBookingFormState();
+  NewBookingFormState createState() => NewBookingFormState();
 }
 
-class _NewBookingFormState extends State<NewBookingForm> {
+class NewBookingFormState extends State<NewBookingForm> {
   final _formKey = GlobalKey<FormState>(); // Form key for validation
   final nameController = TextEditingController();
   final emailController = TextEditingController();
@@ -17,10 +17,24 @@ class _NewBookingFormState extends State<NewBookingForm> {
   final attendanceController = TextEditingController();
   final messageController = TextEditingController();
   final eventNameController = TextEditingController();
+  final eventStartTimeController = TextEditingController();
+  final eventEndTimeController = TextEditingController();
+  final eventDateController = TextEditingController();
   String selectedRoom = 'Stewardship Hall'; // Default value for dropdown
 
   @override
   Widget build(BuildContext context) {
+    eventStartTimeController.addListener(() {
+      if (eventStartTimeController.text.isEmpty) {
+        return;
+      }
+      if (eventEndTimeController.text.isEmpty) {
+        var startTime = parseTimeOfDay(eventStartTimeController.text)!;
+        eventEndTimeController.text =
+            TimeOfDay(hour: startTime.hour + 1, minute: startTime.minute)
+                .format(context);
+      }
+    });
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Form(
@@ -28,48 +42,35 @@ class _NewBookingFormState extends State<NewBookingForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            TextFormField(
+            const Heading(text: "Requester Information"),
+            MyTextFormField(
               controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Your Name',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your name';
-                }
-                return null;
-              },
+              labelText: 'Your Name',
+              validationMessage: 'Please enter your name',
             ),
-            const SizedBox(height: 16),
-            TextFormField(
+            MyTextFormField(
               controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Your Email',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your email';
-                }
-                return null;
-              },
+              labelText: 'Your Email',
+              validationMessage: 'Please enter your email',
             ),
-            const SizedBox(height: 16),
-            TextFormField(
+            MyTextFormField(
               controller: phoneController,
-              decoration: const InputDecoration(
-                labelText: 'Your Phone #',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your phone number';
-                }
-                return null;
-              },
+              labelText: 'Your Phone #',
+              validationMessage: 'Please enter your phone number',
             ),
-            const SizedBox(height: 16),
+            const Heading(text: "Event Information"),
+            RoomField(
+                selectedRoom: selectedRoom,
+                onChanged: (newValue) {
+                  setState(() {
+                    selectedRoom = newValue!;
+                  });
+                }),
+            MyTextFormField(
+              controller: eventNameController,
+              labelText: "Event Name",
+              validationMessage: "Please enter the event name",
+            ),
             TextFormField(
               controller: attendanceController,
               decoration: const InputDecoration(
@@ -88,51 +89,38 @@ class _NewBookingFormState extends State<NewBookingForm> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: eventNameController,
-              decoration: const InputDecoration(
-                labelText: 'Event Name',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter the event name';
-                }
-                return null;
-              },
+            Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                    "Select a time slot on the calendar to set the event date and time",
+                    style: Theme.of(context).textTheme.headlineSmall)),
+            SizedBox(
+              height: 1100,
+              child: Card(child: CalendarWidget(
+                onAppointmentChanged: (a) {
+                  eventDateController.text = dateToString(a.startTime);
+                  eventStartTimeController.text =
+                      TimeOfDay.fromDateTime(a.startTime).format(context);
+                  eventEndTimeController.text =
+                      TimeOfDay.fromDateTime(a.endTime).format(context);
+                },
+              )),
             ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: selectedRoom,
-              decoration: const InputDecoration(
-                labelText: 'Select Room',
-                border: OutlineInputBorder(),
-              ),
-              items: <String>[
-                'Stewardship Hall',
-                'St. John\'s Room',
-                'Magdalen Room',
-                'Gym'
-              ].map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  selectedRoom = newValue!;
-                });
-              },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please select a room';
-                }
-                return null;
-              },
+            DateField(
+              controller: eventDateController,
+              labelText: "Event Date",
+              validationMessage: "Please enter the event date",
             ),
-            const SizedBox(height: 16),
+            TimeField(
+              controller: eventStartTimeController,
+              labelText: 'Event Start Time',
+              validationMessage: 'Please enter the event start time',
+            ),
+            TimeField(
+              controller: eventEndTimeController,
+              labelText: 'Event End Time',
+              validationMessage: 'Please enter the event end time',
+            ),
             TextFormField(
               controller: messageController,
               decoration: const InputDecoration(
@@ -140,16 +128,24 @@ class _NewBookingFormState extends State<NewBookingForm> {
                 border: OutlineInputBorder(),
               ),
               maxLines: 4,
-              validator: null, // not rqeuired
-            ),
-            SizedBox(
-              height: 1100,
-              child: Card(child: CalendarWidget()),
+              validator: null, // not required
             ),
             ElevatedButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
-                  // Handle form submission if validation passes
+                  final booking = Booking(
+                    name: nameController.text,
+                    email: emailController.text,
+                    phone: phoneController.text,
+                    attendance: int.parse(attendanceController.text),
+                    message: messageController.text,
+                    eventName: eventNameController.text,
+                    eventStartTime: eventStartTimeController.text,
+                    eventEndTime: eventEndTimeController.text,
+                    eventDate: eventDateController.text,
+                    selectedRoom: selectedRoom,
+                  );
+                  _showBookingSummaryDialog(context, booking);
                 }
               },
               child: const Text('Submit'),
@@ -159,4 +155,253 @@ class _NewBookingFormState extends State<NewBookingForm> {
       ),
     );
   }
+
+  void _showBookingSummaryDialog(BuildContext context, Booking booking) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Booking Summary'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Name: ${booking.name}'),
+                Text('Email: ${booking.email}'),
+                Text('Phone: ${booking.phone}'),
+                Text('Event Name: ${booking.eventName}'),
+                Text('Event Date: ${booking.eventDate}'),
+                Text('Event Start Time: ${booking.eventStartTime}'),
+                Text('Event End Time: ${booking.eventEndTime}'),
+                Text('Event Attendance: ${booking.attendance}'),
+                Text('Event Location: ${booking.selectedRoom}'),
+                Text('Notes: ${booking.message}'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Submit'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Return to home page
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Request has been submitted')),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class MyTextFormField extends StatelessWidget {
+  final String labelText;
+  final String? validationMessage;
+  final GestureTapCallback? onTap;
+  final TextEditingController controller;
+  final bool? readOnly;
+
+  const MyTextFormField({
+    super.key,
+    required this.controller,
+    required this.labelText,
+    this.validationMessage,
+    this.onTap,
+    this.readOnly,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: TextFormField(
+          controller: controller,
+          onTap: onTap,
+          readOnly: readOnly ?? false,
+          decoration: InputDecoration(
+            labelText: labelText,
+            border: const OutlineInputBorder(),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return validationMessage;
+            }
+            return null;
+          },
+        ));
+  }
+}
+
+class TimeField extends StatelessWidget {
+  final TextEditingController controller;
+  final String labelText;
+  final String? validationMessage;
+
+  const TimeField(
+      {super.key,
+      required this.controller,
+      required this.labelText,
+      this.validationMessage});
+
+  @override
+  Widget build(BuildContext context) {
+    return MyTextFormField(
+      controller: controller,
+      labelText: labelText,
+      validationMessage: validationMessage,
+      readOnly: true,
+      onTap: () async {
+        var initialTime = roundToNearest30Minutes(TimeOfDay.now());
+        if (controller.text.isNotEmpty) {
+          initialTime = parseTimeOfDay(controller.text)!;
+        }
+        TimeOfDay? pickedTime = await showTimePicker(
+          context: context,
+          initialTime: initialTime,
+        );
+        if (pickedTime != null) {
+          final roundedTime = roundToNearest30Minutes(pickedTime);
+          controller.text = roundedTime.format(context);
+        }
+      },
+    );
+  }
+
+  TimeOfDay roundToNearest30Minutes(TimeOfDay time) {
+    final int minute = time.minute;
+    final int mod = minute % 30;
+    final int roundedMinute = mod < 15 ? minute - mod : minute + (30 - mod);
+    return TimeOfDay(hour: time.hour, minute: roundedMinute);
+  }
+}
+
+// Parse a string in the format "HH:MM AM/PM" to a TimeOfDay object
+TimeOfDay? parseTimeOfDay(String time) {
+  var parts = time.split(":");
+  return TimeOfDay(
+    hour: int.parse(parts[0]),
+    minute: int.parse(parts[1].split(" ")[0]),
+  );
+}
+
+class DateField extends StatelessWidget {
+  final TextEditingController controller;
+  final String labelText;
+  final String? validationMessage;
+
+  const DateField(
+      {super.key,
+      required this.controller,
+      required this.labelText,
+      this.validationMessage});
+
+  @override
+  Widget build(BuildContext context) {
+    return MyTextFormField(
+        controller: controller,
+        labelText: labelText,
+        validationMessage: validationMessage,
+        onTap: () async {
+          DateTime? pickedDate = await showDatePicker(
+            context: context,
+            initialDate: DateTime.now(),
+            firstDate: DateTime(2000),
+            lastDate: DateTime(2101),
+          );
+          if (pickedDate != null) {
+            controller.text = dateToString(pickedDate);
+          }
+        });
+  }
+}
+
+String dateToString(DateTime date) {
+  return "${date.toLocal()}".split(' ')[0];
+}
+
+class RoomField extends StatelessWidget {
+  final String selectedRoom;
+  final Function(String?) onChanged;
+
+  const RoomField(
+      {super.key, required this.selectedRoom, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      value: selectedRoom,
+      decoration: const InputDecoration(
+        labelText: 'Event Location',
+        border: OutlineInputBorder(),
+      ),
+      items: <String>[
+        'Stewardship Hall',
+        'St. John\'s Room',
+        'Magdalen Room',
+        'Gym'
+      ].map<DropdownMenuItem<String>>((String value) {
+        return DropdownMenuItem<String>(
+          value: value,
+          child: Text(value),
+        );
+      }).toList(),
+      onChanged: onChanged,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please select a room';
+        }
+        return null;
+      },
+    );
+  }
+}
+
+class Heading extends StatelessWidget {
+  final String text;
+
+  const Heading({super.key, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Text(
+          text,
+          style: Theme.of(context).textTheme.headlineMedium,
+        ));
+  }
+}
+
+class Booking {
+  final String name;
+  final String email;
+  final String phone;
+  final int attendance;
+  final String message;
+  final String eventName;
+  final String eventStartTime;
+  final String eventEndTime;
+  final String eventDate;
+  final String selectedRoom;
+
+  Booking({
+    required this.name,
+    required this.email,
+    required this.phone,
+    required this.attendance,
+    required this.message,
+    required this.eventName,
+    required this.eventStartTime,
+    required this.eventEndTime,
+    required this.eventDate,
+    required this.selectedRoom,
+  });
 }
