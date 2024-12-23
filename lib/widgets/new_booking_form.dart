@@ -39,6 +39,9 @@ class NewBookingFormState extends State<NewBookingForm> {
             TimeOfDay(hour: startTime.hour + 1, minute: startTime.minute)
                 .format(context);
       }
+      if (doorsUnlockTimeController.text.isEmpty) {
+        doorsUnlockTimeController.text = eventStartTimeController.text;
+      }
     });
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -163,6 +166,10 @@ class NewBookingFormState extends State<NewBookingForm> {
                               parseTimeOfDay(eventStartTimeController.text);
                           var endToD =
                               parseTimeOfDay(eventEndTimeController.text);
+                          var unlockToD =
+                              parseTimeOfDay(doorsUnlockTimeController.text);
+                          var lockToD =
+                              parseTimeOfDay(doorsLockTimeController.text);
                           final booking = Booking(
                             name: nameController.text,
                             email: emailController.text,
@@ -174,6 +181,10 @@ class NewBookingFormState extends State<NewBookingForm> {
                                 date.day, startToD!.hour, startToD.minute),
                             eventEndTime: DateTime(date.year, date.month,
                                 date.day, endToD!.hour, endToD.minute),
+                            doorUnlockTime: DateTime(date.year, date.month,
+                                date.day, unlockToD!.hour, unlockToD.minute),
+                            doorLockTime: DateTime(date.year, date.month,
+                                date.day, lockToD!.hour, lockToD.minute),
                             selectedRoom: selectedRoom,
                           );
                           _showBookingSummaryDialog(context, booking, repo);

@@ -7,6 +7,8 @@ class Booking {
   final String eventName;
   final DateTime eventStartTime;
   final DateTime eventEndTime;
+  final DateTime doorUnlockTime;
+  final DateTime doorLockTime;
   final String selectedRoom;
 
   Booking({
@@ -18,6 +20,8 @@ class Booking {
     required this.eventName,
     required this.eventStartTime,
     required this.eventEndTime,
+    required this.doorUnlockTime,
+    required this.doorLockTime,
     required this.selectedRoom,
   });
 }
