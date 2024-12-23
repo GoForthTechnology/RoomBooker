@@ -143,8 +143,8 @@ class _NewBookingFormState extends State<NewBookingForm> {
               validator: null, // not rqeuired
             ),
             SizedBox(
-              height: 500,
-              child: CalendarWidget(),
+              height: 1100,
+              child: Card(child: CalendarWidget()),
             ),
             ElevatedButton(
               onPressed: () {
