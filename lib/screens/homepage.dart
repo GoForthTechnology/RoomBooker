@@ -22,9 +22,10 @@ class HomeScreen extends StatelessWidget {
               child: const Text('New Booking'),
             ),
             const SizedBox(height: 20),
-            const ElevatedButton(
-              onPressed: null,
-              child: Text('Button 2'),
+            ElevatedButton(
+              onPressed: () =>
+                  AutoRouter.of(context).push(const ReviewBookingsRoute()),
+              child: const Text('Review Bookings'),
             ),
           ],
         ),

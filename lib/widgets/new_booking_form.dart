@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:room_booker/widgets/calendar_widget.dart';
+import 'package:provider/provider.dart';
+import 'package:room_booker/entities/booking.dart';
+import 'package:room_booker/repos/booking_repo.dart';
+import 'package:room_booker/widgets/single_appointment_calendar_widget.dart';
 
 class NewBookingForm extends StatefulWidget {
   const NewBookingForm({super.key});
@@ -97,7 +100,7 @@ class NewBookingFormState extends State<NewBookingForm> {
             ),
             SizedBox(
               height: 1100,
-              child: Card(child: CalendarWidget(
+              child: Card(child: SingleAppointmentCalendarWidget(
                 onAppointmentChanged: (a) {
                   eventDateController.text = dateToString(a.startTime);
                   eventStartTimeController.text =
@@ -151,33 +154,41 @@ class NewBookingFormState extends State<NewBookingForm> {
               maxLines: 4,
               validator: null, // not required
             ),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  final booking = Booking(
-                    name: nameController.text,
-                    email: emailController.text,
-                    phone: phoneController.text,
-                    attendance: int.parse(attendanceController.text),
-                    message: messageController.text,
-                    eventName: eventNameController.text,
-                    eventStartTime: eventStartTimeController.text,
-                    eventEndTime: eventEndTimeController.text,
-                    eventDate: eventDateController.text,
-                    selectedRoom: selectedRoom,
-                  );
-                  _showBookingSummaryDialog(context, booking);
-                }
-              },
-              child: const Text('Submit'),
-            ),
+            Consumer<BookingRepo>(
+                builder: (context, repo, child) => ElevatedButton(
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          var date = DateTime.parse(eventDateController.text);
+                          var startToD =
+                              parseTimeOfDay(eventStartTimeController.text);
+                          var endToD =
+                              parseTimeOfDay(eventEndTimeController.text);
+                          final booking = Booking(
+                            name: nameController.text,
+                            email: emailController.text,
+                            phone: phoneController.text,
+                            attendance: int.parse(attendanceController.text),
+                            message: messageController.text,
+                            eventName: eventNameController.text,
+                            eventStartTime: DateTime(date.year, date.month,
+                                date.day, startToD!.hour, startToD.minute),
+                            eventEndTime: DateTime(date.year, date.month,
+                                date.day, endToD!.hour, endToD.minute),
+                            selectedRoom: selectedRoom,
+                          );
+                          _showBookingSummaryDialog(context, booking, repo);
+                        }
+                      },
+                      child: const Text('Submit'),
+                    )),
           ],
         ),
       ),
     );
   }
 
-  void _showBookingSummaryDialog(BuildContext context, Booking booking) {
+  void _showBookingSummaryDialog(
+      BuildContext context, Booking booking, BookingRepo repo) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -190,7 +201,6 @@ class NewBookingFormState extends State<NewBookingForm> {
                 Text('Email: ${booking.email}'),
                 Text('Phone: ${booking.phone}'),
                 Text('Event Name: ${booking.eventName}'),
-                Text('Event Date: ${booking.eventDate}'),
                 Text('Event Start Time: ${booking.eventStartTime}'),
                 Text('Event End Time: ${booking.eventEndTime}'),
                 Text('Event Attendance: ${booking.attendance}'),
@@ -208,7 +218,8 @@ class NewBookingFormState extends State<NewBookingForm> {
             ),
             TextButton(
               child: const Text('Submit'),
-              onPressed: () {
+              onPressed: () async {
+                await repo.addRequest(booking);
                 Navigator.of(context).pop();
                 Navigator.of(context).pop(); // Return to home page
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -429,30 +440,4 @@ class Instructions extends StatelessWidget {
           style: Theme.of(context).textTheme.headlineSmall,
         ));
   }
-}
-
-class Booking {
-  final String name;
-  final String email;
-  final String phone;
-  final int attendance;
-  final String message;
-  final String eventName;
-  final String eventStartTime;
-  final String eventEndTime;
-  final String eventDate;
-  final String selectedRoom;
-
-  Booking({
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.attendance,
-    required this.message,
-    required this.eventName,
-    required this.eventStartTime,
-    required this.eventEndTime,
-    required this.eventDate,
-    required this.selectedRoom,
-  });
 }

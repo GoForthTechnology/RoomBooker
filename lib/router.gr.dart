@@ -46,3 +46,22 @@ class NewBookingRoute extends PageRouteInfo<void> {
     },
   );
 }
+
+/// generated route for
+/// [ReviewBookingsScreen]
+class ReviewBookingsRoute extends PageRouteInfo<void> {
+  const ReviewBookingsRoute({List<PageRouteInfo>? children})
+      : super(
+          ReviewBookingsRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'ReviewBookingsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const ReviewBookingsScreen();
+    },
+  );
+}
