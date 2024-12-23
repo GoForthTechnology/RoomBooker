@@ -32,6 +32,9 @@ class _CalendarWidgetState extends State<CalendarWidget> {
   Widget build(BuildContext context) {
     return SfCalendar(
       view: CalendarView.week,
+      showNavigationArrow: true,
+      showDatePickerButton: true,
+      showTodayButton: true,
       controller: _calendarController,
       dataSource: AppointmentDataSource(_appointments),
       onTap: (CalendarTapDetails details) {
