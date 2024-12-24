@@ -1,41 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:room_booker/entities/booking.dart';
-import 'package:room_booker/repos/booking_repo.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
-class ReviewBookingsCalendar extends StatefulWidget {
-  const ReviewBookingsCalendar({super.key});
+class ReadonlyCalendar extends StatefulWidget {
+  final Stream<List<Booking>> bookings;
+
+  const ReadonlyCalendar({super.key, required this.bookings});
 
   @override
-  _ReviewBookingsCalendarState createState() => _ReviewBookingsCalendarState();
+  _ReadonlyCalendarState createState() => _ReadonlyCalendarState();
 }
 
-class _ReviewBookingsCalendarState extends State<ReviewBookingsCalendar> {
+class _ReadonlyCalendarState extends State<ReadonlyCalendar> {
   final CalendarController _calendarController = CalendarController();
   final List<Appointment> _appointments = [];
   Appointment? _newAppointment;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BookingRepo>(
-        builder: (context, repo, child) => StreamBuilder(
-              stream: repo.requests,
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const CircularProgressIndicator();
-                }
-                if (snapshot.hasData) {
-                  _appointments.clear();
-                  if (_newAppointment != null) {
-                    _appointments.add(_newAppointment!);
-                  }
-                  _appointments.addAll(snapshot.data!.map(toAppointment));
-                }
-                return SizedBox(
-                  height: 1100,
-                  child: Card(
-                      child: SfCalendar(
+    return StreamBuilder(
+      stream: widget.bookings,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const CircularProgressIndicator();
+        }
+        if (snapshot.hasData) {
+          _appointments.clear();
+          if (_newAppointment != null) {
+            _appointments.add(_newAppointment!);
+          }
+          _appointments.addAll(snapshot.data!.map(toAppointment));
+        }
+        return SizedBox(
+            height: 1100,
+            child: Card(
+              child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SfCalendar(
                     view: CalendarView.week,
                     showNavigationArrow: true,
                     showDatePickerButton: true,
@@ -47,9 +48,9 @@ class _ReviewBookingsCalendarState extends State<ReviewBookingsCalendar> {
                       // TODO
                     },
                   )),
-                );
-              },
             ));
+      },
+    );
   }
 
   List<TimeRegion> _getTimeRegions() {

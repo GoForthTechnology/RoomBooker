@@ -1,8 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:room_booker/widgets/heading.dart';
 import 'package:room_booker/widgets/pending_bookings.dart';
-import 'package:room_booker/widgets/review_booking_calendar.dart';
 
 @RoutePage()
 class ReviewBookingsScreen extends StatelessWidget {
