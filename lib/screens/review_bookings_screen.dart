@@ -2,7 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/repos/booking_repo.dart';
-import 'package:room_booker/widgets/readonly_calendar_widget.dart';
+import 'package:room_booker/widgets/review_booking_calendar.dart';
 
 @RoutePage()
 class ReviewBookingsScreen extends StatelessWidget {
@@ -14,26 +14,17 @@ class ReviewBookingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('New Booking Request'),
       ),
-      body: const Center(
-        child: SingleChildScrollView(child: ReviewBookingsCalendar()),
+      body: Center(
+        child: SingleChildScrollView(
+            child: Column(
+          children: [
+            ReviewBookingsCalendar(
+              onAppointmentChanged: (appointment) {},
+              bookings: const Stream.empty(),
+            )
+          ],
+        )),
       ),
     );
-  }
-}
-
-class ReviewBookingsCalendar extends StatelessWidget {
-  const ReviewBookingsCalendar({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<BookingRepo>(
-        builder: (context, repo, child) => SizedBox(
-              height: 1100,
-              child: Card(
-                  child: ReadOnlyCalendarWidget(
-                bookings: repo.requests,
-                onAppointmentChanged: (a) {},
-              )),
-            ));
   }
 }

@@ -17,19 +17,16 @@ extension AppointmentCopyWith on Appointment {
   }
 }
 
-class SingleAppointmentCalendarWidget extends StatefulWidget {
+class NewBookingCalendar extends StatefulWidget {
   final Function(Appointment) onAppointmentChanged;
 
-  const SingleAppointmentCalendarWidget(
-      {super.key, required this.onAppointmentChanged});
+  const NewBookingCalendar({super.key, required this.onAppointmentChanged});
 
   @override
-  _SingleAppointmentCalendarWidgetState createState() =>
-      _SingleAppointmentCalendarWidgetState();
+  _NewBookingCalendarState createState() => _NewBookingCalendarState();
 }
 
-class _SingleAppointmentCalendarWidgetState
-    extends State<SingleAppointmentCalendarWidget> {
+class _NewBookingCalendarState extends State<NewBookingCalendar> {
   final CalendarController _calendarController = CalendarController();
   final List<Appointment> _appointments = [];
 

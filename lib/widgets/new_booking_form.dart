@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/booking.dart';
 import 'package:room_booker/repos/booking_repo.dart';
-import 'package:room_booker/widgets/single_appointment_calendar_widget.dart';
+import 'package:room_booker/widgets/heading.dart';
+import 'package:room_booker/widgets/new_booking_calendar.dart';
 
 class NewBookingForm extends StatefulWidget {
   const NewBookingForm({super.key});
@@ -103,7 +104,7 @@ class NewBookingFormState extends State<NewBookingForm> {
             ),
             SizedBox(
               height: 1100,
-              child: Card(child: SingleAppointmentCalendarWidget(
+              child: Card(child: NewBookingCalendar(
                 onAppointmentChanged: (a) {
                   eventDateController.text = dateToString(a.startTime);
                   eventStartTimeController.text =
@@ -418,22 +419,6 @@ class RoomField extends StatelessWidget {
         return null;
       },
     );
-  }
-}
-
-class Heading extends StatelessWidget {
-  final String text;
-
-  const Heading({super.key, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Text(
-          text,
-          style: Theme.of(context).textTheme.headlineMedium,
-        ));
   }
 }
 

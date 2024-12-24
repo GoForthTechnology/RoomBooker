@@ -18,15 +18,15 @@ extension AppointmentCopyWith on Appointment {
   }
 }
 
-class ReadOnlyCalendarWidget extends StatefulWidget {
+class ReviewBookingsCalendar extends StatefulWidget {
   final Function(Appointment) onAppointmentChanged;
   final Stream<List<Booking>> bookings;
 
-  const ReadOnlyCalendarWidget(
+  const ReviewBookingsCalendar(
       {super.key, required this.onAppointmentChanged, required this.bookings});
 
   @override
-  _ReadOnlyCalendarWidgetState createState() => _ReadOnlyCalendarWidgetState();
+  _ReviewBookingsCalendarState createState() => _ReviewBookingsCalendarState();
 }
 
 Appointment toAppointment(Booking booking) {
@@ -38,7 +38,7 @@ Appointment toAppointment(Booking booking) {
   );
 }
 
-class _ReadOnlyCalendarWidgetState extends State<ReadOnlyCalendarWidget> {
+class _ReviewBookingsCalendarState extends State<ReviewBookingsCalendar> {
   final CalendarController _calendarController = CalendarController();
   final List<Appointment> _appointments = [];
   Appointment? _newAppointment;
