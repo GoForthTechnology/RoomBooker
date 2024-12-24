@@ -1,41 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:room_booker/entities/booking.dart';
+import 'package:room_booker/repos/booking_repo.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
-extension AppointmentCopyWith on Appointment {
-  Appointment copyWith({
-    DateTime? startTime,
-    DateTime? endTime,
-    String? subject,
-    Color? color,
-  }) {
-    return Appointment(
-      startTime: startTime ?? this.startTime,
-      endTime: endTime ?? this.endTime,
-      subject: subject ?? this.subject,
-      color: color ?? this.color,
-    );
-  }
-}
-
 class ReviewBookingsCalendar extends StatefulWidget {
-  final Function(Appointment) onAppointmentChanged;
-  final Stream<List<Booking>> bookings;
-
-  const ReviewBookingsCalendar(
-      {super.key, required this.onAppointmentChanged, required this.bookings});
+  const ReviewBookingsCalendar({super.key});
 
   @override
   _ReviewBookingsCalendarState createState() => _ReviewBookingsCalendarState();
-}
-
-Appointment toAppointment(Booking booking) {
-  return Appointment(
-    startTime: booking.eventStartTime,
-    endTime: booking.eventEndTime,
-    subject: booking.eventName,
-    color: Colors.blue,
-  );
 }
 
 class _ReviewBookingsCalendarState extends State<ReviewBookingsCalendar> {
@@ -45,53 +18,38 @@ class _ReviewBookingsCalendarState extends State<ReviewBookingsCalendar> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
-        stream: widget.bookings,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const CircularProgressIndicator();
-          }
-          if (snapshot.hasData) {
-            _appointments.clear();
-            if (_newAppointment != null) {
-              _appointments.add(_newAppointment!);
-            }
-            _appointments.addAll(snapshot.data!.map(toAppointment));
-          }
-          return SfCalendar(
-            view: CalendarView.week,
-            showNavigationArrow: true,
-            showDatePickerButton: true,
-            showTodayButton: true,
-            controller: _calendarController,
-            dataSource: AppointmentDataSource(_appointments),
-            specialRegions: _getTimeRegions(),
-            onTap: (CalendarTapDetails details) {
-              if (details.targetElement == CalendarElement.calendarCell) {
-                setState(() {
-                  var appointment = Appointment(
-                    startTime: details.date!,
-                    endTime: details.date!.add(const Duration(hours: 1)),
-                    subject: 'New Appointment',
-                    color: Colors.blue,
-                  );
-                  _newAppointment = appointment;
-                  widget.onAppointmentChanged(appointment);
-                });
-              }
-            },
-            allowAppointmentResize: true, // Enable appointment resizing
-            onAppointmentResizeEnd: (AppointmentResizeEndDetails details) {
-              setState(() {
-                _newAppointment = details.appointment.copyWith(
-                  startTime: roundToNearest30Minutes(details.startTime!),
-                  endTime: roundToNearest30Minutes(details.endTime!),
+    return Consumer<BookingRepo>(
+        builder: (context, repo, child) => StreamBuilder(
+              stream: repo.requests,
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const CircularProgressIndicator();
+                }
+                if (snapshot.hasData) {
+                  _appointments.clear();
+                  if (_newAppointment != null) {
+                    _appointments.add(_newAppointment!);
+                  }
+                  _appointments.addAll(snapshot.data!.map(toAppointment));
+                }
+                return SizedBox(
+                  height: 1100,
+                  child: Card(
+                      child: SfCalendar(
+                    view: CalendarView.week,
+                    showNavigationArrow: true,
+                    showDatePickerButton: true,
+                    showTodayButton: true,
+                    controller: _calendarController,
+                    dataSource: AppointmentDataSource(_appointments),
+                    specialRegions: _getTimeRegions(),
+                    onTap: (CalendarTapDetails details) {
+                      // TODO
+                    },
+                  )),
                 );
-                widget.onAppointmentChanged(_newAppointment!);
-              });
-            },
-          );
-        });
+              },
+            ));
   }
 
   List<TimeRegion> _getTimeRegions() {
@@ -145,4 +103,13 @@ DateTime roundToNearest30Minutes(DateTime dateTime) {
   final int roundedMinute = mod < 15 ? minute - mod : minute + (30 - mod);
   return DateTime(dateTime.year, dateTime.month, dateTime.day, dateTime.hour,
       roundedMinute);
+}
+
+Appointment toAppointment(Booking booking) {
+  return Appointment(
+    startTime: booking.eventStartTime,
+    endTime: booking.eventEndTime,
+    subject: booking.eventName,
+    color: Colors.blue,
+  );
 }
