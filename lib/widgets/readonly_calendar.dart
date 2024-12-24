@@ -3,12 +3,30 @@ import 'package:room_booker/entities/booking.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class ReadonlyCalendar extends StatefulWidget {
+  final Function(Booking) onTapBooking;
   final Stream<List<Booking>> bookings;
 
-  const ReadonlyCalendar({super.key, required this.bookings});
+  const ReadonlyCalendar(
+      {super.key, required this.bookings, required this.onTapBooking});
 
   @override
   _ReadonlyCalendarState createState() => _ReadonlyCalendarState();
+}
+
+Booking fromAppointment(Appointment appointment) {
+  return Booking(
+    eventName: appointment.subject,
+    eventStartTime: appointment.startTime,
+    eventEndTime: appointment.endTime,
+    selectedRoom: appointment.location ?? "",
+    name: '',
+    email: '',
+    message: '',
+    phone: '',
+    attendance: 0,
+    doorUnlockTime: appointment.startTime,
+    doorLockTime: appointment.endTime,
+  );
 }
 
 class _ReadonlyCalendarState extends State<ReadonlyCalendar> {
@@ -45,7 +63,9 @@ class _ReadonlyCalendarState extends State<ReadonlyCalendar> {
                     dataSource: AppointmentDataSource(_appointments),
                     specialRegions: _getTimeRegions(),
                     onTap: (CalendarTapDetails details) {
-                      // TODO
+                      for (var appointment in details.appointments ?? []) {
+                        widget.onTapBooking(fromAppointment(appointment));
+                      }
                     },
                   )),
             ));
@@ -112,5 +132,6 @@ Appointment toAppointment(Booking booking) {
     endTime: booking.eventEndTime,
     subject: booking.eventName,
     color: Colors.blue,
+    location: booking.selectedRoom,
   );
 }

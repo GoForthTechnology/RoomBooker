@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:flutter/material.dart';
+import 'package:room_booker/entities/booking.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 extension AppointmentCopyWith on Appointment {
@@ -14,6 +16,31 @@ extension AppointmentCopyWith on Appointment {
       endTime: endTime ?? this.endTime,
       subject: subject ?? this.subject,
       color: color ?? this.color,
+    );
+  }
+
+  Booking toBooking() {
+    return Booking(
+      eventName: subject,
+      eventStartTime: startTime,
+      eventEndTime: endTime,
+      name: '',
+      email: '',
+      message: '',
+      phone: '',
+      attendance: 0,
+      doorUnlockTime: startTime,
+      doorLockTime: endTime,
+      selectedRoom: '',
+    );
+  }
+
+  static Appointment fromBooking(Booking booking) {
+    return Appointment(
+      startTime: booking.eventStartTime,
+      endTime: booking.eventEndTime,
+      subject: booking.eventName,
+      color: Colors.blue,
     );
   }
 }
