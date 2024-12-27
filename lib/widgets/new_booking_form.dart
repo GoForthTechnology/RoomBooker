@@ -7,7 +7,9 @@ import 'package:room_booker/widgets/heading.dart';
 import 'package:room_booker/widgets/new_booking_calendar.dart';
 
 class NewBookingForm extends StatefulWidget {
-  const NewBookingForm({super.key});
+  final DateTime? startTime;
+
+  const NewBookingForm({super.key, this.startTime});
 
   @override
   NewBookingFormState createState() => NewBookingFormState();
@@ -27,6 +29,22 @@ class NewBookingFormState extends State<NewBookingForm> {
   final doorsLockTimeController = TextEditingController();
   final doorsUnlockTimeController = TextEditingController();
   String selectedRoom = 'Stewardship Hall'; // Default value for dropdown
+
+  @override
+  void initState() {
+    if (widget.startTime != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        eventDateController.text = dateToString(widget.startTime!);
+        eventStartTimeController.text =
+            TimeOfDay.fromDateTime(widget.startTime!).format(context);
+        eventEndTimeController.text = TimeOfDay.fromDateTime(
+                widget.startTime!.add(const Duration(hours: 1)))
+            .format(context);
+        doorsUnlockTimeController.text = eventStartTimeController.text;
+      });
+    }
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +122,10 @@ class NewBookingFormState extends State<NewBookingForm> {
             ),
             SizedBox(
               height: 1100,
-              child: Card(child: NewBookingCalendar(
+              child: Card(
+                  child: NewBookingCalendar(
+                initialStartTime: widget.startTime,
+                initialEndTime: widget.startTime?.add(const Duration(hours: 1)),
                 onAppointmentChanged: (a) {
                   eventDateController.text = dateToString(a.startTime);
                   eventStartTimeController.text =

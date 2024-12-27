@@ -15,8 +15,7 @@ class HomeScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add_circle),
-            onPressed: () =>
-                AutoRouter.of(context).push(const NewBookingRoute()),
+            onPressed: () => AutoRouter.of(context).push(NewBookingRoute()),
           ),
           IconButton(
             icon: const Icon(Icons.check_circle),

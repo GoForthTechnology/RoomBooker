@@ -30,10 +30,17 @@ class HomeRoute extends PageRouteInfo<void> {
 
 /// generated route for
 /// [NewBookingScreen]
-class NewBookingRoute extends PageRouteInfo<void> {
-  const NewBookingRoute({List<PageRouteInfo>? children})
-      : super(
+class NewBookingRoute extends PageRouteInfo<NewBookingRouteArgs> {
+  NewBookingRoute({
+    Key? key,
+    DateTime? startTime,
+    List<PageRouteInfo>? children,
+  }) : super(
           NewBookingRoute.name,
+          args: NewBookingRouteArgs(
+            key: key,
+            startTime: startTime,
+          ),
           initialChildren: children,
         );
 
@@ -42,9 +49,30 @@ class NewBookingRoute extends PageRouteInfo<void> {
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const NewBookingScreen();
+      final args = data.argsAs<NewBookingRouteArgs>(
+          orElse: () => const NewBookingRouteArgs());
+      return NewBookingScreen(
+        key: args.key,
+        startTime: args.startTime,
+      );
     },
   );
+}
+
+class NewBookingRouteArgs {
+  const NewBookingRouteArgs({
+    this.key,
+    this.startTime,
+  });
+
+  final Key? key;
+
+  final DateTime? startTime;
+
+  @override
+  String toString() {
+    return 'NewBookingRouteArgs{key: $key, startTime: $startTime}';
+  }
 }
 
 /// generated route for

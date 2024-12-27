@@ -1,4 +1,12 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:room_booker/entities/blackout_window.dart';
+import 'package:room_booker/repos/booking_repo.dart';
+import 'package:room_booker/utils/appointment_extensions.dart';
+import 'package:room_booker/widgets/streaming_calendar.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 extension AppointmentCopyWith on Appointment {
@@ -18,104 +26,89 @@ extension AppointmentCopyWith on Appointment {
 }
 
 class NewBookingCalendar extends StatefulWidget {
+  final DateTime? initialStartTime;
+  final DateTime? initialEndTime;
+
   final Function(Appointment) onAppointmentChanged;
 
-  const NewBookingCalendar({super.key, required this.onAppointmentChanged});
+  NewBookingCalendar(
+      {super.key,
+      required this.onAppointmentChanged,
+      this.initialStartTime,
+      this.initialEndTime});
 
   @override
-  _NewBookingCalendarState createState() => _NewBookingCalendarState();
+  State<StatefulWidget> createState() => _NewBookingCalendarState();
 }
 
 class _NewBookingCalendarState extends State<NewBookingCalendar> {
-  final CalendarController _calendarController = CalendarController();
-  final List<Appointment> _appointments = [];
+  final PublishSubject<Appointment?> _appointmentSubject = PublishSubject();
+
+  @override
+  void initState() {
+    if (widget.initialEndTime != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        var appointment = Appointment(
+          startTime: widget.initialStartTime!,
+          endTime: widget.initialEndTime!,
+          subject: 'New Appointment',
+          color: Colors.blue,
+        );
+        _updateAppointment(appointment);
+      });
+    }
+    super.initState();
+  }
+
+  void _updateAppointment(Appointment appointment) {
+    _appointmentSubject.add(appointment);
+    widget.onAppointmentChanged(appointment);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SfCalendar(
-      view: CalendarView.week,
-      showNavigationArrow: true,
-      showDatePickerButton: true,
-      showTodayButton: true,
-      controller: _calendarController,
-      dataSource: AppointmentDataSource(_appointments),
-      specialRegions: _getTimeRegions(),
-      onTap: (CalendarTapDetails details) {
-        if (details.targetElement == CalendarElement.calendarCell) {
-          setState(() {
-            var appointment = Appointment(
-              startTime: details.date!,
-              endTime: details.date!.add(const Duration(hours: 1)),
-              subject: 'New Appointment',
-              color: Colors.blue,
-            );
-            if (_appointments.isEmpty) {
-              _appointments.add(appointment);
-            } else {
-              _appointments[0] = appointment;
-            }
-            widget.onAppointmentChanged(appointment);
-          });
-        }
-      },
-      allowAppointmentResize: true, // Enable appointment resizing
-      onAppointmentResizeEnd: (AppointmentResizeEndDetails details) {
-        setState(() {
-          final Appointment appointment = details.appointment;
-          final int index = _appointments.indexOf(appointment);
-          var appoinment = appointment.copyWith(
-            startTime: roundToNearest30Minutes(details.startTime!),
-            endTime: roundToNearest30Minutes(details.endTime!),
-          );
-          _appointments[index] = appoinment;
-          widget.onAppointmentChanged(appoinment);
-        });
-      },
-    );
-  }
+    return Consumer<BookingRepo>(
+        builder: (context, repo, child) => StreamingCalendar(
+              view: CalendarView.week,
+              showNavigationArrow: true,
+              showDatePickerButton: true,
+              showTodayButton: true,
+              allowAppointmentResize: true,
+              stateStream: Rx.combineLatest3(
+                  _appointmentSubject.stream.startWith(null),
+                  repo.bookings,
+                  repo.blackoutWindows.asStream(),
+                  (appointment, bookings, blackoutWindows) {
+                var windows = blackoutWindows;
+                windows.addAll(
+                    bookings.map((booking) => booking.toBlackoutWindow()));
 
-  List<TimeRegion> _getTimeRegions() {
-    return [
-      TimeRegion(
-        startTime: DateTime(2023, 1, 1, 0, 0),
-        endTime: DateTime(2023, 1, 1, 5, 59),
-        enablePointerInteraction: false,
-        recurrenceRule: 'FREQ=DAILY',
-        color: Colors.grey.withOpacity(0.2),
-        text: "Too Early",
-      ),
-      TimeRegion(
-        startTime: DateTime(2023, 1, 1, 22, 0),
-        endTime: DateTime(2023, 1, 1, 23, 59),
-        enablePointerInteraction: false,
-        recurrenceRule: 'FREQ=DAILY',
-        text: "Too Late",
-      ),
-      TimeRegion(
-        startTime: DateTime(2024, 12, 24, 6, 0),
-        endTime: DateTime(2024, 12, 24, 21, 59),
-        text: "Christmas Eve",
-        enablePointerInteraction: false,
-      ),
-      TimeRegion(
-        startTime: DateTime(2024, 12, 25, 6, 0),
-        endTime: DateTime(2024, 12, 25, 21, 59),
-        text: "Christmas Day",
-        enablePointerInteraction: false,
-      ),
-      TimeRegion(
-        startTime: DateTime(2025, 1, 1, 6, 0),
-        endTime: DateTime(2025, 1, 1, 21, 59),
-        text: "New Year's Day",
-        enablePointerInteraction: false,
-      )
-    ];
-  }
-}
-
-class AppointmentDataSource extends CalendarDataSource {
-  AppointmentDataSource(List<Appointment> source) {
-    appointments = source;
+                return CalendarState(
+                    bookings:
+                        appointment == null ? [] : [appointment.toBooking()],
+                    blackoutWindows: windows);
+              }),
+              onAppointmentResizeEnd: (details) async {
+                var startTime = roundToNearest30Minutes(details.startTime);
+                var endTime = roundToNearest30Minutes(details.endTime);
+                _updateAppointment(Appointment(
+                  startTime: startTime,
+                  endTime: endTime,
+                  subject: details.appointment.subject,
+                  color: details.appointment.color,
+                ));
+              },
+              onTap: (detail) {
+                if (detail.targetElement == CalendarElement.calendarCell) {
+                  _updateAppointment(Appointment(
+                    startTime: detail.date!,
+                    endTime: detail.date!.add(const Duration(hours: 1)),
+                    subject: 'New Appointment',
+                    color: Colors.blue,
+                  ));
+                }
+              },
+            ));
   }
 }
 

@@ -4,8 +4,24 @@ import 'package:room_booker/entities/booking.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CalendarState {
-  List<Booking> bookings = [];
-  List<BlackoutWindow> blackoutWindows = [];
+  final List<Booking> bookings;
+  final List<BlackoutWindow> blackoutWindows;
+
+  CalendarState({required this.bookings, required this.blackoutWindows}) {
+    blackoutWindows.sort((a, b) => a.start.compareTo(b.start));
+  }
+}
+
+class ResizeDetails {
+  final Appointment appointment;
+  final DateTime startTime;
+  final DateTime endTime;
+
+  ResizeDetails({
+    required this.appointment,
+    required this.startTime,
+    required this.endTime,
+  });
 }
 
 class StreamingCalendar extends StatefulWidget {
@@ -14,19 +30,24 @@ class StreamingCalendar extends StatefulWidget {
   final bool showDatePickerButton;
   final bool showTodayButton;
   final CalendarView view;
-  final Function(CalendarTapDetails) onTap;
-  final Function(Booking) onTapBooking;
+  final Function(CalendarTapDetails)? onTap;
+  final Function(Booking)? onTapBooking;
   final CalendarController controller = CalendarController();
+
+  final bool allowAppointmentResize;
+  final Function(ResizeDetails)? onAppointmentResizeEnd;
 
   StreamingCalendar(
       {super.key,
       required this.stateStream,
-      required this.showNavigationArrow,
-      required this.showDatePickerButton,
-      required this.showTodayButton,
       required this.view,
-      required this.onTap,
-      required this.onTapBooking}); // Added controller parameter
+      this.onTap,
+      this.onTapBooking,
+      this.showNavigationArrow = false,
+      this.showDatePickerButton = false,
+      this.showTodayButton = false,
+      this.onAppointmentResizeEnd,
+      this.allowAppointmentResize = false}); // Added controller parameter
 
   @override
   _StreamingCalendarState createState() => _StreamingCalendarState();
@@ -53,16 +74,28 @@ class _StreamingCalendarState extends State<StreamingCalendar> {
     List<TimeRegion> blackoutWindows =
         state.blackoutWindows.map(toTimeRegion).toList();
 
+    Function(AppointmentResizeEndDetails)? onResizeEnd;
+    if (widget.onAppointmentResizeEnd != null) {
+      onResizeEnd = (details) {
+        widget.onAppointmentResizeEnd!(ResizeDetails(
+            appointment: details.appointment,
+            startTime: details.startTime!,
+            endTime: details.endTime!));
+      };
+    }
+
     return SfCalendar(
       view: widget.view,
       onTap: (details) {
         var appointments = details.appointments ?? [];
-        if (appointments.isEmpty) {
-          widget.onTap(details);
+        if (appointments.isEmpty && widget.onTap != null) {
+          widget.onTap!(details);
           return;
         }
-        for (var appointment in details.appointments ?? []) {
-          widget.onTapBooking(fromAppointment(appointment));
+        if (widget.onTapBooking != null) {
+          for (var appointment in details.appointments ?? []) {
+            widget.onTapBooking!(fromAppointment(appointment));
+          }
         }
       },
       controller: widget.controller,
@@ -71,6 +104,8 @@ class _StreamingCalendarState extends State<StreamingCalendar> {
       showDatePickerButton: widget.showDatePickerButton,
       showTodayButton: widget.showTodayButton,
       specialRegions: blackoutWindows,
+      allowAppointmentResize: widget.allowAppointmentResize,
+      onAppointmentResizeEnd: onResizeEnd,
     );
   }
 }

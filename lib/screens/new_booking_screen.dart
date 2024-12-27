@@ -4,7 +4,9 @@ import 'package:room_booker/widgets/new_booking_form.dart';
 
 @RoutePage()
 class NewBookingScreen extends StatelessWidget {
-  const NewBookingScreen({super.key});
+  final DateTime? startTime;
+
+  const NewBookingScreen({super.key, this.startTime});
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +15,10 @@ class NewBookingScreen extends StatelessWidget {
         title: const Text('New Booking Request'),
       ),
       body: Center(
-        child: SingleChildScrollView(child: NewBookingForm()),
+        child: SingleChildScrollView(
+            child: NewBookingForm(
+          startTime: startTime,
+        )),
       ),
     );
   }

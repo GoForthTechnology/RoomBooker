@@ -1,3 +1,5 @@
+import 'package:room_booker/entities/blackout_window.dart';
+
 class Booking {
   final String name;
   final String email;
@@ -54,6 +56,14 @@ class Booking {
       doorLockTime: doorLockTime ?? this.doorLockTime,
       selectedRoom: selectedRoom ?? this.selectedRoom,
       confirmation: confirmation ?? this.confirmation,
+    );
+  }
+
+  BlackoutWindow toBlackoutWindow() {
+    return BlackoutWindow(
+      start: eventStartTime,
+      end: eventEndTime,
+      reason: eventName,
     );
   }
 }
