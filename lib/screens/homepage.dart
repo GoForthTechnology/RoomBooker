@@ -25,14 +25,7 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: const SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CurrentBookingsCalendar(),
-          ],
-        ),
-      ),
+      body: CurrentBookingsCalendar(),
     );
   }
 }

@@ -12,7 +12,7 @@ class PendingBookings extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<BookingRepo>(
       builder: (context, repo, child) => StreamBuilder(
-        stream: repo.requests,
+        stream: repo.bookings,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();

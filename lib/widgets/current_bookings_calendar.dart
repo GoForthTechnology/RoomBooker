@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/booking.dart';
 import 'package:room_booker/repos/booking_repo.dart';
-import 'package:room_booker/widgets/readonly_calendar.dart';
+import 'package:room_booker/widgets/streaming_calendar.dart';
+import 'package:rxdart/rxdart.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CurrentBookingsCalendar extends StatelessWidget {
   const CurrentBookingsCalendar({super.key});
@@ -10,11 +12,20 @@ class CurrentBookingsCalendar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<BookingRepo>(
-      builder: (context, repo, child) => ReadonlyCalendar(
-        bookings: repo.requests,
-        onTapBooking: (booking) {
-          _showBookingSummaryDialog(context, booking);
-        },
+      builder: (context, repo, child) => StreamingCalendar(
+        view: CalendarView.week,
+        stateStream: Rx.combineLatest2(
+          repo.bookings,
+          repo.blackoutWindows.asStream(),
+          (bookings, blackoutWindows) => CalendarState()
+            ..bookings = bookings
+            ..blackoutWindows = blackoutWindows,
+        ),
+        onTapBooking: (booking) => _showBookingSummaryDialog(context, booking),
+        onTap: (details) {},
+        showNavigationArrow: true,
+        showDatePickerButton: true,
+        showTodayButton: true,
       ),
     );
   }
