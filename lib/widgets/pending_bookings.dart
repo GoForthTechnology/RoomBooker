@@ -12,15 +12,16 @@ class PendingBookings extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<BookingRepo>(
       builder: (context, repo, child) => StreamBuilder(
-        stream: repo.bookings,
+        stream: repo.requests,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();
           }
-          return BookingList(
+          return Expanded(
+              child: BookingList(
             bookings: snapshot.data!,
             onFocusBooking: onFocusBooking,
-          );
+          ));
         },
       ),
     );
@@ -40,18 +41,84 @@ class BookingList extends StatelessWidget {
       shrinkWrap: true,
       itemCount: bookings.length,
       itemBuilder: (context, index) {
-        final booking = bookings[index];
-        return ListTile(
-          title: Text(bookingTitle(booking)),
-          subtitle: Text(bookingSubtitle(booking)),
-          trailing: ElevatedButton(
-            onPressed: () => onFocusBooking(booking),
-            child: const Text('View'),
-          ),
+        return BookingTile(
+          booking: bookings[index],
+          onFocusBooking: onFocusBooking,
         );
       },
     );
   }
+}
+
+class BookingTile extends StatelessWidget {
+  final Function(Booking) onFocusBooking;
+  final Booking booking;
+
+  const BookingTile(
+      {super.key, required this.onFocusBooking, required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
+    return ExpansionTile(
+      title: Text(bookingTitle(booking)),
+      subtitle: Text(bookingSubtitle(booking)),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ElevatedButton(
+            onPressed: () => onFocusBooking(booking),
+            child: const Text('Approve'),
+          ),
+          ElevatedButton(
+            onPressed: () => onFocusBooking(booking),
+            child: const Text('Reject'),
+          )
+        ],
+      ),
+      expandedAlignment: Alignment.topLeft,
+      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            detailTable(booking),
+            Column(
+              children: [
+                ElevatedButton(
+                    onPressed: () => onFocusBooking(booking),
+                    child: const Text("Toggle Calendar")),
+              ],
+            )
+          ],
+        )
+      ],
+    );
+  }
+}
+
+Table detailTable(Booking booking) {
+  return Table(
+    defaultColumnWidth: const FixedColumnWidth(200),
+    children: [
+      bookingField('Attendance', booking.attendance.toString()),
+      bookingField('Phone', booking.phone),
+      bookingField('Email', booking.email),
+      bookingField('Start Time',
+          "${formatDate(booking.eventStartTime)} ${formatTime(booking.eventStartTime)}"),
+      bookingField('End Time',
+          "${formatDate(booking.eventEndTime)} ${formatTime(booking.eventEndTime)}"),
+    ],
+  );
+}
+
+TableRow bookingField(String label, String value) {
+  return TableRow(children: [
+    TableCell(
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+    ),
+    TableCell(
+      child: Text(value),
+    ),
+  ]);
 }
 
 String bookingTitle(Booking booking) {

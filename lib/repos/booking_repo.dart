@@ -42,10 +42,11 @@ class BookingRepo extends ChangeNotifier {
     bookings.addAll(_bookings.map((b) => b.copyWith(
         confirmation:
             Confirmation(confirmedBy: "parker", confirmedAt: DateTime.now()))));
-    bookings.addAll(_requests);
 
     return Stream.value(bookings);
   }
+
+  Stream<List<Booking>> get requests => Stream.value(_requests);
 
   Future<void> addRequest(Booking request) async {
     _requests.add(request);

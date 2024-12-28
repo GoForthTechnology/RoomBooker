@@ -30,9 +30,10 @@ class StreamingCalendar extends StatefulWidget {
   final bool showDatePickerButton;
   final bool showTodayButton;
   final CalendarView view;
+  final DateTime? selectedDate;
+  final DateTime? displayDate;
   final Function(CalendarTapDetails)? onTap;
   final Function(Booking)? onTapBooking;
-  final CalendarController controller = CalendarController();
 
   final bool allowAppointmentResize;
   final Function(ResizeDetails)? onAppointmentResizeEnd;
@@ -47,6 +48,8 @@ class StreamingCalendar extends StatefulWidget {
       this.showDatePickerButton = false,
       this.showTodayButton = false,
       this.onAppointmentResizeEnd,
+      this.selectedDate,
+      this.displayDate,
       this.allowAppointmentResize = false}); // Added controller parameter
 
   @override
@@ -54,6 +57,15 @@ class StreamingCalendar extends StatefulWidget {
 }
 
 class _StreamingCalendarState extends State<StreamingCalendar> {
+  final CalendarController controller = CalendarController();
+
+  @override
+  void initState() {
+    controller.selectedDate = widget.selectedDate;
+    controller.displayDate = widget.displayDate;
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
@@ -98,7 +110,7 @@ class _StreamingCalendarState extends State<StreamingCalendar> {
           }
         }
       },
-      controller: widget.controller,
+      controller: controller,
       dataSource: DataSource(appointments),
       showNavigationArrow: widget.showNavigationArrow,
       showDatePickerButton: widget.showDatePickerButton,

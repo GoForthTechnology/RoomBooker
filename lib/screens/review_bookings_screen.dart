@@ -1,6 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:room_booker/entities/booking.dart';
 import 'package:room_booker/widgets/pending_bookings.dart';
+import 'package:room_booker/widgets/streaming_calendar.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()
 class ReviewBookingsScreen extends StatelessWidget {
@@ -12,12 +15,77 @@ class ReviewBookingsScreen extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Bookings to Review'),
         ),
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              Expanded(child: PendingBookings(onFocusBooking: (b) {})),
-            ],
-          ),
-        ));
+        body: const ReviewPanel());
+  }
+}
+
+class ReviewPanel extends StatefulWidget {
+  const ReviewPanel({super.key});
+
+  @override
+  State<ReviewPanel> createState() => _ReviewPanelState();
+}
+
+class _ReviewPanelState extends State<ReviewPanel> {
+  Appointment? appointment;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Flexible(
+              flex: 2,
+              child: PendingBookings(onFocusBooking: (b) {
+                setState(() {
+                  if (appointment != null) {
+                    appointment = null;
+                  } else {
+                    appointment = Appointment(
+                        startTime: b.eventStartTime,
+                        endTime: b.eventEndTime,
+                        subject: b.eventName,
+                        notes: b.message);
+                  }
+                });
+              })),
+          if (appointment != null)
+            Flexible(
+                flex: 1,
+                child: SizedBox(
+                  height: 600,
+                  child: StreamingCalendar(
+                    stateStream: Stream.value(getState()),
+                    view: CalendarView.day,
+                    displayDate: appointment?.startTime,
+                  ),
+                )),
+        ],
+      ),
+    );
+  }
+
+  CalendarState getState() {
+    List<Booking> bookings = [];
+    if (appointment != null) {
+      bookings.add(Booking(
+        name: 'Default Name',
+        email: 'default@example.com',
+        phone: '123-456-7890',
+        eventName: appointment!.subject,
+        eventStartTime: appointment!.startTime,
+        eventEndTime: appointment!.endTime,
+        attendance: 0,
+        selectedRoom: 'Default Room',
+        message: appointment!.notes ?? "",
+        doorUnlockTime: appointment!.startTime,
+        doorLockTime: appointment!.endTime,
+      ));
+    }
+    return CalendarState(
+      bookings: bookings,
+      blackoutWindows: [],
+    );
   }
 }
