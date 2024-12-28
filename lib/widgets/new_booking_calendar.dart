@@ -1,8 +1,5 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/entities/blackout_window.dart';
 import 'package:room_booker/repos/booking_repo.dart';
 import 'package:room_booker/utils/appointment_extensions.dart';
 import 'package:room_booker/widgets/streaming_calendar.dart';

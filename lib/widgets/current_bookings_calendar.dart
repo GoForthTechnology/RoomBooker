@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/entities/booking.dart';
 import 'package:room_booker/repos/booking_repo.dart';
 import 'package:room_booker/router.dart';
-import 'package:room_booker/screens/new_booking_screen.dart';
 import 'package:room_booker/widgets/streaming_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
