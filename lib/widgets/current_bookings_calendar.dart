@@ -16,11 +16,12 @@ class CurrentBookingsCalendar extends StatelessWidget {
     return Consumer<BookingRepo>(
       builder: (context, repo, child) => StreamingCalendar(
         view: CalendarView.week,
-        stateStream: Rx.combineLatest2(
+        stateStream: Rx.combineLatest3(
             repo.bookings,
+            repo.requests,
             repo.blackoutWindows.asStream(),
-            (bookings, blackoutWindows) => CalendarState(
-                  bookings: bookings,
+            (bookings, requests, blackoutWindows) => CalendarState(
+                  bookings: bookings + requests,
                   blackoutWindows: blackoutWindows,
                 )),
         onTapBooking: (booking) => _showBookingSummaryDialog(context, booking),

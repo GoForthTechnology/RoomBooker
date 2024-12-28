@@ -59,7 +59,8 @@ class BookingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ExpansionTile(
+    return Card(
+        child: ExpansionTile(
       title: Text(bookingTitle(booking)),
       subtitle: Text(bookingSubtitle(booking)),
       trailing: Row(
@@ -91,7 +92,7 @@ class BookingTile extends StatelessWidget {
           ],
         )
       ],
-    );
+    ));
   }
 }
 

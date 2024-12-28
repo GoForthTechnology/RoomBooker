@@ -24,7 +24,7 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: CurrentBookingsCalendar(),
+      body: const CurrentBookingsCalendar(),
     );
   }
 }

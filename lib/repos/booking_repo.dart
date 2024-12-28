@@ -33,7 +33,9 @@ class BookingRepo extends ChangeNotifier {
         const Duration(hours: 1)),
   ];
   final List<Booking> _requests = [
-    fakeBooking("Fake Request #1", DateTime.now().add(const Duration(days: 2)),
+    fakeBooking("Fake Request #1", DateTime.now().add(const Duration(hours: 2)),
+        const Duration(hours: 3)),
+    fakeBooking("Fake Request #2", DateTime.now().add(const Duration(days: 2)),
         const Duration(hours: 4)),
   ];
 
