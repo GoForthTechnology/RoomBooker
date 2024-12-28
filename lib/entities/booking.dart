@@ -1,5 +1,10 @@
 import 'package:room_booker/entities/blackout_window.dart';
 
+enum BookingStatus {
+  confirmed,
+  denied,
+}
+
 class Booking {
   final String name;
   final String email;
@@ -71,6 +76,10 @@ class Booking {
 class Confirmation {
   final String confirmedBy;
   final DateTime confirmedAt;
+  final BookingStatus status;
 
-  Confirmation({required this.confirmedBy, required this.confirmedAt});
+  Confirmation(
+      {required this.status,
+      required this.confirmedBy,
+      required this.confirmedAt});
 }

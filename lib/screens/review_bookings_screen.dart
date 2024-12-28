@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/booking.dart';
 import 'package:room_booker/repos/booking_repo.dart';
-import 'package:room_booker/widgets/pending_bookings.dart';
+import 'package:room_booker/widgets/heading.dart';
+import 'package:room_booker/widgets/booking_lists.dart';
 import 'package:room_booker/widgets/streaming_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -16,7 +17,7 @@ class ReviewBookingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Bookings to Review'),
+          title: const Text('Booking Requests'),
         ),
         body: const ReviewPanel());
   }
@@ -40,19 +41,12 @@ class _ReviewPanelState extends State<ReviewPanel> {
         children: [
           Flexible(
               flex: 2,
-              child: PendingBookings(onFocusBooking: (b) {
-                setState(() {
-                  if (appointment != null) {
-                    appointment = null;
-                  } else {
-                    appointment = Appointment(
-                        startTime: b.eventStartTime,
-                        endTime: b.eventEndTime,
-                        subject: b.eventName,
-                        notes: b.message);
-                  }
-                });
-              })),
+              child: Column(children: [
+                const Heading(text: "Pending"),
+                PendingBookings(onFocusBooking: focusBooking),
+                const Heading(text: "Resolved"),
+                ResolvedBookings(onFocusBooking: focusBooking)
+              ])),
           if (appointment != null)
             Flexible(
                 flex: 1,
@@ -61,6 +55,20 @@ class _ReviewPanelState extends State<ReviewPanel> {
         ],
       ),
     );
+  }
+
+  void focusBooking(Booking booking) {
+    setState(() {
+      if (appointment != null) {
+        appointment = null;
+      } else {
+        appointment = Appointment(
+            startTime: booking.eventStartTime,
+            endTime: booking.eventEndTime,
+            subject: booking.eventName,
+            notes: booking.message);
+      }
+    });
   }
 }
 

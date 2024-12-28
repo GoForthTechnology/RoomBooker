@@ -32,26 +32,59 @@ class BookingRepo extends ChangeNotifier {
         DateTime.now().add(const Duration(days: 3, hours: 6)),
         const Duration(hours: 1)),
   ];
-  final List<Booking> _requests = [
+  final List<Booking> _pendingRequests = [
     fakeBooking("Fake Request #1", DateTime.now().add(const Duration(hours: 2)),
         const Duration(hours: 3)),
     fakeBooking("Fake Request #2", DateTime.now().add(const Duration(days: 2)),
         const Duration(hours: 4)),
   ];
+  final List<Booking> _deniedRequests = [];
 
   Stream<List<Booking>> get bookings {
     List<Booking> bookings = [];
     bookings.addAll(_bookings.map((b) => b.copyWith(
-        confirmation:
-            Confirmation(confirmedBy: "parker", confirmedAt: DateTime.now()))));
+        confirmation: Confirmation(
+            confirmedBy: "parker",
+            confirmedAt: DateTime.now(),
+            status: BookingStatus.confirmed))));
 
     return Stream.value(bookings);
   }
 
-  Stream<List<Booking>> get requests => Stream.value(_requests);
+  Stream<List<Booking>> get pendingRequests => Stream.value(_pendingRequests);
+  Stream<List<Booking>> get deniedRequests => Stream.value(_deniedRequests);
+
+  Future<void> confirmRequest(Booking request) async {
+    _pendingRequests.remove(request);
+    _bookings.add(request.copyWith(
+        confirmation: Confirmation(
+      confirmedBy: "parker",
+      confirmedAt: DateTime.now(),
+      status: BookingStatus.confirmed,
+    )));
+    notifyListeners();
+  }
+
+  Future<void> denyRequest(Booking request) async {
+    _pendingRequests.remove(request);
+    _deniedRequests.add(request.copyWith(
+        confirmation: Confirmation(
+      confirmedBy: "parker",
+      confirmedAt: DateTime.now(),
+      status: BookingStatus.denied,
+    )));
+    notifyListeners();
+  }
+
+  Future<void> revisitRequest(Booking request) async {
+    _deniedRequests.remove(request);
+    _bookings.remove(request);
+    _pendingRequests.add(request.copyWith(confirmation: null));
+    notifyListeners();
+  }
 
   Future<void> addRequest(Booking request) async {
-    _requests.add(request);
+    _pendingRequests.add(request);
     notifyListeners();
   }
 

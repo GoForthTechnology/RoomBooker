@@ -18,7 +18,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
         view: CalendarView.week,
         stateStream: Rx.combineLatest3(
             repo.bookings,
-            repo.requests,
+            repo.pendingRequests,
             repo.blackoutWindows.asStream(),
             (bookings, requests, blackoutWindows) => CalendarState(
                   bookings: bookings + requests,
