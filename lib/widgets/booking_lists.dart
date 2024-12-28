@@ -20,6 +20,7 @@ class ResolvedBookings extends StatelessWidget {
             return const CircularProgressIndicator();
           }
           List<Booking> bookings = snapshot.data!;
+          bookings.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
           return ListView.builder(
             shrinkWrap: true,
             itemCount: bookings.length,
@@ -101,6 +102,7 @@ class PendingBookings extends StatelessWidget {
             return const CircularProgressIndicator();
           }
           List<Booking> bookings = snapshot.data!;
+          bookings.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
           return ListView.builder(
             shrinkWrap: true,
             itemCount: bookings.length,
