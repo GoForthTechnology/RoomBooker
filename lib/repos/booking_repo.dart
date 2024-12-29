@@ -102,4 +102,6 @@ class BookingRepo extends ChangeNotifier {
           reason: "Too Late",
         ),
       ]);
+
+  Stream<List<String>> get rooms => Stream.value(['Room 1', 'Room 2']);
 }

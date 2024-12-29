@@ -415,31 +415,36 @@ class RoomField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      value: selectedRoom,
-      decoration: const InputDecoration(
-        labelText: 'Event Location',
-        border: OutlineInputBorder(),
-      ),
-      items: <String>[
-        'Stewardship Hall',
-        'St. John\'s Room',
-        'Magdalen Room',
-        'Gym'
-      ].map<DropdownMenuItem<String>>((String value) {
-        return DropdownMenuItem<String>(
-          value: value,
-          child: Text(value),
-        );
-      }).toList(),
-      onChanged: onChanged,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Please select a room';
-        }
-        return null;
-      },
-    );
+    return Consumer<BookingRepo>(
+        builder: (context, repo, child) => StreamBuilder(
+              stream: repo.rooms,
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const CircularProgressIndicator();
+                }
+                List<String> rooms = snapshot.data!;
+                return DropdownButtonFormField<String>(
+                  value: selectedRoom,
+                  decoration: const InputDecoration(
+                    labelText: 'Event Location',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: rooms.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: onChanged,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select a room';
+                    }
+                    return null;
+                  },
+                );
+              },
+            ));
   }
 }
 
