@@ -83,7 +83,7 @@ class Calendar extends StatelessWidget {
       builder: (context, repo, child) => StreamingCalendar(
         displayDate: appointment.startTime,
         stateStream:
-            Rx.combineLatest2(repo.bookings, repo.blackoutWindows.asStream(),
+            Rx.combineLatest2(repo.bookings(), repo.blackoutWindows.asStream(),
                 (bookings, blackoutWindows) {
           var booking = Booking(
             name: 'Default Name',

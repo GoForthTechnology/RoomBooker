@@ -13,7 +13,7 @@ class ResolvedBookings extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<BookingRepo>(
       builder: (context, repo, child) => StreamBuilder(
-        stream: Rx.combineLatest2(repo.deniedRequests, repo.bookings,
+        stream: Rx.combineLatest2(repo.deniedRequests(), repo.bookings(),
             (denied, confirmed) => denied + confirmed),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
@@ -96,7 +96,7 @@ class PendingBookings extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<BookingRepo>(
       builder: (context, repo, child) => StreamBuilder(
-        stream: repo.pendingRequests,
+        stream: repo.pendingRequests(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();

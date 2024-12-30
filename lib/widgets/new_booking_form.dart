@@ -8,8 +8,9 @@ import 'package:room_booker/widgets/new_booking_calendar.dart';
 
 class NewBookingForm extends StatefulWidget {
   final DateTime? startTime;
+  final String roomID;
 
-  const NewBookingForm({super.key, this.startTime});
+  const NewBookingForm({super.key, this.startTime, required this.roomID});
 
   @override
   NewBookingFormState createState() => NewBookingFormState();
@@ -28,7 +29,7 @@ class NewBookingFormState extends State<NewBookingForm> {
   final eventDateController = TextEditingController();
   final doorsLockTimeController = TextEditingController();
   final doorsUnlockTimeController = TextEditingController();
-  String selectedRoom = 'Stewardship Hall'; // Default value for dropdown
+  String? selectedRoom;
 
   @override
   void initState() {
@@ -41,6 +42,7 @@ class NewBookingFormState extends State<NewBookingForm> {
                 widget.startTime!.add(const Duration(hours: 1)))
             .format(context);
         doorsUnlockTimeController.text = eventStartTimeController.text;
+        selectedRoom = widget.roomID;
       });
     }
     super.initState();
@@ -87,7 +89,7 @@ class NewBookingFormState extends State<NewBookingForm> {
             ),
             const Heading(text: "Event Information"),
             RoomField(
-                selectedRoom: selectedRoom,
+                selectedRoom: selectedRoom ?? widget.roomID,
                 onChanged: (newValue) {
                   setState(() {
                     selectedRoom = newValue!;
@@ -124,6 +126,7 @@ class NewBookingFormState extends State<NewBookingForm> {
               height: 1100,
               child: Card(
                   child: NewBookingCalendar(
+                roomID: selectedRoom ?? widget.roomID,
                 initialStartTime: widget.startTime,
                 initialEndTime: widget.startTime?.add(const Duration(hours: 1)),
                 onAppointmentChanged: (a) {
@@ -207,7 +210,7 @@ class NewBookingFormState extends State<NewBookingForm> {
                                 date.day, unlockToD!.hour, unlockToD.minute),
                             doorLockTime: DateTime(date.year, date.month,
                                 date.day, lockToD!.hour, lockToD.minute),
-                            selectedRoom: selectedRoom,
+                            selectedRoom: selectedRoom ?? widget.roomID,
                             status: BookingStatus.pending,
                           );
                           _showBookingSummaryDialog(context, booking, repo);

@@ -34,8 +34,8 @@ class Calendar extends StatelessWidget {
         builder: (context, repo, selectedRoom, child) => StreamingCalendar(
               view: CalendarView.week,
               stateStream: Rx.combineLatest3(
-                  repo.bookings,
-                  repo.pendingRequests,
+                  repo.bookings(roomID: selectedRoom.room),
+                  repo.pendingRequests(roomID: selectedRoom.room),
                   repo.blackoutWindows.asStream(),
                   (bookings, requests, blackoutWindows) => CalendarState(
                         bookings: bookings + requests,
@@ -43,8 +43,8 @@ class Calendar extends StatelessWidget {
                       )),
               onTapBooking: (booking) =>
                   _showBookingSummaryDialog(context, booking),
-              onTap: (details) =>
-                  _showRequestConfirmationDialog(context, details),
+              onTap: (details) => _showRequestConfirmationDialog(
+                  context, details, selectedRoom.room),
               showNavigationArrow: true,
               showDatePickerButton: true,
               showTodayButton: true,
@@ -53,7 +53,7 @@ class Calendar extends StatelessWidget {
 }
 
 void _showRequestConfirmationDialog(
-    BuildContext context, CalendarTapDetails details) {
+    BuildContext context, CalendarTapDetails details, String selectedRoom) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
@@ -79,6 +79,7 @@ void _showRequestConfirmationDialog(
             onPressed: () {
               AutoRouter.of(context).push(NewBookingRoute(
                 startTime: details.date,
+                roomID: selectedRoom,
               ));
               // Handle event request logic here
               Navigator.of(context).pop();

@@ -26,6 +26,7 @@ extension AppointmentCopyWith on Appointment {
 class NewBookingCalendar extends StatefulWidget {
   final DateTime? initialStartTime;
   final DateTime? initialEndTime;
+  final String roomID;
 
   final Function(Appointment) onAppointmentChanged;
 
@@ -33,7 +34,8 @@ class NewBookingCalendar extends StatefulWidget {
       {super.key,
       required this.onAppointmentChanged,
       this.initialStartTime,
-      this.initialEndTime});
+      this.initialEndTime,
+      required this.roomID});
 
   @override
   State<StatefulWidget> createState() => _NewBookingCalendarState();
@@ -74,7 +76,7 @@ class _NewBookingCalendarState extends State<NewBookingCalendar> {
               allowAppointmentResize: true,
               stateStream: Rx.combineLatest3(
                   _appointmentSubject.stream.startWith(null),
-                  repo.bookings,
+                  repo.bookings(roomID: widget.roomID),
                   repo.blackoutWindows.asStream(),
                   (appointment, bookings, blackoutWindows) {
                 var windows = blackoutWindows;

@@ -34,12 +34,14 @@ class NewBookingRoute extends PageRouteInfo<NewBookingRouteArgs> {
   NewBookingRoute({
     Key? key,
     DateTime? startTime,
+    String? roomID,
     List<PageRouteInfo>? children,
   }) : super(
           NewBookingRoute.name,
           args: NewBookingRouteArgs(
             key: key,
             startTime: startTime,
+            roomID: roomID,
           ),
           initialChildren: children,
         );
@@ -54,6 +56,7 @@ class NewBookingRoute extends PageRouteInfo<NewBookingRouteArgs> {
       return NewBookingScreen(
         key: args.key,
         startTime: args.startTime,
+        roomID: args.roomID,
       );
     },
   );
@@ -63,15 +66,18 @@ class NewBookingRouteArgs {
   const NewBookingRouteArgs({
     this.key,
     this.startTime,
+    this.roomID,
   });
 
   final Key? key;
 
   final DateTime? startTime;
 
+  final String? roomID;
+
   @override
   String toString() {
-    return 'NewBookingRouteArgs{key: $key, startTime: $startTime}';
+    return 'NewBookingRouteArgs{key: $key, startTime: $startTime, roomID: $roomID}';
   }
 }
 
