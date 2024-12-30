@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:room_booker/entities/blackout_window.dart';
 import 'package:room_booker/entities/booking.dart';
 
-Booking fakeBooking(String name, DateTime start, Duration duration) {
+Booking fakeBooking(
+    String name, DateTime start, Duration duration, BookingStatus status) {
   return Booking(
     eventName: name,
     eventStartTime: start,
@@ -17,74 +18,63 @@ Booking fakeBooking(String name, DateTime start, Duration duration) {
     doorLockTime: start.add(duration),
     selectedRoom: 'Room 1',
     phone: "316-555-0199",
+    status: status,
   );
 }
 
 class BookingRepo extends ChangeNotifier {
-  final List<Booking> _bookings = [
+  final List<Booking> _requests = [
     fakeBooking(
         'Fake Event #1',
         DateTime.now().subtract(const Duration(days: 1, hours: 2)),
-        const Duration(hours: 2)),
-    fakeBooking('Fake Event #2', DateTime.now(), const Duration(hours: 2)),
+        const Duration(hours: 2),
+        BookingStatus.confirmed),
+    fakeBooking('Fake Event #2', DateTime.now(), const Duration(hours: 2),
+        BookingStatus.confirmed),
     fakeBooking(
         'Fake Event #3',
         DateTime.now().add(const Duration(days: 3, hours: 6)),
-        const Duration(hours: 1)),
-  ];
-  final List<Booking> _pendingRequests = [
+        const Duration(hours: 1),
+        BookingStatus.confirmed),
     fakeBooking("Fake Request #1", DateTime.now().add(const Duration(hours: 2)),
-        const Duration(hours: 3)),
+        const Duration(hours: 3), BookingStatus.pending),
     fakeBooking("Fake Request #2", DateTime.now().add(const Duration(days: 2)),
-        const Duration(hours: 4)),
+        const Duration(hours: 4), BookingStatus.pending),
   ];
-  final List<Booking> _deniedRequests = [];
 
-  Stream<List<Booking>> get bookings {
-    List<Booking> bookings = [];
-    bookings.addAll(_bookings.map((b) => b.copyWith(
-        confirmation: Confirmation(
-            confirmedBy: "parker",
-            confirmedAt: DateTime.now(),
-            status: BookingStatus.confirmed))));
+  Stream<List<Booking>> get bookings => Stream.value(
+      _requests.where((b) => b.status == BookingStatus.confirmed).toList());
 
-    return Stream.value(bookings);
-  }
+  Stream<List<Booking>> get pendingRequests => Stream.value(
+      _requests.where((b) => b.status == BookingStatus.pending).toList());
 
-  Stream<List<Booking>> get pendingRequests => Stream.value(_pendingRequests);
-  Stream<List<Booking>> get deniedRequests => Stream.value(_deniedRequests);
+  Stream<List<Booking>> get deniedRequests => Stream.value(
+      _requests.where((b) => b.status == BookingStatus.denied).toList());
 
   Future<void> confirmRequest(Booking request) async {
-    _pendingRequests.remove(request);
-    _bookings.add(request.copyWith(
-        confirmation: Confirmation(
-      confirmedBy: "parker",
-      confirmedAt: DateTime.now(),
+    _requests.remove(request);
+    _requests.add(request.copyWith(
       status: BookingStatus.confirmed,
-    )));
+    ));
     notifyListeners();
   }
 
   Future<void> denyRequest(Booking request) async {
-    _pendingRequests.remove(request);
-    _deniedRequests.add(request.copyWith(
-        confirmation: Confirmation(
-      confirmedBy: "parker",
-      confirmedAt: DateTime.now(),
+    _requests.remove(request);
+    _requests.add(request.copyWith(
       status: BookingStatus.denied,
-    )));
+    ));
     notifyListeners();
   }
 
   Future<void> revisitRequest(Booking request) async {
-    _deniedRequests.remove(request);
-    _bookings.remove(request);
-    _pendingRequests.add(request.copyWith(confirmation: null));
+    _requests.remove(request);
+    await addRequest(request);
     notifyListeners();
   }
 
   Future<void> addRequest(Booking request) async {
-    _pendingRequests.add(request);
+    _requests.add(request.copyWith(status: BookingStatus.pending));
     notifyListeners();
   }
 

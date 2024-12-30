@@ -97,6 +97,7 @@ class Calendar extends StatelessWidget {
             message: appointment.notes ?? "",
             doorUnlockTime: appointment.startTime,
             doorLockTime: appointment.endTime,
+            status: BookingStatus.pending,
           );
           return CalendarState(
             bookings: [booking],

@@ -41,6 +41,7 @@ dependencies:
   provider: ^6.1.2
   syncfusion_flutter_calendar: ^28.1.35
   rxdart: ^0.28.0
+  firebase_auth: ^5.3.4
 
 dev_dependencies:
   flutter_test:

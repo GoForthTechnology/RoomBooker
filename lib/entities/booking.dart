@@ -1,8 +1,10 @@
 import 'package:room_booker/entities/blackout_window.dart';
 
 enum BookingStatus {
+  unknown,
   confirmed,
   denied,
+  pending,
 }
 
 class Booking {
@@ -17,7 +19,7 @@ class Booking {
   final DateTime doorUnlockTime;
   final DateTime doorLockTime;
   final String selectedRoom;
-  final Confirmation? confirmation;
+  final BookingStatus status;
 
   Booking({
     required this.name,
@@ -31,7 +33,7 @@ class Booking {
     required this.doorUnlockTime,
     required this.doorLockTime,
     required this.selectedRoom,
-    this.confirmation,
+    required this.status,
   });
 
   Booking copyWith({
@@ -47,6 +49,7 @@ class Booking {
     DateTime? doorLockTime,
     String? selectedRoom,
     Confirmation? confirmation,
+    BookingStatus? status,
   }) {
     return Booking(
       name: name ?? this.name,
@@ -60,7 +63,7 @@ class Booking {
       doorUnlockTime: doorUnlockTime ?? this.doorUnlockTime,
       doorLockTime: doorLockTime ?? this.doorLockTime,
       selectedRoom: selectedRoom ?? this.selectedRoom,
-      confirmation: confirmation ?? this.confirmation,
+      status: status ?? this.status,
     );
   }
 

@@ -208,6 +208,7 @@ class NewBookingFormState extends State<NewBookingForm> {
                             doorLockTime: DateTime(date.year, date.month,
                                 date.day, lockToD!.hour, lockToD.minute),
                             selectedRoom: selectedRoom,
+                            status: BookingStatus.pending,
                           );
                           _showBookingSummaryDialog(context, booking, repo);
                         }

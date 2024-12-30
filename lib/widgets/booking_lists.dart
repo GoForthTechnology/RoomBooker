@@ -46,7 +46,7 @@ class ResolvedBookingTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    bool confirmed = booking.confirmation?.status == BookingStatus.confirmed;
+    bool confirmed = booking.status == BookingStatus.confirmed;
     String trailingText = confirmed ? 'CONFIRMED' : 'DENIED';
     return Card(
         elevation: 1,

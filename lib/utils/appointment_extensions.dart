@@ -19,7 +19,7 @@ extension AppointmentCopyWith on Appointment {
     );
   }
 
-  Booking toBooking() {
+  Booking toBooking(BookingStatus status) {
     return Booking(
       eventName: subject,
       eventStartTime: startTime,
@@ -32,6 +32,7 @@ extension AppointmentCopyWith on Appointment {
       doorUnlockTime: startTime,
       doorLockTime: endTime,
       selectedRoom: '',
+      status: status,
     );
   }
 

@@ -106,7 +106,8 @@ class _StreamingCalendarState extends State<StreamingCalendar> {
         }
         if (widget.onTapBooking != null) {
           for (var appointment in details.appointments ?? []) {
-            widget.onTapBooking!(fromAppointment(appointment));
+            widget.onTapBooking!(
+                fromAppointment(appointment, BookingStatus.unknown));
           }
         }
       },
@@ -144,12 +145,12 @@ Appointment fromBooking(Booking booking) {
     startTime: booking.eventStartTime,
     endTime: booking.eventEndTime,
     subject: booking.eventName,
-    color: booking.confirmation != null ? Colors.blue : Colors.red,
+    color: booking.status == BookingStatus.confirmed ? Colors.blue : Colors.red,
     location: booking.selectedRoom,
   );
 }
 
-Booking fromAppointment(Appointment appointment) {
+Booking fromAppointment(Appointment appointment, BookingStatus status) {
   return Booking(
     eventName: appointment.subject,
     eventStartTime: appointment.startTime,
@@ -162,5 +163,6 @@ Booking fromAppointment(Appointment appointment) {
     attendance: 0,
     doorUnlockTime: appointment.startTime,
     doorLockTime: appointment.endTime,
+    status: status,
   );
 }
