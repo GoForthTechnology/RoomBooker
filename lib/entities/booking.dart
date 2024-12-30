@@ -71,7 +71,7 @@ class Booking {
     return BlackoutWindow(
       start: eventStartTime,
       end: eventEndTime,
-      reason: eventName,
+      reason: "Busy",
     );
   }
 }
