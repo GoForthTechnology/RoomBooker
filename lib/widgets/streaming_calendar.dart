@@ -38,7 +38,7 @@ class StreamingCalendar extends StatefulWidget {
   final bool allowAppointmentResize;
   final Function(ResizeDetails)? onAppointmentResizeEnd;
 
-  StreamingCalendar(
+  const StreamingCalendar(
       {super.key,
       required this.stateStream,
       required this.view,
@@ -53,10 +53,10 @@ class StreamingCalendar extends StatefulWidget {
       this.allowAppointmentResize = false}); // Added controller parameter
 
   @override
-  _StreamingCalendarState createState() => _StreamingCalendarState();
+  StreamingCalendarState createState() => StreamingCalendarState();
 }
 
-class _StreamingCalendarState extends State<StreamingCalendar> {
+class StreamingCalendarState extends State<StreamingCalendar> {
   final CalendarController controller = CalendarController();
 
   @override
@@ -130,7 +130,7 @@ TimeRegion toTimeRegion(BlackoutWindow blackoutWindow) {
     enablePointerInteraction: false,
     text: blackoutWindow.reason,
     recurrenceRule: blackoutWindow.recurrenceRule,
-    color: Colors.grey.withOpacity(0.2),
+    color: Colors.grey.withValues(alpha: 0.2),
   );
 }
 

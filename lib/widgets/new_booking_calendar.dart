@@ -30,7 +30,7 @@ class NewBookingCalendar extends StatefulWidget {
 
   final Function(Appointment) onAppointmentChanged;
 
-  NewBookingCalendar(
+  const NewBookingCalendar(
       {super.key,
       required this.onAppointmentChanged,
       this.initialStartTime,

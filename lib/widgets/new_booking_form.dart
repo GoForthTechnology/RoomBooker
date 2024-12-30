@@ -256,10 +256,12 @@ class NewBookingFormState extends State<NewBookingForm> {
             TextButton(
               child: const Text('Submit'),
               onPressed: () async {
+                var navigator = Navigator.of(context);
+                var messenger = ScaffoldMessenger.of(context);
                 await repo.addRequest(booking);
-                Navigator.of(context).pop();
-                Navigator.of(context).pop(); // Return to home page
-                ScaffoldMessenger.of(context).showSnackBar(
+                navigator.pop();
+                navigator.pop();
+                messenger.showSnackBar(
                   const SnackBar(content: Text('Request has been submitted')),
                 );
               },
@@ -330,7 +332,9 @@ class TimeField extends StatelessWidget {
       validationMessage: validationMessage,
       readOnly: true,
       onTap: () async {
+        var messenger = ScaffoldMessenger.of(context);
         var initialTime = roundToNearest30Minutes(TimeOfDay.now());
+        var minimumTimeStr = minimumTime!.format(context);
         if (controller.text.isNotEmpty) {
           initialTime = parseTimeOfDay(controller.text)!;
         }
@@ -339,16 +343,16 @@ class TimeField extends StatelessWidget {
           initialTime: initialTime,
         );
         if (minimumTime != null && minimumTime!.isAfter(pickedTime!)) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
-              content:
-                  Text('Time must be after ${minimumTime!.format(context)}'),
+              content: Text('Time must be after $minimumTimeStr'),
             ),
           );
           return;
         }
         if (pickedTime != null) {
           final roundedTime = roundToNearest30Minutes(pickedTime);
+          // ignore: use_build_context_synchronously
           controller.text = roundedTime.format(context);
         }
       },
