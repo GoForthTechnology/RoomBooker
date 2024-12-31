@@ -76,7 +76,7 @@ class _NewBookingCalendarState extends State<NewBookingCalendar> {
               allowAppointmentResize: true,
               stateStream: Rx.combineLatest3(
                   _appointmentSubject.stream.startWith(null),
-                  repo.bookings(roomID: widget.roomID),
+                  repo.bookings(roomID: {widget.roomID}),
                   repo.blackoutWindows.asStream(),
                   (appointment, bookings, blackoutWindows) {
                 var windows = blackoutWindows;

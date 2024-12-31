@@ -50,19 +50,19 @@ class BookingRepo extends ChangeNotifier {
         const Duration(hours: 4), BookingStatus.pending),
   ];
 
-  Stream<List<Booking>> bookings({String? roomID}) =>
+  Stream<List<Booking>> bookings({Set<String>? roomID}) =>
       getWhere(roomID: roomID, status: BookingStatus.confirmed);
 
-  Stream<List<Booking>> pendingRequests({String? roomID}) =>
+  Stream<List<Booking>> pendingRequests({Set<String>? roomID}) =>
       getWhere(roomID: roomID, status: BookingStatus.pending);
 
-  Stream<List<Booking>> deniedRequests({String? roomID}) =>
+  Stream<List<Booking>> deniedRequests({Set<String>? roomID}) =>
       getWhere(roomID: roomID, status: BookingStatus.denied);
 
-  Stream<List<Booking>> getWhere({String? roomID, BookingStatus? status}) {
+  Stream<List<Booking>> getWhere({Set<String>? roomID, BookingStatus? status}) {
     List<bool Function(Booking)> criteria = [];
     if (roomID != null) {
-      criteria.add((b) => b.selectedRoom == roomID);
+      criteria.add((b) => roomID.contains(b.selectedRoom));
     }
     if (status != null) {
       criteria.add((b) => b.status == status);

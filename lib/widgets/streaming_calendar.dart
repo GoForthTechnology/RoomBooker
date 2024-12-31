@@ -34,6 +34,7 @@ class StreamingCalendar extends StatefulWidget {
   final DateTime? displayDate;
   final Function(CalendarTapDetails)? onTap;
   final Function(Booking)? onTapBooking;
+  final Color Function(Booking)? apointmentColor;
 
   final bool allowAppointmentResize;
   final Function(ResizeDetails)? onAppointmentResizeEnd;
@@ -50,7 +51,8 @@ class StreamingCalendar extends StatefulWidget {
       this.onAppointmentResizeEnd,
       this.selectedDate,
       this.displayDate,
-      this.allowAppointmentResize = false}); // Added controller parameter
+      this.allowAppointmentResize = false,
+      this.apointmentColor}); // Added controller parameter
 
   @override
   StreamingCalendarState createState() => StreamingCalendarState();
@@ -81,7 +83,13 @@ class StreamingCalendarState extends State<StreamingCalendar> {
 
   Widget calendarWidget(CalendarState state) {
     List<Appointment> appointments = [];
-    appointments.addAll(state.bookings.map(fromBooking).toList());
+    appointments.addAll(state.bookings.map((b) {
+      Color color = Colors.blue;
+      if (widget.apointmentColor != null) {
+        color = widget.apointmentColor!(b);
+      }
+      return fromBooking(b, color);
+    }).toList());
 
     List<TimeRegion> blackoutWindows =
         state.blackoutWindows.map(toTimeRegion).toList();
@@ -140,12 +148,12 @@ class DataSource extends CalendarDataSource {
   }
 }
 
-Appointment fromBooking(Booking booking) {
+Appointment fromBooking(Booking booking, Color color) {
   return Appointment(
     startTime: booking.eventStartTime,
     endTime: booking.eventEndTime,
     subject: booking.eventName,
-    color: booking.status == BookingStatus.confirmed ? Colors.blue : Colors.red,
+    color: color,
     location: booking.selectedRoom,
   );
 }
