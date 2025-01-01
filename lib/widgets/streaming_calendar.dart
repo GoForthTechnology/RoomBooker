@@ -4,10 +4,10 @@ import 'package:room_booker/entities/booking.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CalendarState {
-  final List<Booking> bookings;
+  final List<Appointment> appointments;
   final List<BlackoutWindow> blackoutWindows;
 
-  CalendarState({required this.bookings, required this.blackoutWindows}) {
+  CalendarState({required this.appointments, required this.blackoutWindows}) {
     blackoutWindows.sort((a, b) => a.start.compareTo(b.start));
   }
 }
@@ -34,7 +34,6 @@ class StreamingCalendar extends StatefulWidget {
   final DateTime? displayDate;
   final Function(CalendarTapDetails)? onTap;
   final Function(Booking)? onTapBooking;
-  final Color Function(Booking)? apointmentColor;
 
   final bool allowAppointmentResize;
   final Function(ResizeDetails)? onAppointmentResizeEnd;
@@ -51,8 +50,7 @@ class StreamingCalendar extends StatefulWidget {
       this.onAppointmentResizeEnd,
       this.selectedDate,
       this.displayDate,
-      this.allowAppointmentResize = false,
-      this.apointmentColor}); // Added controller parameter
+      this.allowAppointmentResize = false}); // Added controller parameter
 
   @override
   StreamingCalendarState createState() => StreamingCalendarState();
@@ -82,15 +80,7 @@ class StreamingCalendarState extends State<StreamingCalendar> {
   }
 
   Widget calendarWidget(CalendarState state) {
-    List<Appointment> appointments = [];
-    appointments.addAll(state.bookings.map((b) {
-      Color color = Colors.blue;
-      if (widget.apointmentColor != null) {
-        color = widget.apointmentColor!(b);
-      }
-      return fromBooking(b, color);
-    }).toList());
-
+    List<Appointment> appointments = List.from(state.appointments);
     List<TimeRegion> blackoutWindows =
         state.blackoutWindows.map(toTimeRegion).toList();
 

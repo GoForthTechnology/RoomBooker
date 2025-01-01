@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/entities/booking.dart';
 import 'package:room_booker/repos/booking_repo.dart';
-import 'package:room_booker/utils/appointment_extensions.dart';
 import 'package:room_booker/widgets/streaming_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -84,9 +82,7 @@ class _NewBookingCalendarState extends State<NewBookingCalendar> {
                     bookings.map((booking) => booking.toBlackoutWindow()));
 
                 return CalendarState(
-                    bookings: appointment == null
-                        ? []
-                        : [appointment.toBooking(BookingStatus.pending)],
+                    appointments: appointment == null ? [] : [appointment],
                     blackoutWindows: windows);
               }),
               onAppointmentResizeEnd: (details) async {

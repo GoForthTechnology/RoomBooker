@@ -100,7 +100,13 @@ class Calendar extends StatelessWidget {
             status: BookingStatus.pending,
           );
           return CalendarState(
-            bookings: [booking],
+            appointments: [
+              Appointment(
+                endTime: booking.eventEndTime,
+                startTime: booking.eventStartTime,
+                subject: booking.eventName,
+              ),
+            ],
             blackoutWindows: blackoutWindows +
                 bookings.map((b) => b.toBlackoutWindow()).toList(),
           );

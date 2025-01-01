@@ -133,10 +133,16 @@ class Calendar extends StatelessWidget {
                   repo.bookings(roomID: roomState.enabledValues()),
                   repo.blackoutWindows.asStream(),
                   (bookings, blackoutWindows) => CalendarState(
-                        bookings: bookings,
+                        appointments: bookings
+                            .map((b) => Appointment(
+                                  subject: "Busy",
+                                  startTime: b.eventStartTime,
+                                  endTime: b.eventEndTime,
+                                  color: roomState.color(b.selectedRoom),
+                                ))
+                            .toList(),
                         blackoutWindows: blackoutWindows,
                       )),
-              apointmentColor: (b) => roomState.color(b.selectedRoom),
               onTapBooking: (booking) =>
                   _showBookingSummaryDialog(context, booking),
               showNavigationArrow: true,
