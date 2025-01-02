@@ -14,17 +14,17 @@ class HomeScreen extends StatelessWidget {
         title: const Text("Room Bookings for Church of the Resurrection"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_circle),
-            onPressed: () => AutoRouter.of(context).push(NewBookingRoute()),
-          ),
-          IconButton(
-            icon: const Icon(Icons.check_circle),
+            icon: const Icon(Icons.approval_rounded),
             onPressed: () =>
                 AutoRouter.of(context).push(const ReviewBookingsRoute()),
           ),
         ],
       ),
       body: const CurrentBookingsCalendar(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => AutoRouter.of(context).push(NewBookingRoute()),
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
