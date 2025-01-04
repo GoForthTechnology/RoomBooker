@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/entities/booking.dart';
-import 'package:room_booker/repos/booking_repo.dart';
+import 'package:room_booker/entities/request.dart';
+import 'package:room_booker/repos/request_repo.dart';
 import 'package:room_booker/widgets/streaming_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -21,7 +21,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BookingRepo>(
+    return Consumer<RequestRepo>(
       builder: (context, repo, child) => FutureBuilder(
         future: repo.rooms.first,
         builder: (context, snapshot) {
@@ -126,7 +126,7 @@ class Calendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<BookingRepo, RoomState>(
+    return Consumer2<RequestRepo, RoomState>(
         builder: (context, repo, roomState, child) => StreamingCalendar(
               view: CalendarView.week,
               stateStream: Rx.combineLatest2(
@@ -152,7 +152,7 @@ class Calendar extends StatelessWidget {
   }
 }
 
-void _showBookingSummaryDialog(BuildContext context, Booking booking) {
+void _showBookingSummaryDialog(BuildContext context, Request booking) {
   showDialog(
     context: context,
     builder: (BuildContext context) {

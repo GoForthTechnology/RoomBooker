@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:room_booker/entities/booking.dart';
+import 'package:room_booker/entities/request.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 extension AppointmentCopyWith on Appointment {
@@ -17,8 +17,8 @@ extension AppointmentCopyWith on Appointment {
     );
   }
 
-  Booking toBooking(BookingStatus status) {
-    return Booking(
+  Request toBooking(RequestStatus status) {
+    return Request(
       eventName: subject,
       eventStartTime: startTime,
       eventEndTime: endTime,
@@ -34,7 +34,7 @@ extension AppointmentCopyWith on Appointment {
     );
   }
 
-  static Appointment fromBooking(Booking booking) {
+  static Appointment fromBooking(Request booking) {
     return Appointment(
       startTime: booking.eventStartTime,
       endTime: booking.eventEndTime,

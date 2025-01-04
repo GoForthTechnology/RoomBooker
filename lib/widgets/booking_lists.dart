@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/entities/booking.dart';
-import 'package:room_booker/repos/booking_repo.dart';
+import 'package:room_booker/entities/request.dart';
+import 'package:room_booker/repos/request_repo.dart';
 import 'package:rxdart/rxdart.dart';
 
 class ResolvedBookings extends StatelessWidget {
-  final Function(Booking) onFocusBooking;
+  final Function(Request) onFocusBooking;
 
   const ResolvedBookings({super.key, required this.onFocusBooking});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BookingRepo>(
+    return Consumer<RequestRepo>(
       builder: (context, repo, child) => StreamBuilder(
         stream: Rx.combineLatest2(repo.deniedRequests(), repo.bookings(),
             (denied, confirmed) => denied + confirmed),
@@ -19,7 +19,7 @@ class ResolvedBookings extends StatelessWidget {
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();
           }
-          List<Booking> bookings = snapshot.data!;
+          List<Request> bookings = snapshot.data!;
           bookings.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
           return ListView.builder(
             shrinkWrap: true,
@@ -38,15 +38,15 @@ class ResolvedBookings extends StatelessWidget {
 }
 
 class ResolvedBookingTitle extends StatelessWidget {
-  final Function(Booking) onFocusBooking;
-  final Booking booking;
+  final Function(Request) onFocusBooking;
+  final Request booking;
 
   const ResolvedBookingTitle(
       {super.key, required this.onFocusBooking, required this.booking});
 
   @override
   Widget build(BuildContext context) {
-    bool confirmed = booking.status == BookingStatus.confirmed;
+    bool confirmed = booking.status == RequestStatus.confirmed;
     String trailingText = confirmed ? 'CONFIRMED' : 'DENIED';
     return Card(
         elevation: 1,
@@ -66,7 +66,7 @@ class ResolvedBookingTitle extends StatelessWidget {
           expandedAlignment: Alignment.topLeft,
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Consumer<BookingRepo>(
+            Consumer<RequestRepo>(
                 builder: (context, repo, child) => Row(
                       children: [
                         detailTable(booking),
@@ -88,20 +88,20 @@ class ResolvedBookingTitle extends StatelessWidget {
 }
 
 class PendingBookings extends StatelessWidget {
-  final Function(Booking) onFocusBooking;
+  final Function(Request) onFocusBooking;
 
   const PendingBookings({super.key, required this.onFocusBooking});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BookingRepo>(
+    return Consumer<RequestRepo>(
       builder: (context, repo, child) => StreamBuilder(
         stream: repo.pendingRequests(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();
           }
-          List<Booking> bookings = snapshot.data!;
+          List<Request> bookings = snapshot.data!;
           bookings.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
           return ListView.builder(
             shrinkWrap: true,
@@ -120,8 +120,8 @@ class PendingBookings extends StatelessWidget {
 }
 
 class PendingBookingTile extends StatelessWidget {
-  final Function(Booking) onFocusBooking;
-  final Booking booking;
+  final Function(Request) onFocusBooking;
+  final Request booking;
 
   const PendingBookingTile(
       {super.key, required this.onFocusBooking, required this.booking});
@@ -134,7 +134,7 @@ class PendingBookingTile extends StatelessWidget {
           leading: const Icon(Icons.event),
           title: Text(bookingTitle(booking)),
           subtitle: Text(bookingSubtitle(booking)),
-          trailing: Consumer<BookingRepo>(
+          trailing: Consumer<RequestRepo>(
               builder: (context, repo, child) => Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -168,7 +168,7 @@ class PendingBookingTile extends StatelessWidget {
   }
 }
 
-Widget detailTable(Booking booking) {
+Widget detailTable(Request booking) {
   return Padding(
       padding: const EdgeInsets.only(left: 20),
       child: Table(
@@ -196,11 +196,11 @@ TableRow bookingField(String label, String value) {
   ]);
 }
 
-String bookingTitle(Booking booking) {
+String bookingTitle(Request booking) {
   return '${booking.eventName} for ${booking.name}';
 }
 
-String bookingSubtitle(Booking booking) {
+String bookingSubtitle(Request booking) {
   return '${booking.selectedRoom} on ${formatDate(booking.eventStartTime)} from ${formatTime(booking.eventStartTime)} to ${formatTime(booking.eventEndTime)}';
 }
 

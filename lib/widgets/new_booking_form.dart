@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/entities/booking.dart';
-import 'package:room_booker/repos/booking_repo.dart';
+import 'package:room_booker/entities/request.dart';
+import 'package:room_booker/repos/request_repo.dart';
 import 'package:room_booker/widgets/heading.dart';
 import 'package:room_booker/widgets/new_booking_calendar.dart';
 
@@ -182,7 +182,7 @@ class NewBookingFormState extends State<NewBookingForm> {
               maxLines: 4,
               validator: null, // not required
             ),
-            Consumer<BookingRepo>(
+            Consumer<RequestRepo>(
                 builder: (context, repo, child) => ElevatedButton(
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
@@ -195,7 +195,7 @@ class NewBookingFormState extends State<NewBookingForm> {
                               parseTimeOfDay(doorsUnlockTimeController.text);
                           var lockToD =
                               parseTimeOfDay(doorsLockTimeController.text);
-                          final booking = Booking(
+                          final booking = Request(
                             name: nameController.text,
                             email: emailController.text,
                             phone: phoneController.text,
@@ -211,7 +211,7 @@ class NewBookingFormState extends State<NewBookingForm> {
                             doorLockTime: DateTime(date.year, date.month,
                                 date.day, lockToD!.hour, lockToD.minute),
                             selectedRoom: selectedRoom ?? widget.roomID,
-                            status: BookingStatus.pending,
+                            status: RequestStatus.pending,
                           );
                           _showBookingSummaryDialog(context, booking, repo);
                         }
@@ -225,7 +225,7 @@ class NewBookingFormState extends State<NewBookingForm> {
   }
 
   void _showBookingSummaryDialog(
-      BuildContext context, Booking booking, BookingRepo repo) {
+      BuildContext context, Request booking, RequestRepo repo) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -423,7 +423,7 @@ class RoomField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BookingRepo>(
+    return Consumer<RequestRepo>(
         builder: (context, repo, child) => StreamBuilder(
               stream: repo.rooms,
               builder: (context, snapshot) {

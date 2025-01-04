@@ -1,13 +1,13 @@
 import 'package:room_booker/entities/blackout_window.dart';
 
-enum BookingStatus {
+enum RequestStatus {
   unknown,
   confirmed,
   denied,
   pending,
 }
 
-class Booking {
+class Request {
   final String name;
   final String email;
   final String phone;
@@ -19,9 +19,9 @@ class Booking {
   final DateTime doorUnlockTime;
   final DateTime doorLockTime;
   final String selectedRoom;
-  final BookingStatus status;
+  final RequestStatus status;
 
-  Booking({
+  Request({
     required this.name,
     required this.email,
     required this.phone,
@@ -36,7 +36,7 @@ class Booking {
     required this.status,
   });
 
-  Booking copyWith({
+  Request copyWith({
     String? name,
     String? email,
     String? phone,
@@ -48,10 +48,9 @@ class Booking {
     DateTime? doorUnlockTime,
     DateTime? doorLockTime,
     String? selectedRoom,
-    Confirmation? confirmation,
-    BookingStatus? status,
+    RequestStatus? status,
   }) {
-    return Booking(
+    return Request(
       name: name ?? this.name,
       email: email ?? this.email,
       phone: phone ?? this.phone,
@@ -74,15 +73,4 @@ class Booking {
       reason: "Busy",
     );
   }
-}
-
-class Confirmation {
-  final String confirmedBy;
-  final DateTime confirmedAt;
-  final BookingStatus status;
-
-  Confirmation(
-      {required this.status,
-      required this.confirmedBy,
-      required this.confirmedAt});
 }

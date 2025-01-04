@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/repos/booking_repo.dart';
+import 'package:room_booker/repos/request_repo.dart';
 import 'package:room_booker/widgets/streaming_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -65,7 +65,7 @@ class _NewBookingCalendarState extends State<NewBookingCalendar> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BookingRepo>(
+    return Consumer<RequestRepo>(
         builder: (context, repo, child) => StreamingCalendar(
               view: CalendarView.week,
               showNavigationArrow: true,

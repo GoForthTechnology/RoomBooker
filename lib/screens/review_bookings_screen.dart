@@ -1,8 +1,8 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/entities/booking.dart';
-import 'package:room_booker/repos/booking_repo.dart';
+import 'package:room_booker/entities/request.dart';
+import 'package:room_booker/repos/request_repo.dart';
 import 'package:room_booker/widgets/heading.dart';
 import 'package:room_booker/widgets/booking_lists.dart';
 import 'package:room_booker/widgets/streaming_calendar.dart';
@@ -57,7 +57,7 @@ class _ReviewPanelState extends State<ReviewPanel> {
     );
   }
 
-  void focusBooking(Booking booking) {
+  void focusBooking(Request booking) {
     setState(() {
       if (appointment != null) {
         appointment = null;
@@ -79,13 +79,13 @@ class Calendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BookingRepo>(
+    return Consumer<RequestRepo>(
       builder: (context, repo, child) => StreamingCalendar(
         displayDate: appointment.startTime,
         stateStream:
             Rx.combineLatest2(repo.bookings(), repo.blackoutWindows.asStream(),
                 (bookings, blackoutWindows) {
-          var booking = Booking(
+          var booking = Request(
             name: 'Default Name',
             email: 'default@example.com',
             phone: '123-456-7890',
@@ -97,7 +97,7 @@ class Calendar extends StatelessWidget {
             message: appointment.notes ?? "",
             doorUnlockTime: appointment.startTime,
             doorLockTime: appointment.endTime,
-            status: BookingStatus.pending,
+            status: RequestStatus.pending,
           );
           return CalendarState(
             appointments: [

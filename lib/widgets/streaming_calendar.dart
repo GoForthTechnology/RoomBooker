@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:room_booker/entities/blackout_window.dart';
-import 'package:room_booker/entities/booking.dart';
+import 'package:room_booker/entities/request.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CalendarState {
@@ -33,7 +33,7 @@ class StreamingCalendar extends StatefulWidget {
   final DateTime? selectedDate;
   final DateTime? displayDate;
   final Function(CalendarTapDetails)? onTap;
-  final Function(Booking)? onTapBooking;
+  final Function(Request)? onTapBooking;
 
   final bool allowAppointmentResize;
   final Function(ResizeDetails)? onAppointmentResizeEnd;
@@ -105,7 +105,7 @@ class StreamingCalendarState extends State<StreamingCalendar> {
         if (widget.onTapBooking != null) {
           for (var appointment in details.appointments ?? []) {
             widget.onTapBooking!(
-                fromAppointment(appointment, BookingStatus.unknown));
+                fromAppointment(appointment, RequestStatus.unknown));
           }
         }
       },
@@ -138,7 +138,7 @@ class DataSource extends CalendarDataSource {
   }
 }
 
-Appointment fromBooking(Booking booking, Color color) {
+Appointment fromBooking(Request booking, Color color) {
   return Appointment(
     startTime: booking.eventStartTime,
     endTime: booking.eventEndTime,
@@ -148,8 +148,8 @@ Appointment fromBooking(Booking booking, Color color) {
   );
 }
 
-Booking fromAppointment(Appointment appointment, BookingStatus status) {
-  return Booking(
+Request fromAppointment(Appointment appointment, RequestStatus status) {
+  return Request(
     eventName: appointment.subject,
     eventStartTime: appointment.startTime,
     eventEndTime: appointment.endTime,
