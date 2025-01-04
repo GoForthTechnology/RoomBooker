@@ -10,6 +10,25 @@
 part of 'router.dart';
 
 /// generated route for
+/// [EmailVerifyScreen]
+class EmailVerifyRoute extends PageRouteInfo<void> {
+  const EmailVerifyRoute({List<PageRouteInfo>? children})
+      : super(
+          EmailVerifyRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'EmailVerifyRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const EmailVerifyScreen();
+    },
+  );
+}
+
+/// generated route for
 /// [HomeScreen]
 class HomeRoute extends PageRouteInfo<void> {
   const HomeRoute({List<PageRouteInfo>? children})
@@ -24,6 +43,25 @@ class HomeRoute extends PageRouteInfo<void> {
     name,
     builder: (data) {
       return const HomeScreen();
+    },
+  );
+}
+
+/// generated route for
+/// [LoginScreen]
+class LoginRoute extends PageRouteInfo<void> {
+  const LoginRoute({List<PageRouteInfo>? children})
+      : super(
+          LoginRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'LoginRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      return const LoginScreen();
     },
   );
 }
