@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/repos/booking_repo.dart';
+import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/auth.dart';
 import 'firebase_options.dart';
@@ -25,6 +26,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => BookingRepo()),
+          ChangeNotifierProvider(create: (_) => OrgRepo()),
         ],
         child: MaterialApp.router(
           title: 'Room Booker',
