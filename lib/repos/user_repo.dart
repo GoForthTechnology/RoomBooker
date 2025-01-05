@@ -27,6 +27,13 @@ class UserRepo extends ChangeNotifier {
     });
   }
 
+  void removeOrg(Transaction t, String userID, String orgID) async {
+    var userRef = _db.collection('users').doc(userID);
+    t.update(userRef, {
+      'orgIDs': FieldValue.arrayRemove([orgID]),
+    });
+  }
+
   Stream<UserProfile?> getUser(String uID) async* {
     yield* _db.collection('users').doc(uID).snapshots().map((s) {
       if (s.exists) {

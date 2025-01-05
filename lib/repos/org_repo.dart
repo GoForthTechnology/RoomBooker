@@ -5,12 +5,6 @@ import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/repos/user_repo.dart';
 import 'package:rxdart/rxdart.dart';
 
-class Org {
-  final String name;
-
-  Org({required this.name});
-}
-
 class OrgRepo extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final UserRepo _userRepo;
@@ -27,6 +21,22 @@ class OrgRepo extends ChangeNotifier {
       var orgRef = await _db.collection("orgs").add(org.toJson());
       _userRepo.addOrg(t, user.uid, orgRef.id);
       return orgRef.id;
+    });
+  }
+
+  Future<void> removeOrg(String orgID) async {
+    var user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Future.error("User not logged in!");
+    }
+    return _db.runTransaction((t) async {
+      var orgRef = _db.collection("orgs").doc(orgID);
+      var org = await orgRef.get();
+      if (!org.exists) {
+        return Future.error("Organization not found");
+      }
+      await orgRef.delete();
+      _userRepo.removeOrg(t, user.uid, orgID);
     });
   }
 

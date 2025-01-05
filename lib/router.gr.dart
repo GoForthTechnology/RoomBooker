@@ -120,6 +120,56 @@ class NewBookingRouteArgs {
 }
 
 /// generated route for
+/// [OrgSettingsScreen]
+class OrgSettingsRoute extends PageRouteInfo<OrgSettingsRouteArgs> {
+  OrgSettingsRoute({
+    Key? key,
+    required String orgID,
+    List<PageRouteInfo>? children,
+  }) : super(
+          OrgSettingsRoute.name,
+          args: OrgSettingsRouteArgs(
+            key: key,
+            orgID: orgID,
+          ),
+          rawPathParams: {'orgID': orgID},
+          initialChildren: children,
+        );
+
+  static const String name = 'OrgSettingsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<OrgSettingsRouteArgs>(
+          orElse: () =>
+              OrgSettingsRouteArgs(orgID: pathParams.getString('orgID')));
+      return OrgSettingsScreen(
+        key: args.key,
+        orgID: args.orgID,
+      );
+    },
+  );
+}
+
+class OrgSettingsRouteArgs {
+  const OrgSettingsRouteArgs({
+    this.key,
+    required this.orgID,
+  });
+
+  final Key? key;
+
+  final String orgID;
+
+  @override
+  String toString() {
+    return 'OrgSettingsRouteArgs{key: $key, orgID: $orgID}';
+  }
+}
+
+/// generated route for
 /// [ReviewBookingsScreen]
 class ReviewBookingsRoute extends PageRouteInfo<void> {
   const ReviewBookingsRoute({List<PageRouteInfo>? children})

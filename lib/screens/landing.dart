@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
 
@@ -51,21 +52,44 @@ class OrgList extends StatelessWidget {
           return ListView.builder(
             itemCount: orgs.length,
             itemBuilder: (context, index) {
-              var org = orgs[index];
-              return Card(
-                  elevation: 1,
-                  child: ListTile(
-                    leading: const Icon(Icons.business),
-                    title: Text(org.name),
-                    trailing: const Icon(Icons.arrow_forward),
-                    onTap: () {
-                      AutoRouter.of(context)
-                          .push(ViewBookingsRoute(orgID: org.id!));
-                    },
-                  ));
+              return OrgTile(org: orgs[index]);
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class OrgTile extends StatelessWidget {
+  final Organization org;
+
+  const OrgTile({super.key, required this.org});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 1,
+      child: ListTile(
+        leading: const Icon(Icons.business),
+        title: Text(org.name),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                AutoRouter.of(context).push(OrgSettingsRoute(orgID: org.id!));
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.arrow_forward),
+              onPressed: () {
+                AutoRouter.of(context).push(ViewBookingsRoute(orgID: org.id!));
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
