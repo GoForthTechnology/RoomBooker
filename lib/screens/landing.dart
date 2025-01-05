@@ -20,7 +20,7 @@ class LandingScreen extends StatelessWidget {
           var repo = Provider.of<OrgRepo>(context, listen: false);
           var name = await promptForOrgName(context);
           if (name != null) {
-            await repo.addOrg(name);
+            await repo.addOrgForCurrentUser(name);
           }
         },
         child: const Icon(Icons.add),
@@ -36,7 +36,7 @@ class OrgList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<OrgRepo>(
       builder: (context, repo, child) => StreamBuilder(
-        stream: repo.orgs,
+        stream: repo.getOrgsForCurrentUser(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return const Text('Error loading organizations');

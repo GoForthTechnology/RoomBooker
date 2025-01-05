@@ -4,7 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:room_booker/router.dart';
+import 'package:room_booker/repos/user_repo.dart';
 
 const googleClientId =
     '610453083826-vpbosjaqm1i70nujnrq76inrtt9lbvhh.apps.googleusercontent.com';
@@ -51,19 +53,25 @@ class LoginScreen extends StatelessWidget {
           VerifyPhoneAction((context, _) {
             Navigator.pushNamed(context, '/phone');
           }),
-          AuthStateChangeAction<SignedIn>((context, state) {
+          AuthStateChangeAction<SignedIn>((context, state) async {
+            var router = AutoRouter.of(context);
+            var userRepo = Provider.of<UserRepo>(context, listen: false);
+            var user = await userRepo.getUser(state.user!.uid).first;
+            if (user == null) {
+              await userRepo.addUser(state.user!);
+            }
             if (!state.user!.emailVerified) {
-              AutoRouter.of(context).push(const EmailVerifyRoute());
+              router.push(const EmailVerifyRoute());
             } else {
-              AutoRouter.of(context)
-                  .pushAndPopUntil(const HomeRoute(), predicate: (r) => false);
+              router.pushAndPopUntil(const LandingRoute(),
+                  predicate: (r) => false);
             }
           }),
           AuthStateChangeAction<UserCreated>((context, state) {
             if (!state.credential.user!.emailVerified) {
               AutoRouter.of(context).push(const EmailVerifyRoute());
             } else {
-              AutoRouter.of(context).push(const HomeRoute());
+              AutoRouter.of(context).push(const LandingRoute());
             }
           }),
           EmailLinkSignInAction((context) {

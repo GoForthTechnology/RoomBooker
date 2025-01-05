@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/repos/request_repo.dart';
 import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/repos/user_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/auth.dart';
 import 'firebase_options.dart';
@@ -23,10 +24,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     FirebaseUIAuth.configureProviders(providers);
+    var userRepo = UserRepo();
     return MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => RequestRepo()),
-          ChangeNotifierProvider(create: (_) => OrgRepo()),
+          ChangeNotifierProvider(create: (_) => UserRepo()),
+          ChangeNotifierProvider(create: (_) => OrgRepo(userRepo: userRepo)),
         ],
         child: MaterialApp.router(
           title: 'Room Booker',
