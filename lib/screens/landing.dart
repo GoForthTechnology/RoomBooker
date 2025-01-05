@@ -52,6 +52,7 @@ class OrgList extends StatelessWidget {
           return ListView.builder(
             itemCount: orgs.length,
             itemBuilder: (context, index) {
+              var org = orgs[index];
               return OrgTile(org: orgs[index]);
             },
           );
@@ -107,6 +108,10 @@ Future<String?> promptForOrgName(BuildContext context) async {
               decoration: const InputDecoration(
                 hintText: 'Enter the name of your organization',
               ),
+              onFieldSubmitted: (value) {
+                Navigator.of(context).pop(value);
+              },
+              textInputAction: TextInputAction.search,
             ),
             actions: [
               TextButton(
