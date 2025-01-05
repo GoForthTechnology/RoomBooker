@@ -16,11 +16,39 @@ class OrgRepo extends ChangeNotifier {
     if (user == null) {
       return Future.error("User not logged in!");
     }
-    var org = Organization(name: orgName, ownerID: user.uid);
+    var org = Organization(name: orgName, ownerID: user.uid, rooms: []);
     return _db.runTransaction((t) async {
       var orgRef = await _db.collection("orgs").add(org.toJson());
       _userRepo.addOrg(t, user.uid, orgRef.id);
       return orgRef.id;
+    });
+  }
+
+  Future<void> addRoom(String orgID, String roomName) async {
+    return _db.runTransaction((t) async {
+      var orgRef = _db.collection("orgs").doc(orgID);
+      var org = await orgRef.get();
+      if (!org.exists) {
+        return Future.error("Organization not found");
+      }
+      var data = org.data()!;
+      var rooms = data["rooms"] as List<dynamic>? ?? [];
+      rooms.add({"name": roomName});
+      await orgRef.update({"rooms": rooms});
+    });
+  }
+
+  Future<void> removeRoom(String orgID, String roomName) async {
+    _db.runTransaction((t) async {
+      var orgRef = _db.collection("orgs").doc(orgID);
+      var org = await orgRef.get();
+      if (!org.exists) {
+        return Future.error("Organization not found");
+      }
+      var data = org.data()!;
+      var rooms = data["rooms"] as List<dynamic>? ?? [];
+      rooms.removeWhere((r) => r["name"] == roomName);
+      await orgRef.update({"rooms": rooms});
     });
   }
 

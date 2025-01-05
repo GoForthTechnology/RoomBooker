@@ -52,7 +52,6 @@ class OrgList extends StatelessWidget {
           return ListView.builder(
             itemCount: orgs.length,
             itemBuilder: (context, index) {
-              var org = orgs[index];
               return OrgTile(org: orgs[index]);
             },
           );
