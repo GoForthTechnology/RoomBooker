@@ -29,25 +29,6 @@ class EmailVerifyRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [HomeScreen]
-class HomeRoute extends PageRouteInfo<void> {
-  const HomeRoute({List<PageRouteInfo>? children})
-      : super(
-          HomeRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'HomeRoute';
-
-  static PageInfo page = PageInfo(
-    name,
-    builder: (data) {
-      return const HomeScreen();
-    },
-  );
-}
-
-/// generated route for
 /// [LandingScreen]
 class LandingRoute extends PageRouteInfo<void> {
   const LandingRoute({List<PageRouteInfo>? children})
@@ -155,4 +136,54 @@ class ReviewBookingsRoute extends PageRouteInfo<void> {
       return const ReviewBookingsScreen();
     },
   );
+}
+
+/// generated route for
+/// [ViewBookingsScreen]
+class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
+  ViewBookingsRoute({
+    Key? key,
+    required String orgID,
+    List<PageRouteInfo>? children,
+  }) : super(
+          ViewBookingsRoute.name,
+          args: ViewBookingsRouteArgs(
+            key: key,
+            orgID: orgID,
+          ),
+          rawPathParams: {'orgID': orgID},
+          initialChildren: children,
+        );
+
+  static const String name = 'ViewBookingsRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<ViewBookingsRouteArgs>(
+          orElse: () =>
+              ViewBookingsRouteArgs(orgID: pathParams.getString('orgID')));
+      return ViewBookingsScreen(
+        key: args.key,
+        orgID: args.orgID,
+      );
+    },
+  );
+}
+
+class ViewBookingsRouteArgs {
+  const ViewBookingsRouteArgs({
+    this.key,
+    required this.orgID,
+  });
+
+  final Key? key;
+
+  final String orgID;
+
+  @override
+  String toString() {
+    return 'ViewBookingsRouteArgs{key: $key, orgID: $orgID}';
+  }
 }

@@ -22,7 +22,7 @@ class OrgRepo extends ChangeNotifier {
     if (user == null) {
       return Future.error("User not logged in!");
     }
-    var org = Organization(user.uid, name: orgName);
+    var org = Organization(name: orgName, ownerID: user.uid);
     return _db.runTransaction((t) async {
       var orgRef = await _db.collection("orgs").add(org.toJson());
       _userRepo.addOrg(t, user.uid, orgRef.id);
@@ -31,14 +31,11 @@ class OrgRepo extends ChangeNotifier {
   }
 
   Stream<Organization?> getOrg(String orgID) async* {
-    print("foo: $orgID");
     yield* _db.collection("orgs").doc(orgID).snapshots().map((s) {
       if (!s.exists) {
-        print("baz");
         return null;
       }
-      print("bar");
-      return Organization.fromJson(s.data()!);
+      return Organization.fromJson(s.data()!).copyWith(id: s.id);
     });
   }
 
@@ -50,7 +47,6 @@ class OrgRepo extends ChangeNotifier {
 
     yield* _userRepo.getUser(user!.uid).flatMap((profile) {
       var orgIDs = profile?.orgIDs ?? [];
-      print("Found ${orgIDs.length} orgs");
       var streams = orgIDs.map(getOrg).toList();
       if (streams.isEmpty) {
         List<Organization> empty = [];

@@ -59,7 +59,8 @@ class OrgList extends StatelessWidget {
                     title: Text(org.name),
                     trailing: const Icon(Icons.arrow_forward),
                     onTap: () {
-                      AutoRouter.of(context).push(const HomeRoute());
+                      AutoRouter.of(context)
+                          .push(ViewBookingsRoute(orgID: org.id!));
                     },
                   ));
             },

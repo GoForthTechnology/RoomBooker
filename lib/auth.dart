@@ -96,7 +96,7 @@ class EmailVerifyScreen extends StatelessWidget {
       ),
       actions: [
         EmailVerifiedAction(() {
-          AutoRouter.of(context).push(const HomeRoute());
+          AutoRouter.of(context).push(const LandingRoute());
         }),
         AuthCancelledAction((context) {
           FirebaseUIAuth.signOut(context: context);

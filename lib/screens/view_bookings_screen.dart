@@ -5,8 +5,11 @@ import 'package:room_booker/router.dart';
 import 'package:room_booker/widgets/current_bookings_calendar.dart';
 
 @RoutePage()
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class ViewBookingsScreen extends StatelessWidget {
+  final String orgID;
+
+  const ViewBookingsScreen(
+      {super.key, @PathParam('orgID') required this.orgID});
 
   @override
   Widget build(BuildContext context) {
