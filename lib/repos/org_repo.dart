@@ -16,11 +16,86 @@ class OrgRepo extends ChangeNotifier {
     if (user == null) {
       return Future.error("User not logged in!");
     }
-    var org = Organization(name: orgName, ownerID: user.uid, rooms: []);
+    var org = Organization(
+      name: orgName,
+      ownerID: user.uid,
+      rooms: [],
+      acceptingAdminRequests: false,
+    );
     return _db.runTransaction((t) async {
       var orgRef = await _db.collection("orgs").add(org.toJson());
       _userRepo.addOrg(t, user.uid, orgRef.id);
       return orgRef.id;
+    });
+  }
+
+  Future<void> addAdminRequestForCurrentUser(String orgID) {
+    var user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Future.error("User not logged in!");
+    }
+    if (user.email == null) {
+      return Future.error("User does not have an email address");
+    }
+    var entry = AdminEntry(email: user.email!, lastUpdated: DateTime.now());
+    return _adminRequestRef(orgID, user.uid).set(entry.toJson());
+  }
+
+  Stream<List<AdminEntry>> adminRequests(String orgID) {
+    return _adminRequestsRef(orgID).snapshots().map((s) {
+      return s.docs.map((d) {
+        return AdminEntry.fromJson(d.data()).copyWith(id: d.id);
+      }).toList();
+    });
+  }
+
+  Future<void> denyAdminRequest(String orgID, String userID) {
+    return _adminRequestRef(orgID, userID).delete();
+  }
+
+  Future<void> approveAdminRequest(String orgID, String userID) {
+    return _db.runTransaction((t) async {
+      var requestRef = _adminRequestRef(orgID, userID);
+      var requestData = await t.get(requestRef);
+      if (!requestData.exists) {
+        return Future.error("Request not found");
+      }
+      var request =
+          AdminEntry.fromJson(requestData.data()!).copyWith(id: requestData.id);
+      t.delete(requestRef);
+      t.set(_activeAdminRef(orgID, userID), request.toJson());
+      _userRepo.addOrg(t, userID, orgID);
+    });
+  }
+
+  Future<void> removeAdmin(String orgID, String userID) {
+    return _db.runTransaction((t) async {
+      var adminRef = _activeAdminRef(orgID, userID);
+      t.delete(adminRef);
+      _userRepo.removeOrg(t, userID, orgID);
+    });
+  }
+
+  Stream<List<AdminEntry>> activeAdmins(String orgID) {
+    return _activeAdminsRef(orgID).snapshots().map((s) {
+      if (s.docs.isEmpty) {
+        return [];
+      }
+      return s.docs.map((d) {
+        return AdminEntry.fromJson(d.data()).copyWith(id: d.id);
+      }).toList();
+    });
+  }
+
+  Future<void> enableAdminRequests(String orgID) async {
+    return _db.collection("orgs").doc(orgID).update({
+      "acceptingAdminRequests": true,
+    });
+  }
+
+  Future<void> disableAdminRequests(String orgID) async {
+    return _db.collection("orgs").doc(orgID).update({
+      "acceptingAdminRequests": false,
     });
   }
 
@@ -93,5 +168,23 @@ class OrgRepo extends ChangeNotifier {
       return Rx.combineLatestList(streams)
           .map((orgs) => orgs.where((o) => o != null).map((o) => o!).toList());
     });
+  }
+
+  DocumentReference<Map<String, dynamic>> _adminRequestRef(
+      String orgID, String userID) {
+    return _adminRequestsRef(orgID).doc(userID);
+  }
+
+  CollectionReference<Map<String, dynamic>> _adminRequestsRef(String orgID) {
+    return _db.collection("orgs").doc(orgID).collection("admin-requests");
+  }
+
+  CollectionReference<Map<String, dynamic>> _activeAdminsRef(String orgID) {
+    return _db.collection("orgs").doc(orgID).collection("active-admins");
+  }
+
+  DocumentReference<Map<String, dynamic>> _activeAdminRef(
+      String orgID, String userID) {
+    return _activeAdminsRef(orgID).doc(userID);
   }
 }
