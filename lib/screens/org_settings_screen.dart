@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/router.dart';
 import 'package:room_booker/widgets/heading.dart';
 
 @RoutePage()
@@ -71,19 +72,34 @@ class AdminWidget extends StatelessWidget {
         if (admins.isEmpty) {
           return const Text('No pending requests');
         }
-        return ListView.builder(
-          shrinkWrap: true,
-          itemCount: admins.length,
-          itemBuilder: (context, index) {
-            return ListTile(
-              title: Text(admins[index].email),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () async {},
-              ),
-            );
-          },
-        );
+        return ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: admins.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(admins[index].email),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.approval_rounded),
+                        onPressed: () async {
+                          repo.approveAdminRequest(org.id!, admins[index].id!);
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () async {
+                          repo.denyAdminRequest(org.id!, admins[index].id!);
+                        },
+                      )
+                    ],
+                  ),
+                );
+              },
+            ));
       },
     );
   }
@@ -102,19 +118,28 @@ class AdminWidget extends StatelessWidget {
         if (admins.isEmpty) {
           return const Text('No active admins');
         }
-        return ListView.builder(
-          shrinkWrap: true,
-          itemCount: admins.length,
-          itemBuilder: (context, index) {
-            return ListTile(
-              title: Text(admins[index].email),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () async {},
-              ),
-            );
-          },
-        );
+        return ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: admins.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(admins[index].email),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () async {
+                          repo.removeAdmin(org.id!, admins[index].id!);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ));
       },
     );
   }
@@ -124,10 +149,10 @@ class AdminWidget extends StatelessWidget {
     if (org.acceptingAdminRequests) {
       contents.add(const Text('Admin requests are open'));
       contents.add(ActionButton(
-        text: "Copy link to clipboard",
+        text: "View Join Link",
         tooltip: "This can be shared with others to request admin access",
         onPressed: () async {
-          await Clipboard.setData(ClipboardData(text: Uri.base.host));
+          AutoRouter.of(context).push(JoinOrgRoute(orgID: org.id!));
         },
         isDangerous: false,
       ));
@@ -142,9 +167,9 @@ class AdminWidget extends StatelessWidget {
     return Column(
       children: [
         const Heading(text: "Org Adminstrators"),
-        const Subheading(text: "Active Admins"),
-        _adminRequests(context),
         const Subheading(text: "Admin Requests"),
+        _adminRequests(context),
+        const Subheading(text: "Active Admins"),
         _activeAdmins(context),
         const Subheading(text: "Sharing Status"),
         ..._sharingWidgets(context),

@@ -29,6 +29,55 @@ class EmailVerifyRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
+/// [JoinOrgScreen]
+class JoinOrgRoute extends PageRouteInfo<JoinOrgRouteArgs> {
+  JoinOrgRoute({
+    Key? key,
+    required String orgID,
+    List<PageRouteInfo>? children,
+  }) : super(
+          JoinOrgRoute.name,
+          args: JoinOrgRouteArgs(
+            key: key,
+            orgID: orgID,
+          ),
+          rawPathParams: {'orgID': orgID},
+          initialChildren: children,
+        );
+
+  static const String name = 'JoinOrgRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<JoinOrgRouteArgs>(
+          orElse: () => JoinOrgRouteArgs(orgID: pathParams.getString('orgID')));
+      return JoinOrgScreen(
+        key: args.key,
+        orgID: args.orgID,
+      );
+    },
+  );
+}
+
+class JoinOrgRouteArgs {
+  const JoinOrgRouteArgs({
+    this.key,
+    required this.orgID,
+  });
+
+  final Key? key;
+
+  final String orgID;
+
+  @override
+  String toString() {
+    return 'JoinOrgRouteArgs{key: $key, orgID: $orgID}';
+  }
+}
+
+/// generated route for
 /// [LandingScreen]
 class LandingRoute extends PageRouteInfo<void> {
   const LandingRoute({List<PageRouteInfo>? children})
