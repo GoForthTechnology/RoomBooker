@@ -30,14 +30,17 @@ class OrgSettingsScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     OrgDetails(orgID: orgID),
+                    const Divider(),
                     RoomListWidget(
                       org: snapshot.data!,
                       repo: repo,
                     ),
+                    const Divider(),
                     AdminWidget(
                       org: snapshot.data!,
                       repo: repo,
                     ),
+                    const Divider(),
                     OrgActions(
                       org: snapshot.data!,
                       repo: repo,
@@ -71,8 +74,12 @@ class AdminWidget extends StatelessWidget {
         if (admins.isEmpty) {
           return const Text('No pending requests');
         }
-        return ConstrainedBox(
+        return Container(
             constraints: const BoxConstraints(maxWidth: 400),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(4),
+            ),
             child: ListView.builder(
               shrinkWrap: true,
               itemCount: admins.length,
@@ -117,8 +124,12 @@ class AdminWidget extends StatelessWidget {
         if (admins.isEmpty) {
           return const Text('No active admins');
         }
-        return ConstrainedBox(
+        return Container(
             constraints: const BoxConstraints(maxWidth: 400),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(4),
+            ),
             child: ListView.builder(
               shrinkWrap: true,
               itemCount: admins.length,
