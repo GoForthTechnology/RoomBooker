@@ -122,6 +122,7 @@ class NewBookingRoute extends PageRouteInfo<NewBookingRouteArgs> {
     Key? key,
     DateTime? startTime,
     String? roomID,
+    required String orgID,
     List<PageRouteInfo>? children,
   }) : super(
           NewBookingRoute.name,
@@ -129,7 +130,9 @@ class NewBookingRoute extends PageRouteInfo<NewBookingRouteArgs> {
             key: key,
             startTime: startTime,
             roomID: roomID,
+            orgID: orgID,
           ),
+          rawPathParams: {'orgID': orgID},
           initialChildren: children,
         );
 
@@ -138,12 +141,15 @@ class NewBookingRoute extends PageRouteInfo<NewBookingRouteArgs> {
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
+      final pathParams = data.inheritedPathParams;
       final args = data.argsAs<NewBookingRouteArgs>(
-          orElse: () => const NewBookingRouteArgs());
+          orElse: () =>
+              NewBookingRouteArgs(orgID: pathParams.getString('orgID')));
       return NewBookingScreen(
         key: args.key,
         startTime: args.startTime,
         roomID: args.roomID,
+        orgID: args.orgID,
       );
     },
   );
@@ -154,6 +160,7 @@ class NewBookingRouteArgs {
     this.key,
     this.startTime,
     this.roomID,
+    required this.orgID,
   });
 
   final Key? key;
@@ -162,9 +169,11 @@ class NewBookingRouteArgs {
 
   final String? roomID;
 
+  final String orgID;
+
   @override
   String toString() {
-    return 'NewBookingRouteArgs{key: $key, startTime: $startTime, roomID: $roomID}';
+    return 'NewBookingRouteArgs{key: $key, startTime: $startTime, roomID: $roomID, orgID: $orgID}';
   }
 }
 

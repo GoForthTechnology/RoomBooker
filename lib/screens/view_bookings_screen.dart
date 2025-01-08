@@ -17,9 +17,10 @@ class ViewBookingsScreen extends StatelessWidget {
       appBar: AppBar(
           title: const Text("Room Bookings for Church of the Resurrection"),
           actions: _actions(context)),
-      body: const CurrentBookingsCalendar(),
+      body: CurrentBookingsCalendar(orgID: orgID),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => AutoRouter.of(context).push(NewBookingRoute()),
+        onPressed: () =>
+            AutoRouter.of(context).push(NewBookingRoute(orgID: orgID)),
         child: const Icon(Icons.add),
       ),
     );

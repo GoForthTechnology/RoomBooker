@@ -7,10 +7,12 @@ import 'package:room_booker/widgets/heading.dart';
 import 'package:room_booker/widgets/new_booking_calendar.dart';
 
 class NewBookingForm extends StatefulWidget {
+  final String orgID;
   final DateTime? startTime;
   final String roomID;
 
-  const NewBookingForm({super.key, this.startTime, required this.roomID});
+  const NewBookingForm(
+      {super.key, this.startTime, required this.roomID, required this.orgID});
 
   @override
   NewBookingFormState createState() => NewBookingFormState();
@@ -89,6 +91,7 @@ class NewBookingFormState extends State<NewBookingForm> {
             ),
             const Heading(text: "Event Information"),
             RoomField(
+                orgID: widget.orgID,
                 selectedRoom: selectedRoom ?? widget.roomID,
                 onChanged: (newValue) {
                   setState(() {
@@ -415,17 +418,21 @@ String dateToString(DateTime date) {
 }
 
 class RoomField extends StatelessWidget {
+  final String orgID;
   final String selectedRoom;
   final Function(String?) onChanged;
 
   const RoomField(
-      {super.key, required this.selectedRoom, required this.onChanged});
+      {super.key,
+      required this.selectedRoom,
+      required this.onChanged,
+      required this.orgID});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<RequestRepo>(
         builder: (context, repo, child) => StreamBuilder(
-              stream: repo.rooms,
+              stream: repo.rooms(orgID),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const CircularProgressIndicator();

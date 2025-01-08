@@ -17,13 +17,15 @@ List<Color> roomColors = [
 ];
 
 class CurrentBookingsCalendar extends StatelessWidget {
-  const CurrentBookingsCalendar({super.key});
+  final String orgID;
+
+  const CurrentBookingsCalendar({super.key, required this.orgID});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<RequestRepo>(
       builder: (context, repo, child) => FutureBuilder(
-        future: repo.rooms.first,
+        future: repo.rooms(orgID).first,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();

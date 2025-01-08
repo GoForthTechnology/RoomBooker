@@ -121,5 +121,6 @@ class RequestRepo extends ChangeNotifier {
         ),
       ]);
 
-  Stream<List<String>> get rooms => Stream.value(['Room 1', 'Room 2']);
+  Stream<List<String>> rooms(String orgID) =>
+      Stream.value(['Room 1', 'Room 2']);
 }

@@ -6,10 +6,15 @@ import 'package:room_booker/widgets/new_booking_form.dart';
 
 @RoutePage()
 class NewBookingScreen extends StatelessWidget {
+  final String orgID;
   final DateTime? startTime;
   final String? roomID;
 
-  const NewBookingScreen({super.key, this.startTime, this.roomID});
+  const NewBookingScreen(
+      {super.key,
+      this.startTime,
+      this.roomID,
+      @PathParam('orgID') required this.orgID});
 
   @override
   Widget build(BuildContext context) {
@@ -19,13 +24,14 @@ class NewBookingScreen extends StatelessWidget {
       ),
       body: Consumer<RequestRepo>(
         builder: (context, repo, child) => FutureBuilder(
-          future: repo.rooms.first,
+          future: repo.rooms(orgID).first,
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               return const CircularProgressIndicator();
             }
             return SingleChildScrollView(
                 child: NewBookingForm(
+              orgID: orgID,
               roomID: roomID ?? snapshot.data!.first,
               startTime: startTime,
             ));
