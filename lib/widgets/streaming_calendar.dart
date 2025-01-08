@@ -109,6 +109,7 @@ class StreamingCalendarState extends State<StreamingCalendar> {
           }
         }
       },
+      minDate: nowRoundedUpToNearestHour(),
       controller: controller,
       dataSource: DataSource(appointments),
       showNavigationArrow: widget.showNavigationArrow,
@@ -119,6 +120,11 @@ class StreamingCalendarState extends State<StreamingCalendar> {
       onAppointmentResizeEnd: onResizeEnd,
     );
   }
+}
+
+DateTime nowRoundedUpToNearestHour() {
+  var now = DateTime.now();
+  return DateTime(now.year, now.month, now.day, now.hour + 1);
 }
 
 TimeRegion toTimeRegion(BlackoutWindow blackoutWindow) {
