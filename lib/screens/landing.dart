@@ -76,17 +76,41 @@ class OrgTile extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {
-                AutoRouter.of(context).push(OrgSettingsRoute(orgID: org.id!));
-              },
+            Tooltip(
+              message: "Settings for this org",
+              child: IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () {
+                  AutoRouter.of(context).push(OrgSettingsRoute(orgID: org.id!));
+                },
+              ),
             ),
-            IconButton(
-              icon: const Icon(Icons.arrow_forward),
-              onPressed: () {
-                AutoRouter.of(context).push(ViewBookingsRoute(orgID: org.id!));
-              },
+            Tooltip(
+              message: "Bookings for this org",
+              child: IconButton(
+                icon: const Icon(Icons.event),
+                onPressed: () {
+                  if (org.rooms.isEmpty) {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text("No rooms found"),
+                        content: const Text(
+                            "Please add a room to this organization.\n\nThis can be done in the settings page."),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                    return;
+                  }
+                  AutoRouter.of(context)
+                      .push(ViewBookingsRoute(orgID: org.id!));
+                },
+              ),
             ),
           ],
         ),

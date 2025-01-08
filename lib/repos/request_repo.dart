@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:room_booker/entities/blackout_window.dart';
 import 'package:room_booker/entities/request.dart';
+import 'package:room_booker/repos/org_repo.dart';
 
 Request fakeRequest(
     String name, DateTime start, Duration duration, RequestStatus status,
@@ -24,6 +25,8 @@ Request fakeRequest(
 }
 
 class RequestRepo extends ChangeNotifier {
+  final OrgRepo _orgRepo;
+
   final List<Request> _requests = [
     fakeRequest(
         'Fake Event #1',
@@ -49,6 +52,8 @@ class RequestRepo extends ChangeNotifier {
     fakeRequest("Fake Request #2", DateTime.now().add(const Duration(days: 2)),
         const Duration(hours: 4), RequestStatus.pending),
   ];
+
+  RequestRepo({required OrgRepo orgRepo}) : _orgRepo = orgRepo;
 
   Stream<List<Request>> bookings({Set<String>? roomID}) =>
       getWhere(roomID: roomID, status: RequestStatus.confirmed);
@@ -121,6 +126,7 @@ class RequestRepo extends ChangeNotifier {
         ),
       ]);
 
-  Stream<List<String>> rooms(String orgID) =>
-      Stream.value(['Room 1', 'Room 2']);
+  Stream<List<String>> rooms(String orgID) => _orgRepo
+      .getOrg(orgID)
+      .map((o) => o?.rooms.map((r) => r.name).toList() ?? []);
 }

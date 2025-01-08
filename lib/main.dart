@@ -25,11 +25,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     FirebaseUIAuth.configureProviders(providers);
     var userRepo = UserRepo();
+    var orgRepo = OrgRepo(userRepo: userRepo);
     return MultiProvider(
         providers: [
-          ChangeNotifierProvider(create: (_) => RequestRepo()),
-          ChangeNotifierProvider(create: (_) => UserRepo()),
-          ChangeNotifierProvider(create: (_) => OrgRepo(userRepo: userRepo)),
+          ChangeNotifierProvider(create: (_) => RequestRepo(orgRepo: orgRepo)),
+          ChangeNotifierProvider(create: (_) => userRepo),
+          ChangeNotifierProvider(create: (_) => orgRepo),
         ],
         child: MaterialApp.router(
           title: 'Room Booker',
