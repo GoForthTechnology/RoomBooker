@@ -76,21 +76,29 @@ class OrgTile extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Tooltip(
-              message: "Settings for this org",
-              child: IconButton(
-                icon: const Icon(Icons.settings),
-                onPressed: () {
-                  AutoRouter.of(context).push(OrgSettingsRoute(orgID: org.id!));
-                },
-              ),
-            ),
-            Tooltip(
+            _settingsButton(context),
+            _viewCalendarButton(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _viewCalendarButton(BuildContext context) {
+    return Consumer<OrgRepo>(
+      builder: (context, repo, child) => StreamBuilder(
+          stream: repo.listRooms(org.id!),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return Container();
+            }
+            var rooms = snapshot.data!;
+            return Tooltip(
               message: "Bookings for this org",
               child: IconButton(
                 icon: const Icon(Icons.event),
                 onPressed: () {
-                  if (org.rooms.isEmpty) {
+                  if (rooms.isEmpty) {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
@@ -111,9 +119,19 @@ class OrgTile extends StatelessWidget {
                       .push(ViewBookingsRoute(orgID: org.id!));
                 },
               ),
-            ),
-          ],
-        ),
+            );
+          }),
+    );
+  }
+
+  Widget _settingsButton(BuildContext context) {
+    return Tooltip(
+      message: "Settings for this org",
+      child: IconButton(
+        icon: const Icon(Icons.settings),
+        onPressed: () {
+          AutoRouter.of(context).push(OrgSettingsRoute(orgID: org.id!));
+        },
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/repos/request_repo.dart';
+import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/new_booking_form.dart';
 
 @RoutePage()
@@ -22,9 +22,9 @@ class NewBookingScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('New Booking Request'),
       ),
-      body: Consumer<RequestRepo>(
+      body: Consumer<OrgRepo>(
         builder: (context, repo, child) => FutureBuilder(
-          future: repo.rooms(orgID).first,
+          future: repo.listRooms(orgID).first,
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               return const CircularProgressIndicator();
@@ -32,7 +32,7 @@ class NewBookingScreen extends StatelessWidget {
             return SingleChildScrollView(
                 child: NewBookingForm(
               orgID: orgID,
-              roomID: roomID ?? snapshot.data!.first,
+              roomID: roomID ?? snapshot.data!.first.name,
               startTime: startTime,
             ));
           },

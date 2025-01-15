@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/request.dart';
-import 'package:room_booker/repos/request_repo.dart';
-import 'package:rxdart/rxdart.dart';
+import 'package:room_booker/repos/org_repo.dart';
 
 class ResolvedBookings extends StatelessWidget {
+  final String orgID;
   final Function(Request) onFocusBooking;
 
-  const ResolvedBookings({super.key, required this.onFocusBooking});
+  const ResolvedBookings(
+      {super.key, required this.onFocusBooking, required this.orgID});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<RequestRepo>(
+    return Consumer<OrgRepo>(
       builder: (context, repo, child) => StreamBuilder(
-        stream: Rx.combineLatest2(repo.deniedRequests(), repo.bookings(),
-            (denied, confirmed) => denied + confirmed),
+        stream: repo.listRequests(orgID, includeStatuses: [
+          RequestStatus.confirmed,
+          RequestStatus.denied,
+        ]),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();
@@ -28,6 +31,8 @@ class ResolvedBookings extends StatelessWidget {
               return ResolvedBookingTitle(
                 booking: bookings[index],
                 onFocusBooking: onFocusBooking,
+                onRevisitBooking: (b) =>
+                    repo.revisitBookingRequest(orgID, b.id!),
               );
             },
           );
@@ -39,10 +44,14 @@ class ResolvedBookings extends StatelessWidget {
 
 class ResolvedBookingTitle extends StatelessWidget {
   final Function(Request) onFocusBooking;
+  final Function(Request) onRevisitBooking;
   final Request booking;
 
   const ResolvedBookingTitle(
-      {super.key, required this.onFocusBooking, required this.booking});
+      {super.key,
+      required this.onFocusBooking,
+      required this.booking,
+      required this.onRevisitBooking});
 
   @override
   Widget build(BuildContext context) {
@@ -66,37 +75,40 @@ class ResolvedBookingTitle extends StatelessWidget {
           expandedAlignment: Alignment.topLeft,
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Consumer<RequestRepo>(
-                builder: (context, repo, child) => Row(
-                      children: [
-                        detailTable(booking),
-                        Column(
-                          children: [
-                            ElevatedButton(
-                                onPressed: () => onFocusBooking(booking),
-                                child: const Text("Toggle Calendar")),
-                            ElevatedButton(
-                                onPressed: () => repo.revisitRequest(booking),
-                                child: const Text("Revisit")),
-                          ],
-                        )
-                      ],
-                    ))
+            Row(
+              children: [
+                detailTable(booking),
+                Column(
+                  children: [
+                    ElevatedButton(
+                        onPressed: () => onFocusBooking(booking),
+                        child: const Text("Toggle Calendar")),
+                    ElevatedButton(
+                        onPressed: () => onRevisitBooking(booking),
+                        child: const Text("Revisit")),
+                  ],
+                )
+              ],
+            )
           ],
         ));
   }
 }
 
 class PendingBookings extends StatelessWidget {
+  final String orgID;
   final Function(Request) onFocusBooking;
 
-  const PendingBookings({super.key, required this.onFocusBooking});
+  const PendingBookings(
+      {super.key, required this.onFocusBooking, required this.orgID});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<RequestRepo>(
+    return Consumer<OrgRepo>(
       builder: (context, repo, child) => StreamBuilder(
-        stream: repo.pendingRequests(),
+        stream: repo.listRequests(orgID, includeStatuses: [
+          RequestStatus.pending,
+        ]),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();
@@ -108,7 +120,8 @@ class PendingBookings extends StatelessWidget {
             itemCount: bookings.length,
             itemBuilder: (context, index) {
               return PendingBookingTile(
-                booking: bookings[index],
+                orgID: orgID,
+                request: bookings[index],
                 onFocusBooking: onFocusBooking,
               );
             },
@@ -121,10 +134,14 @@ class PendingBookings extends StatelessWidget {
 
 class PendingBookingTile extends StatelessWidget {
   final Function(Request) onFocusBooking;
-  final Request booking;
+  final Request request;
+  final String orgID;
 
   const PendingBookingTile(
-      {super.key, required this.onFocusBooking, required this.booking});
+      {super.key,
+      required this.onFocusBooking,
+      required this.request,
+      required this.orgID});
 
   @override
   Widget build(BuildContext context) {
@@ -132,18 +149,18 @@ class PendingBookingTile extends StatelessWidget {
         elevation: 1,
         child: ExpansionTile(
           leading: const Icon(Icons.event),
-          title: Text(bookingTitle(booking)),
-          subtitle: Text(bookingSubtitle(booking)),
-          trailing: Consumer<RequestRepo>(
+          title: Text(bookingTitle(request)),
+          subtitle: Text(bookingSubtitle(request)),
+          trailing: Consumer<OrgRepo>(
               builder: (context, repo, child) => Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ElevatedButton(
-                        onPressed: () => repo.confirmRequest(booking),
+                        onPressed: () => repo.confirmRequest(orgID, request),
                         child: const Text('Approve'),
                       ),
                       ElevatedButton(
-                        onPressed: () => repo.denyRequest(booking),
+                        onPressed: () => repo.denyRequest(orgID, request.id!),
                         child: const Text('Reject'),
                       )
                     ],
@@ -153,11 +170,11 @@ class PendingBookingTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                detailTable(booking),
+                detailTable(request),
                 Column(
                   children: [
                     ElevatedButton(
-                        onPressed: () => onFocusBooking(booking),
+                        onPressed: () => onFocusBooking(request),
                         child: const Text("Toggle Calendar")),
                   ],
                 )

@@ -1,4 +1,7 @@
+import 'package:json_annotation/json_annotation.dart';
 import 'package:room_booker/entities/blackout_window.dart';
+
+part 'request.g.dart';
 
 enum RequestStatus {
   unknown,
@@ -7,7 +10,10 @@ enum RequestStatus {
   pending,
 }
 
+@JsonSerializable(explicitToJson: true)
 class Request {
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? id;
   final String name;
   final String email;
   final String phone;
@@ -34,9 +40,11 @@ class Request {
     required this.doorLockTime,
     required this.selectedRoom,
     required this.status,
+    this.id,
   });
 
   Request copyWith({
+    String? id,
     String? name,
     String? email,
     String? phone,
@@ -63,6 +71,7 @@ class Request {
       doorLockTime: doorLockTime ?? this.doorLockTime,
       selectedRoom: selectedRoom ?? this.selectedRoom,
       status: status ?? this.status,
+      id: this.id ?? id,
     );
   }
 
@@ -73,4 +82,8 @@ class Request {
       reason: "Busy",
     );
   }
+
+  factory Request.fromJson(Map<String, dynamic> json) =>
+      _$RequestFromJson(json);
+  Map<String, dynamic> toJson() => _$RequestToJson(this);
 }

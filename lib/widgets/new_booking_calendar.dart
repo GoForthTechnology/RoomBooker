@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/repos/request_repo.dart';
+import 'package:room_booker/entities/blackout_window.dart';
+import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/streaming_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -25,6 +26,7 @@ class NewBookingCalendar extends StatefulWidget {
   final DateTime? initialStartTime;
   final DateTime? initialEndTime;
   final String roomID;
+  final String orgID;
 
   final Function(Appointment) onAppointmentChanged;
 
@@ -33,7 +35,8 @@ class NewBookingCalendar extends StatefulWidget {
       required this.onAppointmentChanged,
       this.initialStartTime,
       this.initialEndTime,
-      required this.roomID});
+      required this.roomID,
+      required this.orgID});
 
   @override
   State<StatefulWidget> createState() => _NewBookingCalendarState();
@@ -65,7 +68,7 @@ class _NewBookingCalendarState extends State<NewBookingCalendar> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<RequestRepo>(
+    return Consumer<OrgRepo>(
         builder: (context, repo, child) => StreamingCalendar(
               view: CalendarView.week,
               showNavigationArrow: true,
@@ -74,12 +77,13 @@ class _NewBookingCalendarState extends State<NewBookingCalendar> {
               allowAppointmentResize: true,
               stateStream: Rx.combineLatest3(
                   _appointmentSubject.stream.startWith(null),
-                  repo.bookings(roomID: {widget.roomID}),
-                  repo.blackoutWindows.asStream(),
+                  repo.listBookings(widget.orgID,
+                      includeRooms: {widget.roomID}),
+                  repo.listBlackoutWindows(widget.orgID),
                   (appointment, bookings, blackoutWindows) {
                 var windows = blackoutWindows;
-                windows.addAll(
-                    bookings.map((booking) => booking.toBlackoutWindow()));
+                windows.addAll(bookings
+                    .map((booking) => BlackoutWindow.fromBooking(booking)));
 
                 return CalendarState(
                     appointments: appointment == null ? [] : [appointment],

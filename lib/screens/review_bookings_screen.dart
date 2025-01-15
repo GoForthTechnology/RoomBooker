@@ -1,8 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/entities/blackout_window.dart';
 import 'package:room_booker/entities/request.dart';
-import 'package:room_booker/repos/request_repo.dart';
+import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/heading.dart';
 import 'package:room_booker/widgets/booking_lists.dart';
 import 'package:room_booker/widgets/streaming_calendar.dart';
@@ -11,7 +12,10 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()
 class ReviewBookingsScreen extends StatelessWidget {
-  const ReviewBookingsScreen({super.key});
+  final String orgID;
+
+  const ReviewBookingsScreen(
+      {super.key, @PathParam("orgID") required this.orgID});
 
   @override
   Widget build(BuildContext context) {
@@ -19,12 +23,15 @@ class ReviewBookingsScreen extends StatelessWidget {
         appBar: AppBar(
           title: const Text('Booking Requests'),
         ),
-        body: const ReviewPanel());
+        body: ReviewPanel(
+          orgID: orgID,
+        ));
   }
 }
 
 class ReviewPanel extends StatefulWidget {
-  const ReviewPanel({super.key});
+  final String orgID;
+  const ReviewPanel({super.key, required this.orgID});
 
   @override
   State<ReviewPanel> createState() => _ReviewPanelState();
@@ -43,15 +50,25 @@ class _ReviewPanelState extends State<ReviewPanel> {
               flex: 2,
               child: Column(children: [
                 const Heading(text: "Pending"),
-                PendingBookings(onFocusBooking: focusBooking),
+                PendingBookings(
+                  onFocusBooking: focusBooking,
+                  orgID: widget.orgID,
+                ),
                 const Heading(text: "Resolved"),
-                ResolvedBookings(onFocusBooking: focusBooking)
+                ResolvedBookings(
+                  onFocusBooking: focusBooking,
+                  orgID: widget.orgID,
+                )
               ])),
           if (appointment != null)
             Flexible(
                 flex: 1,
                 child: SizedBox(
-                    height: 600, child: Calendar(appointment: appointment!))),
+                    height: 600,
+                    child: Calendar(
+                      appointment: appointment!,
+                      orgID: widget.orgID,
+                    ))),
         ],
       ),
     );
@@ -73,18 +90,19 @@ class _ReviewPanelState extends State<ReviewPanel> {
 }
 
 class Calendar extends StatelessWidget {
+  final String orgID;
   final Appointment appointment;
 
-  const Calendar({super.key, required this.appointment});
+  const Calendar({super.key, required this.appointment, required this.orgID});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<RequestRepo>(
+    return Consumer<OrgRepo>(
       builder: (context, repo, child) => StreamingCalendar(
         displayDate: appointment.startTime,
-        stateStream:
-            Rx.combineLatest2(repo.bookings(), repo.blackoutWindows.asStream(),
-                (bookings, blackoutWindows) {
+        stateStream: Rx.combineLatest2(
+            repo.listBookings(orgID), repo.listBlackoutWindows(orgID),
+            (bookings, blackoutWindows) {
           var booking = Request(
             name: 'Default Name',
             email: 'default@example.com',
@@ -108,7 +126,7 @@ class Calendar extends StatelessWidget {
               ),
             ],
             blackoutWindows: blackoutWindows +
-                bookings.map((b) => b.toBlackoutWindow()).toList(),
+                bookings.map((b) => BlackoutWindow.fromBooking(b)).toList(),
           );
         }),
         view: CalendarView.day,

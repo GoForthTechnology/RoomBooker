@@ -27,7 +27,7 @@ class AppRouter extends RootStackRouter {
             page: OrgSettingsRoute.page,
             guards: [AuthGuard()]),
         AutoRoute(
-            path: "/review",
+            path: "/review/:orgID",
             page: ReviewBookingsRoute.page,
             guards: [AuthGuard()]),
         ...authRoutes,

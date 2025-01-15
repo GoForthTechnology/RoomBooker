@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
-import 'package:room_booker/repos/request_repo.dart';
+import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/heading.dart';
 import 'package:room_booker/widgets/new_booking_calendar.dart';
 
@@ -64,6 +65,14 @@ class NewBookingFormState extends State<NewBookingForm> {
       }
       if (doorsUnlockTimeController.text.isEmpty) {
         doorsUnlockTimeController.text = eventStartTimeController.text;
+      }
+    });
+    eventEndTimeController.addListener(() {
+      if (eventEndTimeController.text.isEmpty) {
+        return;
+      }
+      if (doorsLockTimeController.text.isEmpty) {
+        doorsLockTimeController.text = eventEndTimeController.text;
       }
     });
     return Padding(
@@ -129,6 +138,7 @@ class NewBookingFormState extends State<NewBookingForm> {
               height: 1100,
               child: Card(
                   child: NewBookingCalendar(
+                orgID: widget.orgID,
                 roomID: selectedRoom ?? widget.roomID,
                 initialStartTime: widget.startTime,
                 initialEndTime: widget.startTime?.add(const Duration(hours: 1)),
@@ -164,13 +174,12 @@ class NewBookingFormState extends State<NewBookingForm> {
             TimeField(
               controller: doorsUnlockTimeController,
               labelText: 'Doors Unlock Time',
-              validationMessage:
-                  'When would you like the doors to be unlocked?',
+              //validationMessage: 'When would you like the doors to be unlocked?',
             ),
             TimeField(
               controller: doorsLockTimeController,
               labelText: 'Doors Lock Time',
-              validationMessage: 'When would you like the doors to be locked?',
+              //validationMessage: 'When would you like the doors to be locked?',
               minimumTime: parseTimeOfDay(eventStartTimeController.text),
             ),
             const Instructions(
@@ -185,7 +194,7 @@ class NewBookingFormState extends State<NewBookingForm> {
               maxLines: 4,
               validator: null, // not required
             ),
-            Consumer<RequestRepo>(
+            Consumer<OrgRepo>(
                 builder: (context, repo, child) => ElevatedButton(
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
@@ -228,7 +237,7 @@ class NewBookingFormState extends State<NewBookingForm> {
   }
 
   void _showBookingSummaryDialog(
-      BuildContext context, Request booking, RequestRepo repo) {
+      BuildContext context, Request booking, OrgRepo repo) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -261,7 +270,7 @@ class NewBookingFormState extends State<NewBookingForm> {
               onPressed: () async {
                 var navigator = Navigator.of(context);
                 var messenger = ScaffoldMessenger.of(context);
-                await repo.addRequest(booking);
+                await repo.addBookingRequest(widget.orgID, booking);
                 navigator.pop();
                 navigator.pop();
                 messenger.showSnackBar(
@@ -430,24 +439,24 @@ class RoomField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<RequestRepo>(
+    return Consumer<OrgRepo>(
         builder: (context, repo, child) => StreamBuilder(
-              stream: repo.rooms(orgID),
+              stream: repo.listRooms(orgID),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const CircularProgressIndicator();
                 }
-                List<String> rooms = snapshot.data!;
+                List<Room> rooms = snapshot.data!;
                 return DropdownButtonFormField<String>(
                   value: selectedRoom,
                   decoration: const InputDecoration(
                     labelText: 'Event Location',
                     border: OutlineInputBorder(),
                   ),
-                  items: rooms.map<DropdownMenuItem<String>>((String value) {
+                  items: rooms.map<DropdownMenuItem<String>>((Room value) {
                     return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
+                      value: value.name,
+                      child: Text(value.name),
                     );
                   }).toList(),
                   onChanged: onChanged,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/request.dart';
-import 'package:room_booker/repos/request_repo.dart';
+import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/streaming_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -23,23 +23,27 @@ class CurrentBookingsCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<RequestRepo>(
+    return Consumer<OrgRepo>(
       builder: (context, repo, child) => FutureBuilder(
-        future: repo.rooms(orgID).first,
+        future: repo.listRooms(orgID).first,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();
           }
+          var rooms = snapshot.data!;
           Map<String, Color> initialValues = {};
-          for (int i = 0; i < snapshot.data!.length; i++) {
-            initialValues[snapshot.data![i]] = roomColors[i];
+          for (int i = 0; i < rooms.length; i++) {
+            initialValues[rooms[i].name] = roomColors[i];
           }
           return ChangeNotifierProvider.value(
             value: RoomState(initialValues),
-            child: const Column(
+            child: Column(
               children: [
-                RoomCards(),
-                Expanded(child: Calendar()),
+                const RoomCards(),
+                Expanded(
+                    child: Calendar(
+                  orgID: orgID,
+                )),
               ],
             ),
           );
@@ -124,23 +128,26 @@ class RoomCard extends StatelessWidget {
 }
 
 class Calendar extends StatelessWidget {
-  const Calendar({super.key});
+  final String orgID;
+
+  const Calendar({super.key, required this.orgID});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<RequestRepo, RoomState>(
+    return Consumer2<OrgRepo, RoomState>(
         builder: (context, repo, roomState, child) => StreamingCalendar(
               view: CalendarView.week,
               stateStream: Rx.combineLatest2(
-                  repo.bookings(roomID: roomState.enabledValues()),
-                  repo.blackoutWindows.asStream(),
+                  repo.listBookings(orgID,
+                      includeRooms: roomState.enabledValues()),
+                  repo.listBlackoutWindows(orgID),
                   (bookings, blackoutWindows) => CalendarState(
                         appointments: bookings
                             .map((b) => Appointment(
                                   subject: "Busy",
-                                  startTime: b.eventStartTime,
-                                  endTime: b.eventEndTime,
-                                  color: roomState.color(b.selectedRoom),
+                                  startTime: b.startTime,
+                                  endTime: b.endTime,
+                                  color: roomState.color(b.roomID),
                                 ))
                             .toList(),
                         blackoutWindows: blackoutWindows,

@@ -20,9 +20,6 @@ Map<String, dynamic> _$AdminEntryToJson(AdminEntry instance) =>
 Organization _$OrganizationFromJson(Map<String, dynamic> json) => Organization(
       name: json['name'] as String,
       ownerID: json['ownerID'] as String,
-      rooms: (json['rooms'] as List<dynamic>)
-          .map((e) => Room.fromJson(e as Map<String, dynamic>))
-          .toList(),
       acceptingAdminRequests: json['acceptingAdminRequests'] as bool,
     );
 
@@ -30,7 +27,6 @@ Map<String, dynamic> _$OrganizationToJson(Organization instance) =>
     <String, dynamic>{
       'name': instance.name,
       'ownerID': instance.ownerID,
-      'rooms': instance.rooms.map((e) => e.toJson()).toList(),
       'acceptingAdminRequests': instance.acceptingAdminRequests,
     };
 

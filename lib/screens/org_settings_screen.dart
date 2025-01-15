@@ -196,7 +196,20 @@ class RoomListWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var rooms = org.rooms;
+    return StreamBuilder(
+        stream: repo.listRooms(org.id!),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Text('Error loading rooms');
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const CircularProgressIndicator();
+          }
+          return _buildRoomList(context, snapshot.data ?? []);
+        });
+  }
+
+  Widget _buildRoomList(BuildContext context, List<Room> rooms) {
     Widget content;
     if (rooms.isEmpty) {
       content = const Text('No rooms found. Please add one.');
@@ -211,7 +224,7 @@ class RoomListWidget extends StatelessWidget {
             onDeleted: () async {
               var confirmed = await confirmRoomDeletion(context);
               if (confirmed == true) {
-                await repo.removeRoom(org.id!, room.name);
+                await repo.removeRoom(org.id!, room.id!);
               }
             },
           );
@@ -229,7 +242,7 @@ class RoomListWidget extends StatelessWidget {
             var repo = Provider.of<OrgRepo>(context, listen: false);
             var roomName = await promptForRoomName(context);
             if (roomName != null) {
-              await repo.addRoom(org.id!, roomName);
+              await repo.addRoom(org.id!, Room(name: roomName));
             }
           },
         ),

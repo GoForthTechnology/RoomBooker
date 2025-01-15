@@ -32,7 +32,7 @@ class ViewBookingsScreen extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.approval_rounded),
           onPressed: () =>
-              AutoRouter.of(context).push(const ReviewBookingsRoute()),
+              AutoRouter.of(context).push(ReviewBookingsRoute(orgID: orgID)),
         ),
       ];
     }

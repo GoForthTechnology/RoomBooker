@@ -30,13 +30,11 @@ class Organization {
   final String? id;
   final String name;
   final String ownerID;
-  final List<Room> rooms;
   final bool acceptingAdminRequests;
 
   Organization({
     required this.name,
     required this.ownerID,
-    required this.rooms,
     required this.acceptingAdminRequests,
     this.id,
   });
@@ -45,7 +43,6 @@ class Organization {
     return Organization(
       name: name,
       ownerID: ownerID,
-      rooms: rooms,
       acceptingAdminRequests:
           acceptingAdminRequests ?? this.acceptingAdminRequests,
       id: this.id ?? id,
@@ -59,9 +56,21 @@ class Organization {
 
 @JsonSerializable(explicitToJson: true)
 class Room {
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? id;
   final String name;
 
-  Room({required this.name});
+  Room({
+    required this.name,
+    this.id,
+  });
+
+  Room copyWith({String? id}) {
+    return Room(
+      name: name,
+      id: this.id ?? id,
+    );
+  }
 
   factory Room.fromJson(Map<String, dynamic> json) => _$RoomFromJson(json);
   Map<String, dynamic> toJson() => _$RoomToJson(this);
