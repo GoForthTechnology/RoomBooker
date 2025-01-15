@@ -38,7 +38,7 @@ class ReviewPanel extends StatefulWidget {
 }
 
 class _ReviewPanelState extends State<ReviewPanel> {
-  Appointment? appointment;
+  Request? request;
 
   @override
   Widget build(BuildContext context) {
@@ -60,13 +60,13 @@ class _ReviewPanelState extends State<ReviewPanel> {
                   orgID: widget.orgID,
                 )
               ])),
-          if (appointment != null)
+          if (request != null)
             Flexible(
                 flex: 1,
                 child: SizedBox(
                     height: 600,
                     child: Calendar(
-                      appointment: appointment!,
+                      request: request!,
                       orgID: widget.orgID,
                     ))),
         ],
@@ -76,14 +76,10 @@ class _ReviewPanelState extends State<ReviewPanel> {
 
   void focusBooking(Request booking) {
     setState(() {
-      if (appointment != null) {
-        appointment = null;
+      if (request != null) {
+        request = null;
       } else {
-        appointment = Appointment(
-            startTime: booking.eventStartTime,
-            endTime: booking.eventEndTime,
-            subject: booking.eventName,
-            notes: booking.message);
+        request = booking;
       }
     });
   }
@@ -91,38 +87,24 @@ class _ReviewPanelState extends State<ReviewPanel> {
 
 class Calendar extends StatelessWidget {
   final String orgID;
-  final Appointment appointment;
+  final Request request;
 
-  const Calendar({super.key, required this.appointment, required this.orgID});
+  const Calendar({super.key, required this.request, required this.orgID});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<OrgRepo>(
       builder: (context, repo, child) => StreamingCalendar(
-        displayDate: appointment.startTime,
+        displayDate: request.eventStartTime,
         stateStream: Rx.combineLatest2(
-            repo.listBookings(orgID), repo.listBlackoutWindows(orgID),
-            (bookings, blackoutWindows) {
-          var booking = Request(
-            name: 'Default Name',
-            email: 'default@example.com',
-            phone: '123-456-7890',
-            eventName: appointment.subject,
-            eventStartTime: appointment.startTime,
-            eventEndTime: appointment.endTime,
-            attendance: 0,
-            selectedRoom: 'Default Room',
-            message: appointment.notes ?? "",
-            doorUnlockTime: appointment.startTime,
-            doorLockTime: appointment.endTime,
-            status: RequestStatus.pending,
-          );
+            repo.listBookings(orgID, includeRooms: {request.selectedRoom}),
+            repo.listBlackoutWindows(orgID), (bookings, blackoutWindows) {
           return CalendarState(
             appointments: [
               Appointment(
-                endTime: booking.eventEndTime,
-                startTime: booking.eventStartTime,
-                subject: booking.eventName,
+                endTime: request.eventEndTime,
+                startTime: request.eventStartTime,
+                subject: request.eventName,
               ),
             ],
             blackoutWindows: blackoutWindows +
