@@ -18,7 +18,9 @@ class Booking {
     required this.startTime,
     required this.endTime,
     this.id,
-  });
+  }) {
+    assert(startTime.isBefore(endTime));
+  }
 
   Booking copyWith({
     String? id,

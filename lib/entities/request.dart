@@ -41,7 +41,9 @@ class Request {
     required this.selectedRoom,
     required this.status,
     this.id,
-  });
+  }) {
+    assert(eventStartTime.isBefore(eventEndTime));
+  }
 
   Request copyWith({
     String? id,

@@ -114,6 +114,9 @@ class PendingBookings extends StatelessWidget {
             return const CircularProgressIndicator();
           }
           List<Request> bookings = snapshot.data!;
+          if (bookings.isEmpty) {
+            return const Text("No pending bookings.");
+          }
           bookings.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
           return ListView.builder(
             shrinkWrap: true,
@@ -226,5 +229,7 @@ String formatDate(DateTime dateTime) {
 }
 
 String formatTime(DateTime dateTime) {
-  return '${dateTime.hour}:${dateTime.minute}';
+  var hourStr = dateTime.hour.toString().padLeft(2, '0');
+  var minuteStr = dateTime.minute.toString().padLeft(2, '0');
+  return "$hourStr:$minuteStr";
 }

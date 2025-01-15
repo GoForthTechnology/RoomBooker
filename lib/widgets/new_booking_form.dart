@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/widgets/booking_lists.dart';
 import 'package:room_booker/widgets/heading.dart';
 import 'package:room_booker/widgets/new_booking_calendar.dart';
 
@@ -59,9 +60,8 @@ class NewBookingFormState extends State<NewBookingForm> {
       }
       if (eventEndTimeController.text.isEmpty) {
         var startTime = parseTimeOfDay(eventStartTimeController.text)!;
-        eventEndTimeController.text =
-            TimeOfDay(hour: startTime.hour + 1, minute: startTime.minute)
-                .format(context);
+        eventEndTimeController.text = formatTimeOfDay(
+            TimeOfDay(hour: startTime.hour + 1, minute: startTime.minute));
       }
       if (doorsUnlockTimeController.text.isEmpty) {
         doorsUnlockTimeController.text = eventStartTimeController.text;
@@ -145,9 +145,9 @@ class NewBookingFormState extends State<NewBookingForm> {
                 onAppointmentChanged: (a) {
                   eventDateController.text = dateToString(a.startTime);
                   eventStartTimeController.text =
-                      TimeOfDay.fromDateTime(a.startTime).format(context);
+                      formatTimeOfDay(TimeOfDay.fromDateTime(a.startTime));
                   eventEndTimeController.text =
-                      TimeOfDay.fromDateTime(a.endTime).format(context);
+                      formatTimeOfDay(TimeOfDay.fromDateTime(a.endTime));
                 },
               )),
             ),
@@ -364,8 +364,7 @@ class TimeField extends StatelessWidget {
         }
         if (pickedTime != null) {
           final roundedTime = roundToNearest30Minutes(pickedTime);
-          // ignore: use_build_context_synchronously
-          controller.text = roundedTime.format(context);
+          controller.text = formatTimeOfDay(roundedTime);
         }
       },
     );
@@ -377,6 +376,12 @@ class TimeField extends StatelessWidget {
     final int roundedMinute = mod < 15 ? minute - mod : minute + (30 - mod);
     return TimeOfDay(hour: time.hour, minute: roundedMinute);
   }
+}
+
+String formatTimeOfDay(TimeOfDay time) {
+  var hourStr = time.hour.toString().padLeft(2, '0');
+  var minuteStr = time.minute.toString().padLeft(2, '0');
+  return "$hourStr:$minuteStr";
 }
 
 // Parse a string in the format "HH:MM AM/PM" to a TimeOfDay object
