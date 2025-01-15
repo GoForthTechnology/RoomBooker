@@ -11,20 +11,22 @@ class UserRepo extends ChangeNotifier {
 
   Future<void> addUser(User user) async {
     try {
-      await _db
-          .collection('users')
-          .doc(user.uid)
-          .set(UserProfile(orgIDs: []).toJson());
+      await _userRef(user.uid).set(UserProfile(orgIDs: []));
     } catch (e) {
       return Future.error(e);
     }
   }
 
   void addOrg(Transaction t, String userID, String orgID) async {
-    var userRef = _db.collection('users').doc(userID);
-    t.update(userRef, {
-      'orgIDs': FieldValue.arrayUnion([orgID]),
-    });
+    var userRef = _userRef(userID);
+    var profile = await t.get(userRef).then((s) => s.data());
+    if (profile == null) {
+      t.set(userRef, UserProfile(orgIDs: [orgID]));
+    } else {
+      t.update(_db.collection("users").doc(userID), {
+        'orgIDs': FieldValue.arrayUnion([orgID]),
+      });
+    }
   }
 
   void removeOrg(Transaction t, String userID, String orgID) async {
@@ -34,13 +36,19 @@ class UserRepo extends ChangeNotifier {
     });
   }
 
-  Stream<UserProfile?> getUser(String uID) async* {
-    yield* _db.collection('users').doc(uID).snapshots().map((s) {
+  Future<UserProfile?> getUser(String uID) {
+    return _db.collection('users').doc(uID).get().then((s) {
       if (s.exists) {
         final data = s.data() as Map<String, dynamic>;
         return UserProfile.fromJson(data);
       }
       return null;
     });
+  }
+
+  DocumentReference<UserProfile> _userRef(String uID) {
+    return _db.collection('users').doc(uID).withConverter(
+        fromFirestore: (snapshot, _) => UserProfile.fromJson(snapshot.data()!),
+        toFirestore: (profile, _) => profile.toJson());
   }
 }

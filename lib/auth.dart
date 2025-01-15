@@ -56,7 +56,7 @@ class LoginScreen extends StatelessWidget {
           AuthStateChangeAction<SignedIn>((context, state) async {
             var router = AutoRouter.of(context);
             var userRepo = Provider.of<UserRepo>(context, listen: false);
-            var user = await userRepo.getUser(state.user!.uid).first;
+            var user = await userRepo.getUser(state.user!.uid);
             if (user == null) {
               await userRepo.addUser(state.user!);
             }
