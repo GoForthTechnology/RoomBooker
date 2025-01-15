@@ -24,17 +24,12 @@ class OrgRepo extends ChangeNotifier {
       ownerID: user.uid,
       acceptingAdminRequests: false,
     );
-    try {
-      var orgID = await _db.runTransaction((t) async {
-        var orgRef = await _db.collection("orgs").add(org.toJson());
-        _userRepo.addOrg(t, user.uid, orgRef.id);
-        return orgRef.id;
-      });
-      return orgID;
-    } catch (e) {
-      print(e);
-      return Future.error(e);
-    }
+    var orgID = await _db.runTransaction((t) async {
+      var orgRef = await _db.collection("orgs").add(org.toJson());
+      _userRepo.addOrg(t, user.uid, orgRef.id);
+      return orgRef.id;
+    });
+    return orgID;
   }
 
   Future<void> addAdminRequestForCurrentUser(String orgID) {
@@ -144,16 +139,12 @@ class OrgRepo extends ChangeNotifier {
       yield* Stream.error("User not logged in");
     }
 
-    var profile = await _userRepo.getUser(user!.uid);
-
-    var orgIDs = profile?.orgIDs ?? [];
-    var streams = orgIDs.map(getOrg).toList();
-    if (streams.isEmpty) {
-      List<Organization> empty = [];
-      yield* Stream.value(empty);
-    }
-    yield* Rx.combineLatestList(streams)
-        .map((orgs) => orgs.where((o) => o != null).map((o) => o!).toList());
+    yield* _userRepo.streamUser(user!.uid).map((profile) {
+      var orgIDs = profile.orgIDs;
+      var streams = orgIDs.map(getOrg).toList();
+      return Rx.combineLatestList(streams)
+          .map((orgs) => orgs.where((o) => o != null).map((o) => o!).toList());
+    }).switchMap((s) => s);
   }
 
   Future<void> addBookingRequest(String orgID, Request request) async {

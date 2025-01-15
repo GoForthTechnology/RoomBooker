@@ -21,11 +21,7 @@ class LandingScreen extends StatelessWidget {
           var repo = Provider.of<OrgRepo>(context, listen: false);
           var name = await promptForOrgName(context);
           if (name != null) {
-            try {
-              await repo.addOrgForCurrentUser(name);
-            } catch (e) {
-              print(e);
-            }
+            await repo.addOrgForCurrentUser(name);
           }
         },
         child: const Icon(Icons.add),

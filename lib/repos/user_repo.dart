@@ -18,15 +18,23 @@ class UserRepo extends ChangeNotifier {
   }
 
   void addOrg(Transaction t, String userID, String orgID) async {
-    var userRef = _userRef(userID);
-    var profile = await t.get(userRef).then((s) => s.data());
+    var profileRef = _userRef(userID);
+    /*var profile = await t.get(profileRef).then((s) => s.data());
     if (profile == null) {
-      t.set(userRef, UserProfile(orgIDs: [orgID]));
+      t.set(profileRef, UserProfile(orgIDs: [orgID]));
     } else {
       t.update(_db.collection("users").doc(userID), {
         'orgIDs': FieldValue.arrayUnion([orgID]),
       });
+    }*/
+    // TODO: Move this back into the transaction
+    var profile = await profileRef.get().then((s) => s.data());
+    if (profile == null) {
+      profile = UserProfile(orgIDs: [orgID]);
+    } else {
+      profile.orgIDs.add(orgID);
     }
+    profileRef.set(profile);
   }
 
   void removeOrg(Transaction t, String userID, String orgID) async {
@@ -34,6 +42,10 @@ class UserRepo extends ChangeNotifier {
     t.update(userRef, {
       'orgIDs': FieldValue.arrayRemove([orgID]),
     });
+  }
+
+  Stream<UserProfile> streamUser(String uID) {
+    return _userRef(uID).snapshots().map((s) => s.data()!);
   }
 
   Future<UserProfile?> getUser(String uID) {
