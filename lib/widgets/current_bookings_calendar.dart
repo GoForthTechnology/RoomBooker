@@ -137,62 +137,36 @@ class Calendar extends StatelessWidget {
     return Consumer2<OrgRepo, RoomState>(
         builder: (context, repo, roomState, child) => StreamingCalendar(
               view: CalendarView.week,
-              stateStream: Rx.combineLatest2(
+              stateStream: Rx.combineLatest3(
                   repo.listBookings(orgID,
                       includeRooms: roomState.enabledValues()),
+                  repo.listRequests(orgID,
+                      includeStatuses: [RequestStatus.pending]),
                   repo.listBlackoutWindows(orgID),
-                  (bookings, blackoutWindows) => CalendarState(
-                        appointments: bookings
-                            .map((b) => Appointment(
-                                  subject: "Busy",
-                                  startTime: b.startTime,
-                                  endTime: b.endTime,
-                                  color: roomState.color(b.roomID),
-                                ))
-                            .toList(),
-                        blackoutWindows: blackoutWindows,
-                      )),
-              onTapBooking: (booking) =>
-                  _showBookingSummaryDialog(context, booking),
+                  (bookings, pendingRequests, blackoutWindows) {
+                var appointments = bookings
+                    .map((b) => Appointment(
+                          subject: "Booked",
+                          startTime: b.startTime,
+                          endTime: b.endTime,
+                          color: roomState.color(b.roomID),
+                        ))
+                    .toList();
+                appointments.addAll(pendingRequests.map((r) => Appointment(
+                      subject: "Requested",
+                      startTime: r.eventStartTime,
+                      endTime: r.eventEndTime,
+                      color: roomState.color(r.selectedRoom).withAlpha(125),
+                    )));
+                return CalendarState(
+                    appointments: appointments,
+                    blackoutWindows: blackoutWindows);
+              }),
               showNavigationArrow: true,
               showDatePickerButton: true,
               showTodayButton: true,
             ));
   }
-}
-
-void _showBookingSummaryDialog(BuildContext context, Request booking) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Booking Summary'),
-        content: SingleChildScrollView(
-          child: ListBody(
-            children: <Widget>[
-              Text('Name: ${booking.name}'),
-              Text('Email: ${booking.email}'),
-              Text('Phone: ${booking.phone}'),
-              Text('Event Name: ${booking.eventName}'),
-              Text('Event Start Time: ${booking.eventStartTime}'),
-              Text('Event End Time: ${booking.eventEndTime}'),
-              Text('Event Attendance: ${booking.attendance}'),
-              Text('Event Location: ${booking.selectedRoom}'),
-              Text('Notes: ${booking.message}'),
-            ],
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('Close'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    },
-  );
 }
 
 class SelectedRoom extends ChangeNotifier {
