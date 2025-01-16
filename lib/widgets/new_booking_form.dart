@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
@@ -24,14 +23,11 @@ class NewBookingFormState extends State<NewBookingForm> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
-  final attendanceController = TextEditingController();
   final messageController = TextEditingController();
   final eventNameController = TextEditingController();
   final eventStartTimeController = TextEditingController();
   final eventEndTimeController = TextEditingController();
   final eventDateController = TextEditingController();
-  final doorsLockTimeController = TextEditingController();
-  final doorsUnlockTimeController = TextEditingController();
   String? selectedRoom;
 
   @override
@@ -44,7 +40,6 @@ class NewBookingFormState extends State<NewBookingForm> {
         eventEndTimeController.text = TimeOfDay.fromDateTime(
                 widget.startTime!.add(const Duration(hours: 1)))
             .format(context);
-        doorsUnlockTimeController.text = eventStartTimeController.text;
         selectedRoom = widget.roomID;
       });
     }
@@ -62,16 +57,10 @@ class NewBookingFormState extends State<NewBookingForm> {
         eventEndTimeController.text = formatTimeOfDay(
             TimeOfDay(hour: startTime.hour + 1, minute: startTime.minute));
       }
-      if (doorsUnlockTimeController.text.isEmpty) {
-        doorsUnlockTimeController.text = eventStartTimeController.text;
-      }
     });
     eventEndTimeController.addListener(() {
       if (eventEndTimeController.text.isEmpty) {
         return;
-      }
-      if (doorsLockTimeController.text.isEmpty) {
-        doorsLockTimeController.text = eventEndTimeController.text;
       }
     });
     return Padding(
@@ -110,24 +99,6 @@ class NewBookingFormState extends State<NewBookingForm> {
               controller: eventNameController,
               labelText: "Event Name",
               validationMessage: "Please enter the event name",
-            ),
-            TextFormField(
-              controller: attendanceController,
-              decoration: const InputDecoration(
-                labelText: 'Event Attendance',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              inputFormatters: <TextInputFormatter>[
-                FilteringTextInputFormatter.digitsOnly,
-                FilteringTextInputFormatter.allow(RegExp(r'^[1-9]\d*|0$')),
-              ],
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter the event attendance';
-                }
-                return null;
-              },
             ),
             const Instructions(
               text:
@@ -170,17 +141,6 @@ class NewBookingFormState extends State<NewBookingForm> {
               text:
                   "Please select when you would like the doors to be unlocked and locked",
             ),
-            TimeField(
-              controller: doorsUnlockTimeController,
-              labelText: 'Doors Unlock Time',
-              //validationMessage: 'When would you like the doors to be unlocked?',
-            ),
-            TimeField(
-              controller: doorsLockTimeController,
-              labelText: 'Doors Lock Time',
-              //validationMessage: 'When would you like the doors to be locked?',
-              minimumTime: parseTimeOfDay(eventStartTimeController.text),
-            ),
             const Instructions(
               text: "Additional information",
             ),
@@ -202,25 +162,16 @@ class NewBookingFormState extends State<NewBookingForm> {
                               parseTimeOfDay(eventStartTimeController.text);
                           var endToD =
                               parseTimeOfDay(eventEndTimeController.text);
-                          var unlockToD =
-                              parseTimeOfDay(doorsUnlockTimeController.text);
-                          var lockToD =
-                              parseTimeOfDay(doorsLockTimeController.text);
                           final booking = Request(
                             name: nameController.text,
                             email: emailController.text,
                             phone: phoneController.text,
-                            attendance: int.parse(attendanceController.text),
                             message: messageController.text,
                             eventName: eventNameController.text,
                             eventStartTime: DateTime(date.year, date.month,
                                 date.day, startToD!.hour, startToD.minute),
                             eventEndTime: DateTime(date.year, date.month,
                                 date.day, endToD!.hour, endToD.minute),
-                            doorUnlockTime: DateTime(date.year, date.month,
-                                date.day, unlockToD!.hour, unlockToD.minute),
-                            doorLockTime: DateTime(date.year, date.month,
-                                date.day, lockToD!.hour, lockToD.minute),
                             selectedRoom: selectedRoom ?? widget.roomID,
                             status: RequestStatus.pending,
                           );
@@ -251,7 +202,6 @@ class NewBookingFormState extends State<NewBookingForm> {
                 Text('Event Name: ${booking.eventName}'),
                 Text('Event Start Time: ${booking.eventStartTime}'),
                 Text('Event End Time: ${booking.eventEndTime}'),
-                Text('Event Attendance: ${booking.attendance}'),
                 Text('Event Location: ${booking.selectedRoom}'),
                 Text('Notes: ${booking.message}'),
               ],

@@ -164,9 +164,6 @@ Request fromAppointment(Appointment appointment, RequestStatus status) {
     email: '',
     message: '',
     phone: '',
-    attendance: 0,
-    doorUnlockTime: appointment.startTime,
-    doorLockTime: appointment.endTime,
     status: status,
   );
 }

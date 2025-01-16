@@ -194,7 +194,6 @@ Widget detailTable(Request booking) {
       child: Table(
         defaultColumnWidth: const FixedColumnWidth(200),
         children: [
-          bookingField('Attendance', booking.attendance.toString()),
           bookingField('Phone', booking.phone),
           bookingField('Email', booking.email),
           bookingField('Start Time',

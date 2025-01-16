@@ -26,9 +26,6 @@ extension AppointmentCopyWith on Appointment {
       email: '',
       message: '',
       phone: '',
-      attendance: 0,
-      doorUnlockTime: startTime,
-      doorLockTime: endTime,
       selectedRoom: '',
       status: status,
     );
