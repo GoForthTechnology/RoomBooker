@@ -1,7 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:room_booker/auth.dart';
-import 'package:room_booker/screens/new_booking_screen.dart';
 import 'package:room_booker/screens/view_bookings_screen.dart';
 import 'package:room_booker/screens/review_bookings_screen.dart';
 import 'package:room_booker/screens/landing.dart';
@@ -15,7 +14,6 @@ class AppRouter extends RootStackRouter {
   @override
   List<AutoRoute> get routes => [
         AutoRoute(path: "/view/:orgID", page: ViewBookingsRoute.page),
-        AutoRoute(path: "/request/:orgID", page: NewBookingRoute.page),
         AutoRoute(
             path: "/join/:orgID",
             page: JoinOrgRoute.page,

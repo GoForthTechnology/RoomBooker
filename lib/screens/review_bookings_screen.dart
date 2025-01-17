@@ -49,12 +49,12 @@ class _ReviewPanelState extends State<ReviewPanel> {
           Flexible(
               flex: 2,
               child: Column(children: [
-                const Heading(text: "Pending"),
+                const Heading("Pending"),
                 PendingBookings(
                   onFocusBooking: focusBooking,
                   orgID: widget.orgID,
                 ),
-                const Heading(text: "Resolved"),
+                const Heading("Resolved"),
                 ResolvedBookings(
                   onFocusBooking: focusBooking,
                   orgID: widget.orgID,

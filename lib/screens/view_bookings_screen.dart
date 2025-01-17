@@ -18,11 +18,6 @@ class ViewBookingsScreen extends StatelessWidget {
           title: const Text("Room Bookings for Church of the Resurrection"),
           actions: _actions(context)),
       body: CurrentBookingsCalendar(orgID: orgID),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () =>
-            AutoRouter.of(context).push(NewBookingRoute(orgID: orgID)),
-        child: const Icon(Icons.add),
-      ),
     );
   }
 

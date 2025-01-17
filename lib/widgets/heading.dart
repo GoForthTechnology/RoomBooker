@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class Heading extends StatelessWidget {
   final String text;
 
-  const Heading({super.key, required this.text});
+  const Heading(this.text, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +19,7 @@ class Heading extends StatelessWidget {
 class Subheading extends StatelessWidget {
   final String text;
 
-  const Subheading({super.key, required this.text});
+  const Subheading(this.text, {super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -176,12 +176,12 @@ class AdminWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Heading(text: "Org Adminstrators"),
-        const Subheading(text: "Admin Requests"),
+        const Heading("Org Adminstrators"),
+        const Subheading("Admin Requests"),
         _adminRequests(context),
-        const Subheading(text: "Active Admins"),
+        const Subheading("Active Admins"),
         _activeAdmins(context),
-        const Subheading(text: "Sharing Status"),
+        const Subheading("Sharing Status"),
         ..._sharingWidgets(context),
       ],
     );
@@ -233,7 +233,7 @@ class RoomListWidget extends StatelessWidget {
     }
     return Column(
       children: [
-        const Heading(text: "Rooms"),
+        const Heading("Rooms"),
         content,
         ActionButton(
           isDangerous: false,
@@ -329,7 +329,7 @@ class OrgActions extends StatelessWidget {
         padding: const EdgeInsets.only(top: 12),
         child: Column(
           children: [
-            const Heading(text: 'Danger Zone'),
+            const Heading('Danger Zone'),
             const Text("These action have consequences!"),
             _adminRegistrationButton(context),
             _removeOrgButton(context)
