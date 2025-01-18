@@ -144,26 +144,11 @@ class DataSource extends CalendarDataSource {
   }
 }
 
-Appointment fromBooking(Request booking, Color color) {
-  return Appointment(
-    startTime: booking.eventStartTime,
-    endTime: booking.eventEndTime,
-    subject: booking.eventName,
-    color: color,
-    location: booking.selectedRoom,
-  );
-}
-
 Request fromAppointment(Appointment appointment, RequestStatus status) {
   return Request(
-    eventName: appointment.subject,
     eventStartTime: appointment.startTime,
     eventEndTime: appointment.endTime,
     selectedRoom: appointment.location ?? "",
-    name: '',
-    email: '',
-    message: '',
-    phone: '',
     status: status,
   );
 }

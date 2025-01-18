@@ -11,25 +11,36 @@ enum RequestStatus {
 }
 
 @JsonSerializable(explicitToJson: true)
-class Request {
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  final String? id;
+class PrivateRequestDetails {
   final String name;
   final String email;
   final String phone;
   final String message;
   final String eventName;
+
+  PrivateRequestDetails({
+    this.message = "",
+    required this.eventName,
+    required this.name,
+    required this.email,
+    required this.phone,
+  });
+
+  factory PrivateRequestDetails.fromJson(Map<String, dynamic> json) =>
+      _$PrivateRequestDetailsFromJson(json);
+  Map<String, dynamic> toJson() => _$PrivateRequestDetailsToJson(this);
+}
+
+@JsonSerializable(explicitToJson: true)
+class Request {
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? id;
   final DateTime eventStartTime;
   final DateTime eventEndTime;
   final String selectedRoom;
   final RequestStatus status;
 
   Request({
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.message,
-    required this.eventName,
     required this.eventStartTime,
     required this.eventEndTime,
     required this.selectedRoom,
@@ -41,29 +52,12 @@ class Request {
 
   Request copyWith({
     String? id,
-    String? name,
-    String? email,
-    String? phone,
-    int? attendance,
-    String? message,
-    String? eventName,
-    DateTime? eventStartTime,
-    DateTime? eventEndTime,
-    DateTime? doorUnlockTime,
-    DateTime? doorLockTime,
-    String? selectedRoom,
-    RequestStatus? status,
   }) {
     return Request(
-      name: name ?? this.name,
-      email: email ?? this.email,
-      phone: phone ?? this.phone,
-      message: message ?? this.message,
-      eventName: eventName ?? this.eventName,
-      eventStartTime: eventStartTime ?? this.eventStartTime,
-      eventEndTime: eventEndTime ?? this.eventEndTime,
-      selectedRoom: selectedRoom ?? this.selectedRoom,
-      status: status ?? this.status,
+      eventStartTime: eventStartTime,
+      eventEndTime: eventEndTime,
+      selectedRoom: selectedRoom,
+      status: status,
       id: this.id ?? id,
     );
   }

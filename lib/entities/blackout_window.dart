@@ -1,4 +1,4 @@
-import 'package:room_booker/entities/booking.dart';
+import 'package:room_booker/entities/request.dart';
 
 class BlackoutWindow {
   final DateTime start;
@@ -12,10 +12,10 @@ class BlackoutWindow {
       this.recurrenceRule,
       required this.reason});
 
-  static BlackoutWindow fromBooking(Booking booking) {
+  static BlackoutWindow fromRequest(Request request) {
     return BlackoutWindow(
-      start: booking.startTime,
-      end: booking.endTime,
+      start: request.eventStartTime,
+      end: request.eventEndTime,
       reason: 'Busy',
     );
   }

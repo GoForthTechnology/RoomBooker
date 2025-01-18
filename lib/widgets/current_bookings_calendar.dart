@@ -154,15 +154,20 @@ class NewRequestState extends ChangeNotifier {
 
   Request getRequest() {
     return Request(
-      eventName: _eventName!,
       eventStartTime: _startTime!,
       eventEndTime: _endTime!,
       selectedRoom: _room!,
+      status: RequestStatus.pending,
+    );
+  }
+
+  PrivateRequestDetails getPrivateDetails() {
+    return PrivateRequestDetails(
       name: _contactName!,
       email: _contactEmail!,
       phone: _contactPhone!,
+      eventName: _eventName!,
       message: _message,
-      status: RequestStatus.pending,
     );
   }
 
@@ -283,7 +288,8 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           ElevatedButton(
             onPressed: () async {
               if (_formKey.currentState!.validate()) {
-                await repo.addBookingRequest(widget.orgID, state.getRequest());
+                await repo.addBookingRequest(widget.orgID, state.getRequest(),
+                    state.getPrivateDetails());
                 state.clearAppointment();
               }
             },
@@ -311,27 +317,26 @@ class Calendar extends StatelessWidget {
         builder: (context, repo, roomState, newRequestState, child) =>
             StreamingCalendar(
               view: CalendarView.week,
-              stateStream: Rx.combineLatest3(
-                  repo.listBookings(orgID,
-                      includeRooms: roomState.enabledValues()),
+              stateStream: Rx.combineLatest2(
                   repo.listRequests(orgID,
-                      includeStatuses: [RequestStatus.pending]),
-                  repo.listBlackoutWindows(orgID),
-                  (bookings, pendingRequests, blackoutWindows) {
-                var appointments = bookings
-                    .map((b) => Appointment(
-                          subject: "Booked",
-                          startTime: b.startTime,
-                          endTime: b.endTime,
-                          color: roomState.color(b.roomID),
+                      includeRooms: roomState.enabledValues(),
+                      includeStatuses: [
+                        RequestStatus.pending,
+                        RequestStatus.confirmed
+                      ]).startWith([]).onErrorReturn([]),
+                  repo.listBlackoutWindows(orgID).startWith([]),
+                  (requests, blackoutWindows) {
+                var appointments = requests
+                    .map((r) => Appointment(
+                          subject: r.status == RequestStatus.confirmed
+                              ? "Booked"
+                              : "Requested",
+                          startTime: r.eventStartTime,
+                          endTime: r.eventEndTime,
+                          color: roomState.color(r.selectedRoom).withAlpha(
+                              r.status == RequestStatus.pending ? 125 : 200),
                         ))
                     .toList();
-                appointments.addAll(pendingRequests.map((r) => Appointment(
-                      subject: "Requested",
-                      startTime: r.eventStartTime,
-                      endTime: r.eventEndTime,
-                      color: roomState.color(r.selectedRoom).withAlpha(125),
-                    )));
                 var color =
                     roomState.color(newRequestState.room ?? "").withAlpha(200);
                 var newAppointment = newRequestState.getAppointment(color);

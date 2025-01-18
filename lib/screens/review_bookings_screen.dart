@@ -96,19 +96,21 @@ class Calendar extends StatelessWidget {
     return Consumer<OrgRepo>(
       builder: (context, repo, child) => StreamingCalendar(
         displayDate: request.eventStartTime,
-        stateStream: Rx.combineLatest2(
-            repo.listBookings(orgID, includeRooms: {request.selectedRoom}),
-            repo.listBlackoutWindows(orgID), (bookings, blackoutWindows) {
+        stateStream: Rx.combineLatest3(
+            repo.listRequests(orgID, includeRooms: {request.selectedRoom}),
+            repo.getRequestDetails(orgID, request.id!),
+            repo.listBlackoutWindows(orgID),
+            (requests, requestDetails, blackoutWindows) {
           return CalendarState(
             appointments: [
               Appointment(
                 endTime: request.eventEndTime,
                 startTime: request.eventStartTime,
-                subject: request.eventName,
+                subject: requestDetails?.eventName ?? "Some Event",
               ),
             ],
             blackoutWindows: blackoutWindows +
-                bookings.map((b) => BlackoutWindow.fromBooking(b)).toList(),
+                requests.map((r) => BlackoutWindow.fromRequest(r)).toList(),
           );
         }),
         view: CalendarView.day,

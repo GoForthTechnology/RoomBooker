@@ -194,8 +194,9 @@ Widget detailTable(Request booking) {
       child: Table(
         defaultColumnWidth: const FixedColumnWidth(200),
         children: [
-          bookingField('Phone', booking.phone),
-          bookingField('Email', booking.email),
+          // TODO: Add private fields
+          /*bookingField('Phone', booking.phone),
+          bookingField('Email', booking.email),*/
           bookingField('Start Time',
               "${formatDate(booking.eventStartTime)} ${formatTime(booking.eventStartTime)}"),
           bookingField('End Time',
@@ -216,7 +217,9 @@ TableRow bookingField(String label, String value) {
 }
 
 String bookingTitle(Request booking) {
-  return '${booking.eventName} for ${booking.name}';
+  // TODO: replace with private fields
+  // return '${booking.eventName} for ${booking.name}';
+  return "Some title";
 }
 
 String bookingSubtitle(Request booking) {

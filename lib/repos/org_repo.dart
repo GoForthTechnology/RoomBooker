@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:room_booker/entities/blackout_window.dart';
-import 'package:room_booker/entities/booking.dart';
 import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/user_repo.dart';
@@ -139,27 +138,31 @@ class OrgRepo extends ChangeNotifier {
       yield* Stream.error("User not logged in");
     }
 
-    yield* _userRepo.streamUser(user!.uid).map((profile) {
-      var orgIDs = profile.orgIDs;
-      var streams = orgIDs.map(getOrg).toList();
-      return Rx.combineLatestList(streams)
-          .map((orgs) => orgs.where((o) => o != null).map((o) => o!).toList());
-    }).switchMap((s) => s);
+    yield* _userRepo
+        .streamUser(user!.uid)
+        .map((profile) {
+          var orgIDs = profile.orgIDs;
+          var streams = orgIDs.map(getOrg).toList();
+          return Rx.combineLatestList(streams).map(
+              (orgs) => orgs.where((o) => o != null).map((o) => o!).toList());
+        })
+        .switchMap((s) => s)
+        .startWith([]);
   }
 
-  Future<void> addBookingRequest(String orgID, Request request) async {
-    await _bookingRequestsRef(orgID).add(request);
+  Future<void> addBookingRequest(String orgID, Request request,
+      PrivateRequestDetails privateDetails) async {
+    await _db.runTransaction((t) async {
+      var requestRef = _bookingRequestsRef(orgID).doc();
+      t.set(requestRef, request);
+      var privateDetailsRef = _privateRequestDetailsRef(orgID, requestRef.id);
+      t.set(privateDetailsRef, privateDetails);
+    });
   }
 
   Future<void> revisitBookingRequest(String orgID, String requestID) async {
     var requestRef = _bookingRequestRef(orgID, requestID);
-    await _db.runTransaction((t) async {
-      var bookings = await listBookings(orgID, requestID: requestID).first;
-      for (var booking in bookings) {
-        t.delete(_confirmedBookingRef(orgID, booking.id!));
-      }
-      t.update(requestRef, {"status": RequestStatus.pending.name});
-    });
+    await requestRef.update({"status": RequestStatus.pending.name});
   }
 
   Stream<Request?> getRequest(String orgID, String requestID) {
@@ -168,50 +171,34 @@ class OrgRepo extends ChangeNotifier {
         .map((s) => s.data());
   }
 
+  Stream<PrivateRequestDetails?> getRequestDetails(
+      String orgID, String requestID) {
+    return _privateRequestDetailsRef(orgID, requestID)
+        .snapshots()
+        .map((s) => s.data());
+  }
+
   Stream<List<Request>> listRequests(String orgID,
-      {List<RequestStatus>? includeStatuses}) {
+      {List<RequestStatus>? includeStatuses, Set<String>? includeRooms}) {
     Query<Request> query = _bookingRequestsRef(orgID);
     if (includeStatuses != null) {
       query = query.where("status",
           whereIn: includeStatuses.map((s) => s.name).toList());
     }
+    if (includeRooms != null) {
+      query = query.where("selectedRoom", whereIn: includeRooms);
+    }
     return query.snapshots().map((s) => s.docs.map((d) => d.data()).toList());
   }
 
-  Future<void> confirmRequest(String orgID, Request request) {
+  Future<void> confirmRequest(String orgID, Request request) async {
     var requestRef = _bookingRequestRef(orgID, request.id!);
-    var bookingRef = _confirmedBookingsRef(orgID).doc(requestRef.id);
-    var booking = Booking.fromRequest(request);
-    return _db.runTransaction((t) async {
-      t.update(requestRef, {"status": RequestStatus.confirmed.name});
-      t.set(bookingRef, booking);
-    });
+    await requestRef.update({"status": RequestStatus.confirmed.name});
   }
 
   Future<void> denyRequest(String orgID, String requestID) {
     var requestRef = _bookingRequestRef(orgID, requestID);
     return requestRef.update({"status": RequestStatus.denied.name});
-  }
-
-  Stream<List<Booking>> listBookings(String orgID,
-      {Set<String>? includeRooms, String? requestID}) {
-    Query<Booking> query = _confirmedBookingsRef(orgID);
-    if (includeRooms != null && includeRooms.isNotEmpty) {
-      query = query.where("roomID", whereIn: includeRooms.toList());
-    }
-    if (requestID != null) {
-      query = query.where("requestID", isEqualTo: requestID);
-    }
-    return query
-        .snapshots()
-        .map((s) => s.docs.map((d) => d.data()).toList())
-        .startWith(const []);
-  }
-
-  Stream<Booking?> getBooking(String orgID, String bookingID) {
-    return _confirmedBookingRef(orgID, bookingID)
-        .snapshots()
-        .map((s) => s.data());
   }
 
   Stream<List<BlackoutWindow>> listBlackoutWindows(String orgID) =>
@@ -267,6 +254,19 @@ class OrgRepo extends ChangeNotifier {
     return _bookingRequestsRef(orgID).doc(requestID);
   }
 
+  DocumentReference<PrivateRequestDetails> _privateRequestDetailsRef(
+      String orgID, String requestID) {
+    return _bookingRequestsRef(orgID)
+        .doc(requestID)
+        .collection("private")
+        .doc("details")
+        .withConverter(
+          fromFirestore: (snapshot, _) =>
+              PrivateRequestDetails.fromJson(snapshot.data()!),
+          toFirestore: (details, _) => details.toJson(),
+        );
+  }
+
   CollectionReference<Request> _bookingRequestsRef(String orgID) {
     return _db
         .collection("orgs")
@@ -275,23 +275,6 @@ class OrgRepo extends ChangeNotifier {
         .withConverter(
           fromFirestore: (snapshot, _) =>
               Request.fromJson(snapshot.data()!).copyWith(id: snapshot.id),
-          toFirestore: (request, _) => request.toJson(),
-        );
-  }
-
-  DocumentReference<Booking> _confirmedBookingRef(
-      String orgID, String bookingID) {
-    return _confirmedBookingsRef(orgID).doc(bookingID);
-  }
-
-  CollectionReference<Booking> _confirmedBookingsRef(String orgID) {
-    return _db
-        .collection("orgs")
-        .doc(orgID)
-        .collection("confirmed-bookings")
-        .withConverter(
-          fromFirestore: (snapshot, _) =>
-              Booking.fromJson(snapshot.data()!).copyWith(id: snapshot.id),
           toFirestore: (request, _) => request.toJson(),
         );
   }

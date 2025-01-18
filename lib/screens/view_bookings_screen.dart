@@ -29,6 +29,9 @@ class ViewBookingsScreen extends StatelessWidget {
           onPressed: () =>
               AutoRouter.of(context).push(ReviewBookingsRoute(orgID: orgID)),
         ),
+        IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => FirebaseAuth.instance.signOut()),
       ];
     }
     return [
