@@ -81,7 +81,16 @@ class RoomSelector extends StatelessWidget {
                       color: !state.isEnabled(e) ? Colors.grey : roomColors[i],
                       room: e,
                       onClick: (room) {
-                        state.toggleRoom(room);
+                        var isCurrentlyEnabled = state.isEnabled(room);
+                        if (!isCurrentlyEnabled ||
+                            state.enabledValues().length > 1) {
+                          state.toggleRoom(room);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      "At least one room must be active.")));
+                        }
                       },
                     )),
               ],
@@ -102,13 +111,16 @@ class RoomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onClick(room),
-      child: Card(
-        color: color,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(room, style: const TextStyle(color: Colors.white)),
+    return Tooltip(
+      message: "Show/hide this room",
+      child: GestureDetector(
+        onTap: () => onClick(room),
+        child: Card(
+          color: color,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(room, style: const TextStyle(color: Colors.white)),
+          ),
         ),
       ),
     );

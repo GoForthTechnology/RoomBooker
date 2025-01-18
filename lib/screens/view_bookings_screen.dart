@@ -24,14 +24,21 @@ class ViewBookingsScreen extends StatelessWidget {
   List<Widget> _actions(BuildContext context) {
     if (FirebaseAuth.instance.currentUser != null) {
       return [
-        IconButton(
-          icon: const Icon(Icons.approval_rounded),
-          onPressed: () =>
-              AutoRouter.of(context).push(ReviewBookingsRoute(orgID: orgID)),
+        Tooltip(
+          message: "Review Bookings",
+          child: IconButton(
+            icon: const Icon(Icons.approval_rounded),
+            onPressed: () =>
+                AutoRouter.of(context).push(ReviewBookingsRoute(orgID: orgID)),
+          ),
         ),
-        IconButton(
+        Tooltip(
+          message: "Logout",
+          child: IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => FirebaseAuth.instance.signOut()),
+            onPressed: () => FirebaseAuth.instance.signOut(),
+          ),
+        ),
       ];
     }
     return [
