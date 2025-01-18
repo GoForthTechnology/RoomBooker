@@ -19,7 +19,7 @@ class LandingScreen extends StatelessWidget {
           IconButton(
               onPressed: () {
                 FirebaseAuth.instance.signOut();
-                AutoRouter.of(context).replace(const LoginRoute());
+                AutoRouter.of(context).replace(LoginRoute());
               },
               icon: const Icon(Icons.logout))
         ],

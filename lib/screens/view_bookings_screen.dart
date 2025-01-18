@@ -36,15 +36,23 @@ class ViewBookingsScreen extends StatelessWidget {
           message: "Logout",
           child: IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => FirebaseAuth.instance.signOut(),
+            onPressed: () async {
+              var router = AutoRouter.of(context);
+              await FirebaseAuth.instance.signOut();
+              router.replace(ViewBookingsRoute(orgID: orgID));
+            },
           ),
         ),
       ];
     }
     return [
-      IconButton(
-        icon: const Icon(Icons.login),
-        onPressed: () => AutoRouter.of(context).push(const LoginRoute()),
+      Tooltip(
+        message: "Login",
+        child: IconButton(
+          icon: const Icon(Icons.login),
+          onPressed: () =>
+              AutoRouter.of(context).push(LoginRoute(orgID: orgID)),
+        ),
       )
     ];
   }

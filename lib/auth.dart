@@ -18,7 +18,7 @@ List<AuthProvider<AuthListener, firebase_auth.AuthCredential>> providers = [
 
 var authRoutes = [
   AutoRoute(
-    path: '/login',
+    path: '/login/:orgID',
     page: LoginRoute.page,
     children: [
       RedirectRoute(path: '*', redirectTo: ''),
@@ -32,7 +32,9 @@ var authRoutes = [
 
 @RoutePage()
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+  final String? orgID;
+
+  const LoginScreen({super.key, @PathParam('orgID') this.orgID});
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +64,9 @@ class LoginScreen extends StatelessWidget {
             }
             if (!state.user!.emailVerified) {
               router.push(const EmailVerifyRoute());
+            } else if (orgID != null) {
+              router.popUntilRoot();
+              router.replace(ViewBookingsRoute(orgID: orgID!));
             } else {
               router.pushAndPopUntil(const LandingRoute(),
                   predicate: (r) => false);
@@ -100,7 +105,7 @@ class EmailVerifyScreen extends StatelessWidget {
         }),
         AuthCancelledAction((context) {
           FirebaseUIAuth.signOut(context: context);
-          AutoRouter.of(context).push(const LoginRoute());
+          AutoRouter.of(context).push(LoginRoute());
         }),
       ],
     );
@@ -112,6 +117,6 @@ class AuthGuard extends AutoRouteGuard {
   void onNavigation(NavigationResolver resolver, StackRouter router) {
     bool loggedIn = firebase_auth.FirebaseAuth.instance.currentUser != null;
     if (loggedIn) return resolver.next(true);
-    router.push(const LoginRoute());
+    router.push(LoginRoute());
   }
 }

@@ -98,10 +98,18 @@ class LandingRoute extends PageRouteInfo<void> {
 
 /// generated route for
 /// [LoginScreen]
-class LoginRoute extends PageRouteInfo<void> {
-  const LoginRoute({List<PageRouteInfo>? children})
-      : super(
+class LoginRoute extends PageRouteInfo<LoginRouteArgs> {
+  LoginRoute({
+    Key? key,
+    String? orgID,
+    List<PageRouteInfo>? children,
+  }) : super(
           LoginRoute.name,
+          args: LoginRouteArgs(
+            key: key,
+            orgID: orgID,
+          ),
+          rawPathParams: {'orgID': orgID},
           initialChildren: children,
         );
 
@@ -110,9 +118,31 @@ class LoginRoute extends PageRouteInfo<void> {
   static PageInfo page = PageInfo(
     name,
     builder: (data) {
-      return const LoginScreen();
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<LoginRouteArgs>(
+          orElse: () => LoginRouteArgs(orgID: pathParams.optString('orgID')));
+      return LoginScreen(
+        key: args.key,
+        orgID: args.orgID,
+      );
     },
   );
+}
+
+class LoginRouteArgs {
+  const LoginRouteArgs({
+    this.key,
+    this.orgID,
+  });
+
+  final Key? key;
+
+  final String? orgID;
+
+  @override
+  String toString() {
+    return 'LoginRouteArgs{key: $key, orgID: $orgID}';
+  }
 }
 
 /// generated route for
