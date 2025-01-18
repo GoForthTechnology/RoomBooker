@@ -4,10 +4,21 @@ import 'package:room_booker/entities/request.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CalendarState {
-  final List<Appointment> appointments;
+  final Map<Appointment, Request> appointments;
   final List<BlackoutWindow> blackoutWindows;
 
-  CalendarState({required this.appointments, required this.blackoutWindows}) {
+  CalendarState(List<Request> requests, String Function(Request) name,
+      Color Function(Request) color,
+      {required this.blackoutWindows})
+      : appointments = {
+          for (var r in requests)
+            Appointment(
+              subject: name(r),
+              color: color(r),
+              startTime: r.eventStartTime,
+              endTime: r.eventEndTime,
+            ): r
+        } {
     blackoutWindows.sort((a, b) => a.start.compareTo(b.start));
   }
 }
@@ -80,7 +91,7 @@ class StreamingCalendarState extends State<StreamingCalendar> {
   }
 
   Widget calendarWidget(CalendarState state) {
-    List<Appointment> appointments = List.from(state.appointments);
+    List<Appointment> appointments = List.from(state.appointments.keys);
     List<TimeRegion> blackoutWindows =
         state.blackoutWindows.map(toTimeRegion).toList();
 
@@ -104,8 +115,11 @@ class StreamingCalendarState extends State<StreamingCalendar> {
         }
         if (widget.onTapBooking != null) {
           for (var appointment in details.appointments ?? []) {
-            widget.onTapBooking!(
-                fromAppointment(appointment, RequestStatus.unknown));
+            var request = state.appointments[appointment];
+            if (request == null) {
+              throw Exception("Appointment not found in state");
+            }
+            widget.onTapBooking!(request);
           }
         }
       },

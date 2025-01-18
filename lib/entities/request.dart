@@ -52,13 +52,17 @@ class Request {
 
   Request copyWith({
     String? id,
+    DateTime? eventStartTime,
+    DateTime? eventEndTime,
+    String? selectedRoom,
+    RequestStatus? status,
   }) {
     return Request(
-      eventStartTime: eventStartTime,
-      eventEndTime: eventEndTime,
-      selectedRoom: selectedRoom,
-      status: status,
-      id: this.id ?? id,
+      eventStartTime: eventStartTime ?? this.eventStartTime,
+      eventEndTime: eventEndTime ?? this.eventEndTime,
+      selectedRoom: selectedRoom ?? this.selectedRoom,
+      status: status ?? this.status,
+      id: id ?? this.id,
     );
   }
 

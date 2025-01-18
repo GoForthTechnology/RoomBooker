@@ -102,13 +102,9 @@ class Calendar extends StatelessWidget {
             repo.listBlackoutWindows(orgID),
             (requests, requestDetails, blackoutWindows) {
           return CalendarState(
-            appointments: [
-              Appointment(
-                endTime: request.eventEndTime,
-                startTime: request.eventStartTime,
-                subject: requestDetails?.eventName ?? "Some Event",
-              ),
-            ],
+            [request],
+            (_) => requestDetails?.eventName ?? "Some Event",
+            (_) => Colors.blue,
             blackoutWindows: blackoutWindows +
                 requests.map((r) => BlackoutWindow.fromRequest(r)).toList(),
           );

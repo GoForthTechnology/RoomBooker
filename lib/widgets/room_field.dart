@@ -7,13 +7,15 @@ import 'package:room_booker/widgets/room_selector.dart';
 class RoomField extends StatelessWidget {
   final String orgID;
   final String initialValue;
+  final bool readOnly;
   final Function(String) onChanged;
 
   const RoomField(
       {super.key,
       required this.orgID,
       required this.initialValue,
-      required this.onChanged});
+      required this.onChanged,
+      required this.readOnly});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +39,7 @@ class RoomField extends StatelessWidget {
                       child: Text(value.name),
                     );
                   }).toList(),
-                  onChanged: (value) => onChanged(value!),
+                  onChanged: readOnly ? null : (value) => onChanged(value!),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please select a room';

@@ -5,17 +5,17 @@ class SimpleTextFormField extends StatelessWidget {
   final String labelText;
   final String? validationMessage;
   final GestureTapCallback? onTap;
-  final bool? readOnly;
+  final bool readOnly;
   final Function(String)? onChanged;
 
   SimpleTextFormField({
     super.key,
     required this.controller,
+    required this.readOnly,
     required this.labelText,
     this.validationMessage,
     this.onTap,
     this.onChanged,
-    this.readOnly,
   }) {
     if (onChanged != null) {
       controller.addListener(() {
@@ -31,7 +31,8 @@ class SimpleTextFormField extends StatelessWidget {
         child: TextFormField(
           controller: controller,
           onTap: onTap,
-          readOnly: readOnly ?? false,
+          readOnly: readOnly,
+          enabled: !readOnly,
           decoration: InputDecoration(
             labelText: labelText,
             border: const OutlineInputBorder(),

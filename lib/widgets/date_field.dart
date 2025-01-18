@@ -5,6 +5,7 @@ class DateField extends StatefulWidget {
   final String labelText;
   final String? validationMessage;
   final DateTime initialValue;
+  final bool readOnly;
   final Function(DateTime) onChanged;
 
   const DateField(
@@ -12,7 +13,8 @@ class DateField extends StatefulWidget {
       required this.initialValue,
       required this.labelText,
       this.validationMessage,
-      required this.onChanged});
+      required this.onChanged,
+      required this.readOnly});
 
   @override
   State<StatefulWidget> createState() => DateFieldSate();
@@ -35,18 +37,21 @@ class DateFieldSate extends State<DateField> {
         controller: controller,
         labelText: widget.labelText,
         validationMessage: widget.validationMessage,
-        onTap: () async {
-          DateTime? pickedDate = await showDatePicker(
-            context: context,
-            initialDate: DateTime.now(),
-            firstDate: DateTime(2000),
-            lastDate: DateTime(2101),
-          );
-          if (pickedDate != null) {
-            widget.onChanged(pickedDate);
-            controller.text = dateToString(pickedDate);
-          }
-        });
+        readOnly: widget.readOnly,
+        onTap: widget.readOnly
+            ? null
+            : () async {
+                DateTime? pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2101),
+                );
+                if (pickedDate != null) {
+                  widget.onChanged(pickedDate);
+                  controller.text = dateToString(pickedDate);
+                }
+              });
   }
 }
 

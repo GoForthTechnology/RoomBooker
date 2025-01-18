@@ -21,8 +21,8 @@ class CurrentBookingsCalendar extends StatelessWidget {
     return RoomStateProvider(
         orgID: orgID,
         child: RequestStateProvider(
-          child: Consumer<NewRequestState>(
-            builder: (context, newRequestState, child) => Row(
+          child: Consumer<RequestEditorState>(
+            builder: (context, requestEditorState, child) => Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Flexible(
@@ -34,14 +34,25 @@ class CurrentBookingsCalendar extends StatelessWidget {
                           child: Calendar(
                         orgID: orgID,
                         onTap: (details) {
-                          newRequestState.showPanel(details.date!,
+                          requestEditorState.showPanel(details.date!,
                               details.date!.add(const Duration(hours: 1)));
+                        },
+                        onTapRequest: (request) async {
+                          var details =
+                              await Provider.of<OrgRepo>(context, listen: false)
+                                  .getRequestDetails(orgID, request.id!)
+                                  .first;
+                          if (details == null) {
+                            print("BANG");
+                            return;
+                          }
+                          requestEditorState.showRequest(request, details);
                         },
                       )),
                     ],
                   ),
                 ),
-                if (newRequestState.active)
+                if (requestEditorState.active)
                   Flexible(
                     flex: 1,
                     child: SingleChildScrollView(
@@ -65,14 +76,16 @@ class RequestStateProvider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<RoomState>(
         builder: (context, roomState, child) => ChangeNotifierProvider.value(
-              value:
-                  NewRequestState(initialRoom: roomState.enabledValues().first),
+              value: RequestEditorState(
+                  initialRoom: roomState.enabledValues().first),
               child: this.child,
             ));
   }
 }
 
-class NewRequestState extends ChangeNotifier {
+class RequestEditorState extends ChangeNotifier {
+  Request? _existingRequest;
+
   bool _active = false;
   String _message = "";
   String? _eventName;
@@ -83,7 +96,7 @@ class NewRequestState extends ChangeNotifier {
   DateTime? _startTime;
   DateTime? _endTime;
 
-  NewRequestState({required String initialRoom}) : _room = initialRoom;
+  RequestEditorState({required String initialRoom}) : _room = initialRoom;
 
   String? get room => _room;
   String? get eventname => _eventName;
@@ -94,6 +107,31 @@ class NewRequestState extends ChangeNotifier {
   bool get active => _active;
   DateTime get startTime => _startTime!;
   DateTime get endTime => _endTime!;
+
+  void showRequest(Request request, PrivateRequestDetails details) {
+    _active = true;
+    _existingRequest = request;
+    _room = request.selectedRoom;
+    _startTime = request.eventStartTime;
+    _endTime = request.eventEndTime;
+    _contactEmail = details.email;
+    _contactName = details.name;
+    _contactPhone = details.phone;
+    _eventName = details.eventName;
+    _message = details.message;
+    notifyListeners();
+  }
+
+  void updateStatus(RequestStatus status) {
+    if (_existingRequest != null) {
+      _existingRequest = _existingRequest!.copyWith(status: status);
+      notifyListeners();
+    }
+  }
+
+  bool readOnly() {
+    return _existingRequest != null;
+  }
 
   void showPanel(DateTime startTime, DateTime endTime) {
     _active = true;
@@ -154,10 +192,11 @@ class NewRequestState extends ChangeNotifier {
 
   Request getRequest() {
     return Request(
+      id: _existingRequest?.id,
       eventStartTime: _startTime!,
       eventEndTime: _endTime!,
       selectedRoom: _room!,
-      status: RequestStatus.pending,
+      status: _existingRequest?.status ?? RequestStatus.pending,
     );
   }
 
@@ -172,7 +211,7 @@ class NewRequestState extends ChangeNotifier {
   }
 
   Appointment? getAppointment(Color color) {
-    if (_startTime == null || _endTime == null) {
+    if (_existingRequest != null || _startTime == null || _endTime == null) {
       return null;
     }
     return Appointment(
@@ -196,16 +235,18 @@ class NewRequestPanel extends StatefulWidget {
 class NewRequestPanelState extends State<NewRequestPanel> {
   final _formKey = GlobalKey<FormState>(); // Form key for validation
 
-  var eventNameController = TextEditingController();
-  var contactNameController = TextEditingController();
-  var contactEmailController = TextEditingController();
-  var contactPhoneController = TextEditingController();
-  var messageController = TextEditingController();
-
   @override
   Widget build(BuildContext context) {
-    return Consumer2<NewRequestState, OrgRepo>(
+    return Consumer2<RequestEditorState, OrgRepo>(
         builder: (context, state, repo, child) {
+      var eventNameController = TextEditingController(text: state.eventname);
+      var contactNameController =
+          TextEditingController(text: state.contactName);
+      var contactEmailController =
+          TextEditingController(text: state.contactEmail);
+      var contactPhoneController =
+          TextEditingController(text: state.contactPhone);
+      var messageController = TextEditingController(text: state.message);
       var formContents = Column(
         children: [
           AppBar(
@@ -221,16 +262,19 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             automaticallyImplyLeading: false,
           ),
           RoomField(
+            readOnly: state.readOnly(),
             orgID: widget.orgID,
             initialValue: state.room!,
             onChanged: state.updateRoom,
           ),
           SimpleTextFormField(
+              readOnly: state.readOnly(),
               controller: eventNameController,
               labelText: "Event Name",
               validationMessage: "Please provide a name",
               onChanged: state.updateEventName),
           DateField(
+            readOnly: state.readOnly(),
             labelText: 'Event Date',
             validationMessage: 'Please select a date',
             initialValue: state.startTime,
@@ -243,6 +287,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             },
           ),
           TimeField(
+              readOnly: state.readOnly(),
               labelText: 'Start Time',
               initialValue: TimeOfDay.fromDateTime(state.startTime),
               onChanged: (newTime) {
@@ -257,23 +302,27 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                     newStartTime, newStartTime.add(eventDuration));
               }),
           TimeField(
+              readOnly: state.readOnly(),
               labelText: 'End Time',
               initialValue: TimeOfDay.fromDateTime(state.endTime),
               onChanged: (newTime) {}),
           const Divider(),
           SimpleTextFormField(
+            readOnly: state.readOnly(),
             controller: contactNameController,
             labelText: "Your Name",
             validationMessage: "Please provide your name",
             onChanged: state.updateContactName,
           ),
           SimpleTextFormField(
+            readOnly: state.readOnly(),
             controller: contactEmailController,
             labelText: "Your Email",
             validationMessage: "Please provide your email",
             onChanged: state.updateContactEmail,
           ),
           SimpleTextFormField(
+            readOnly: state.readOnly(),
             controller: contactPhoneController,
             labelText: "Your Phone Number",
             validationMessage: "Please provide your phone number",
@@ -281,20 +330,12 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           ),
           const Divider(),
           SimpleTextFormField(
+            readOnly: state.readOnly(),
             controller: messageController,
             labelText: "Additional Info",
             onChanged: state.updateMessage,
           ),
-          ElevatedButton(
-            onPressed: () async {
-              if (_formKey.currentState!.validate()) {
-                await repo.addBookingRequest(widget.orgID, state.getRequest(),
-                    state.getPrivateDetails());
-                state.clearAppointment();
-              }
-            },
-            child: const Text("Submit"),
-          ),
+          getButton(state, repo),
         ],
       );
       return Padding(
@@ -303,57 +344,96 @@ class NewRequestPanelState extends State<NewRequestPanel> {
       );
     });
   }
+
+  Widget getButton(RequestEditorState state, OrgRepo repo) {
+    if (state.readOnly()) {
+      var request = state.getRequest();
+      if (request.status == RequestStatus.pending) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () async {
+                await repo.denyRequest(widget.orgID, state.getRequest().id!);
+                state.updateStatus(RequestStatus.denied);
+              },
+              child: const Text("Deny"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await repo.confirmRequest(widget.orgID, state.getRequest());
+                state.updateStatus(RequestStatus.confirmed);
+              },
+              child: const Text("Approve"),
+            ),
+          ],
+        );
+      }
+      return ElevatedButton(
+        onPressed: () async {
+          await repo.revisitBookingRequest(
+              widget.orgID, state.getRequest().id!);
+          state.updateStatus(RequestStatus.pending);
+        },
+        child: const Text("Revisit"),
+      );
+    }
+    return ElevatedButton(
+      onPressed: () async {
+        if (_formKey.currentState!.validate()) {
+          await repo.addBookingRequest(
+              widget.orgID, state.getRequest(), state.getPrivateDetails());
+          state.clearAppointment();
+        }
+      },
+      child: const Text("Submit"),
+    );
+  }
 }
 
 class Calendar extends StatelessWidget {
   final String orgID;
   final Function(CalendarTapDetails) onTap;
+  final Function(Request) onTapRequest;
 
-  const Calendar({super.key, required this.orgID, required this.onTap});
+  const Calendar(
+      {super.key,
+      required this.orgID,
+      required this.onTap,
+      required this.onTapRequest});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer3<OrgRepo, RoomState, NewRequestState>(
-        builder: (context, repo, roomState, newRequestState, child) =>
-            StreamingCalendar(
-              view: CalendarView.week,
-              stateStream: Rx.combineLatest2(
-                  repo.listRequests(orgID,
-                      includeRooms: roomState.enabledValues(),
-                      includeStatuses: [
-                        RequestStatus.pending,
-                        RequestStatus.confirmed
-                      ]).startWith([]).onErrorReturn([]),
-                  repo.listBlackoutWindows(orgID).startWith([]),
-                  (requests, blackoutWindows) {
-                var appointments = requests
-                    .map((r) => Appointment(
-                          subject: r.status == RequestStatus.confirmed
-                              ? "Booked"
-                              : "Requested",
-                          startTime: r.eventStartTime,
-                          endTime: r.eventEndTime,
-                          color: roomState.color(r.selectedRoom).withAlpha(
-                              r.status == RequestStatus.pending ? 125 : 200),
-                        ))
-                    .toList();
-                var color =
-                    roomState.color(newRequestState.room ?? "").withAlpha(200);
-                var newAppointment = newRequestState.getAppointment(color);
-                if (newAppointment != null) {
-                  appointments.add(newAppointment);
-                }
-                return CalendarState(
-                    appointments: appointments,
-                    blackoutWindows: blackoutWindows);
-              }),
-              showNavigationArrow: true,
-              showDatePickerButton: true,
-              showTodayButton: true,
-              onTap: onTap,
-              allowAppointmentResize: true,
-              onAppointmentResizeEnd: (details) => newRequestState.updateTimes(
-                  details.startTime, details.endTime),
-            ));
+    return Consumer3<OrgRepo, RoomState, RequestEditorState>(
+      builder: (context, repo, roomState, requestEditorState, child) =>
+          StreamingCalendar(
+        view: CalendarView.week,
+        showNavigationArrow: true,
+        showDatePickerButton: true,
+        showTodayButton: true,
+        onTap: onTap,
+        allowAppointmentResize: true,
+        onAppointmentResizeEnd: (details) =>
+            requestEditorState.updateTimes(details.startTime, details.endTime),
+        onTapBooking: onTapRequest,
+        stateStream: Rx.combineLatest2(
+            repo.listRequests(orgID,
+                includeRooms: roomState.enabledValues(),
+                includeStatuses: [
+                  RequestStatus.pending,
+                  RequestStatus.confirmed
+                ]).startWith([]).onErrorReturn([]),
+            repo.listBlackoutWindows(orgID).startWith([]),
+            (requests, blackoutWindows) => CalendarState(
+                requests,
+                (r) => r.status == RequestStatus.confirmed
+                    ? "Booked"
+                    : "Requested",
+                (r) => roomState
+                    .color(r.selectedRoom)
+                    .withAlpha(r.status == RequestStatus.pending ? 128 : 255),
+                blackoutWindows: blackoutWindows)),
+      ),
+    );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:room_booker/widgets/simple_text_form_field.dart';
 
 class TimeField extends StatelessWidget {
+  final bool readOnly;
   final TimeOfDay initialValue;
   final Function(TimeOfDay) onChanged;
   final String labelText;
@@ -13,7 +14,8 @@ class TimeField extends StatelessWidget {
       required this.initialValue,
       required this.onChanged,
       required this.labelText,
-      this.validationMessage}) {
+      this.validationMessage,
+      required this.readOnly}) {
     controller.text = formatTimeOfDay(initialValue);
   }
 
@@ -24,25 +26,27 @@ class TimeField extends StatelessWidget {
       labelText: labelText,
       validationMessage: validationMessage,
       readOnly: true,
-      onTap: () async {
-        var minimumTime = TimeOfDay.now();
-        var messenger = ScaffoldMessenger.of(context);
-        var minimumTimeStr = minimumTime.format(context);
-        TimeOfDay? pickedTime = await showTimePicker(
-          context: context,
-          initialTime: initialValue,
-        );
-        if (minimumTime.isAfter(pickedTime!)) {
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text('Time must be after $minimumTimeStr'),
-            ),
-          );
-          return;
-        }
-        controller.text = formatTimeOfDay(pickedTime);
-        onChanged(pickedTime);
-      },
+      onTap: readOnly
+          ? null
+          : () async {
+              var minimumTime = TimeOfDay.now();
+              var messenger = ScaffoldMessenger.of(context);
+              var minimumTimeStr = minimumTime.format(context);
+              TimeOfDay? pickedTime = await showTimePicker(
+                context: context,
+                initialTime: initialValue,
+              );
+              if (minimumTime.isAfter(pickedTime!)) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Time must be after $minimumTimeStr'),
+                  ),
+                );
+                return;
+              }
+              controller.text = formatTimeOfDay(pickedTime);
+              onChanged(pickedTime);
+            },
     );
   }
 
