@@ -41,15 +41,26 @@ class CurrentBookingsCalendar extends StatelessWidget {
                   RequestStatus.confirmed
                 ]).startWith([]).onErrorReturn([]),
             repo.listBlackoutWindows(orgID).startWith([]),
-            (requests, blackoutWindows) => CalendarState(
-                requests,
-                (r) => r.status == RequestStatus.confirmed
-                    ? "Booked"
-                    : "Requested",
-                (r) => roomState
-                    .color(r.selectedRoom)
-                    .withAlpha(r.status == RequestStatus.pending ? 128 : 255),
-                blackoutWindows: blackoutWindows)),
+            (existingRequests, blackoutWindows) {
+          List<Request> requests = existingRequests;
+          var newRequest = requestEditorState.getRequest();
+          if (newRequest != null) {
+            requests.add(newRequest);
+          }
+          print("New State");
+          var state = CalendarState(
+              requests,
+              (r) => r == newRequest
+                  ? "New Booking"
+                  : r.status == RequestStatus.confirmed
+                      ? "Booked"
+                      : "Requested",
+              (r) => roomState
+                  .color(r.selectedRoom)
+                  .withAlpha(r.status == RequestStatus.pending ? 128 : 255),
+              blackoutWindows: blackoutWindows);
+          return state;
+        }),
       ),
     );
   }

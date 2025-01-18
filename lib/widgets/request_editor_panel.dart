@@ -71,6 +71,11 @@ class RequestEditorState extends ChangeNotifier {
     _eventName = null;
     _startTime = null;
     _endTime = null;
+    _contactEmail = null;
+    _contactPhone = null;
+    _contactName = null;
+    _eventName = null;
+    _message = "";
     notifyListeners();
   }
 
@@ -116,7 +121,10 @@ class RequestEditorState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Request getRequest() {
+  Request? getRequest() {
+    if (_startTime == null || _endTime == null || _room == null) {
+      return null;
+    }
     return Request(
       id: _existingRequest?.id,
       eventStartTime: _startTime!,
@@ -181,19 +189,17 @@ class NewRequestPanel extends StatefulWidget {
 
 class NewRequestPanelState extends State<NewRequestPanel> {
   final _formKey = GlobalKey<FormState>(); // Form key for validation
+  final eventNameController = TextEditingController();
+  final contactNameController = TextEditingController();
+  final contactEmailController = TextEditingController();
+  final contactPhoneController = TextEditingController();
+  final messageController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Consumer2<RequestEditorState, OrgRepo>(
         builder: (context, state, repo, child) {
-      var eventNameController = TextEditingController(text: state.eventname);
-      var contactNameController =
-          TextEditingController(text: state.contactName);
-      var contactEmailController =
-          TextEditingController(text: state.contactEmail);
-      var contactPhoneController =
-          TextEditingController(text: state.contactPhone);
-      var messageController = TextEditingController(text: state.message);
+      eventNameController.text = state.eventname ?? "";
       var formContents = Column(
         children: [
           AppBar(
@@ -293,22 +299,22 @@ class NewRequestPanelState extends State<NewRequestPanel> {
   }
 
   Widget getButton(RequestEditorState state, OrgRepo repo) {
+    var request = state.getRequest()!;
     if (state.readOnly()) {
-      var request = state.getRequest();
       if (request.status == RequestStatus.pending) {
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ElevatedButton(
               onPressed: () async {
-                await repo.denyRequest(widget.orgID, state.getRequest().id!);
+                await repo.denyRequest(widget.orgID, request.id!);
                 state.updateStatus(RequestStatus.denied);
               },
               child: const Text("Deny"),
             ),
             ElevatedButton(
               onPressed: () async {
-                await repo.confirmRequest(widget.orgID, state.getRequest());
+                await repo.confirmRequest(widget.orgID, state.getRequest()!);
                 state.updateStatus(RequestStatus.confirmed);
               },
               child: const Text("Approve"),
@@ -318,8 +324,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
       }
       return ElevatedButton(
         onPressed: () async {
-          await repo.revisitBookingRequest(
-              widget.orgID, state.getRequest().id!);
+          await repo.revisitBookingRequest(widget.orgID, request.id!);
           state.updateStatus(RequestStatus.pending);
         },
         child: const Text("Revisit"),
@@ -329,7 +334,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
       onPressed: () async {
         if (_formKey.currentState!.validate()) {
           await repo.addBookingRequest(
-              widget.orgID, state.getRequest(), state.getPrivateDetails());
+              widget.orgID, request, state.getPrivateDetails());
           state.clearAppointment();
         }
       },

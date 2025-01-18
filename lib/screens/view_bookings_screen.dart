@@ -63,6 +63,9 @@ class ViewBookingsScreen extends StatelessWidget {
 
   void _showRequest(
       Request request, BuildContext context, RequestEditorState state) async {
+    if (FirebaseAuth.instance.currentUser == null) {
+      return;
+    }
     var details = await Provider.of<OrgRepo>(context, listen: false)
         .getRequestDetails(orgID, request.id!)
         .first;
