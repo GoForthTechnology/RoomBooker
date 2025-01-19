@@ -8,7 +8,7 @@ class SimpleTextFormField extends StatelessWidget {
   final bool readOnly;
   final Function(String)? onChanged;
 
-  SimpleTextFormField({
+  const SimpleTextFormField({
     super.key,
     required this.controller,
     required this.readOnly,
@@ -16,13 +16,7 @@ class SimpleTextFormField extends StatelessWidget {
     this.validationMessage,
     this.onTap,
     this.onChanged,
-  }) {
-    if (onChanged != null) {
-      controller.addListener(() {
-        onChanged!(controller.text);
-      });
-    }
-  }
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +31,11 @@ class SimpleTextFormField extends StatelessWidget {
             labelText: labelText,
             border: const OutlineInputBorder(),
           ),
+          onChanged: (value) {
+            if (onChanged != null) {
+              onChanged!(value);
+            }
+          },
           validator: (value) {
             if (value == null || value.isEmpty) {
               return validationMessage;

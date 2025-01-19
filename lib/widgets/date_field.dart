@@ -1,44 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:room_booker/widgets/simple_text_form_field.dart';
 
-class DateField extends StatefulWidget {
+class DateField extends StatelessWidget {
   final String labelText;
   final String? validationMessage;
   final DateTime initialValue;
   final bool readOnly;
   final Function(DateTime) onChanged;
+  final TextEditingController controller = TextEditingController();
 
-  const DateField(
+  DateField(
       {super.key,
       required this.initialValue,
       required this.labelText,
       this.validationMessage,
       required this.onChanged,
-      required this.readOnly});
-
-  @override
-  State<StatefulWidget> createState() => DateFieldSate();
-}
-
-class DateFieldSate extends State<DateField> {
-  final TextEditingController controller = TextEditingController();
-
-  @override
-  void initState() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      controller.text = dateToString(widget.initialValue);
-    });
-    super.initState();
+      required this.readOnly}) {
+    controller.text = dateToString(initialValue);
   }
 
   @override
   Widget build(BuildContext context) {
     return SimpleTextFormField(
         controller: controller,
-        labelText: widget.labelText,
-        validationMessage: widget.validationMessage,
-        readOnly: widget.readOnly,
-        onTap: widget.readOnly
+        labelText: labelText,
+        validationMessage: validationMessage,
+        readOnly: readOnly,
+        onTap: readOnly
             ? null
             : () async {
                 DateTime? pickedDate = await showDatePicker(
@@ -48,7 +36,7 @@ class DateFieldSate extends State<DateField> {
                   lastDate: DateTime(2101),
                 );
                 if (pickedDate != null) {
-                  widget.onChanged(pickedDate);
+                  onChanged(pickedDate);
                   controller.text = dateToString(pickedDate);
                 }
               });

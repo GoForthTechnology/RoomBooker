@@ -25,7 +25,7 @@ class TimeField extends StatelessWidget {
       controller: controller,
       labelText: labelText,
       validationMessage: validationMessage,
-      readOnly: true,
+      readOnly: readOnly,
       onTap: readOnly
           ? null
           : () async {

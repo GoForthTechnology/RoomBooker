@@ -36,8 +36,8 @@ class ResizeDetails {
   });
 }
 
-class StreamingCalendar extends StatefulWidget {
-  final Stream<CalendarState> stateStream;
+class SimpleCalendar extends StatefulWidget {
+  final CalendarState state;
   final bool showNavigationArrow;
   final bool showDatePickerButton;
   final bool showTodayButton;
@@ -50,9 +50,9 @@ class StreamingCalendar extends StatefulWidget {
   final bool allowAppointmentResize;
   final Function(ResizeDetails)? onAppointmentResizeEnd;
 
-  const StreamingCalendar(
+  const SimpleCalendar(
       {super.key,
-      required this.stateStream,
+      required this.state,
       required this.view,
       this.onTap,
       this.onTapBooking,
@@ -68,7 +68,7 @@ class StreamingCalendar extends StatefulWidget {
   StreamingCalendarState createState() => StreamingCalendarState();
 }
 
-class StreamingCalendarState extends State<StreamingCalendar> {
+class StreamingCalendarState extends State<SimpleCalendar> {
   final CalendarController controller = CalendarController();
 
   @override
@@ -80,21 +80,9 @@ class StreamingCalendarState extends State<StreamingCalendar> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: widget.stateStream,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const CircularProgressIndicator();
-        }
-        return calendarWidget(snapshot.data!);
-      },
-    );
-  }
-
-  Widget calendarWidget(CalendarState state) {
-    List<Appointment> appointments = List.from(state.appointments.keys);
+    List<Appointment> appointments = List.from(widget.state.appointments.keys);
     List<TimeRegion> blackoutWindows =
-        state.blackoutWindows.map(toTimeRegion).toList();
+        widget.state.blackoutWindows.map(toTimeRegion).toList();
 
     Function(AppointmentResizeEndDetails)? onResizeEnd;
     if (widget.onAppointmentResizeEnd != null) {
@@ -108,6 +96,7 @@ class StreamingCalendarState extends State<StreamingCalendar> {
     return SfCalendar(
       view: widget.view,
       onTap: (details) {
+        controller.selectedDate = null; // Clear the selected date
         var appointments = details.appointments ?? [];
         if (appointments.isEmpty && widget.onTap != null) {
           widget.onTap!(details);
@@ -115,7 +104,7 @@ class StreamingCalendarState extends State<StreamingCalendar> {
         }
         if (widget.onTapBooking != null) {
           for (var appointment in details.appointments ?? []) {
-            var request = state.appointments[appointment];
+            var request = widget.state.appointments[appointment];
             if (request == null) {
               throw Exception("Appointment not found in state");
             }
@@ -126,7 +115,10 @@ class StreamingCalendarState extends State<StreamingCalendar> {
       minDate: nowRoundedUpToNearestHour(),
       controller: controller,
       dataSource: DataSource(appointments +
-          [if (state.newAppointment != null) state.newAppointment!]),
+          [
+            if (widget.state.newAppointment != null)
+              widget.state.newAppointment!
+          ]),
       showNavigationArrow: widget.showNavigationArrow,
       showDatePickerButton: widget.showDatePickerButton,
       showTodayButton: widget.showTodayButton,
