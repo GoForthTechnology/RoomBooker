@@ -77,12 +77,12 @@ class RemoteState {
   static Stream<RemoteState> createStream(
       String orgID, OrgRepo repo, RoomState roomState) {
     return Rx.combineLatest2(
-        repo.listRequests(orgID,
-            includeRooms: roomState.enabledValues(),
-            includeStatuses: [
-              RequestStatus.pending,
-              RequestStatus.confirmed
-            ]).startWith([]).onErrorReturn([]),
+        repo.listRequests(orgID, includeRooms: {
+          roomState.enabledValue()
+        }, includeStatuses: [
+          RequestStatus.pending,
+          RequestStatus.confirmed
+        ]).startWith([]).onErrorReturn([]),
         repo.listBlackoutWindows(orgID).startWith([]),
         (existingRequests, blackoutWindows) => RemoteState(
             existingRequests: existingRequests,

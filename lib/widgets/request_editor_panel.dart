@@ -28,8 +28,8 @@ class NewRequestPanelState extends State<NewRequestPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer3<RequestEditorState, RequestPanelSate, OrgRepo>(
-        builder: (context, state, panelState, repo, child) {
+    return Consumer4<RoomState, RequestEditorState, RequestPanelSate, OrgRepo>(
+        builder: (context, roomState, state, panelState, repo, child) {
       var formContents = Column(
         children: [
           AppBar(
@@ -49,7 +49,10 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             readOnly: state.readOnly(),
             orgID: widget.orgID,
             initialValue: state.room!,
-            onChanged: state.updateRoom,
+            onChanged: (value) {
+              state.updateRoom(value);
+              roomState.setActiveRoom(value);
+            },
           ),
           SimpleTextFormField(
               readOnly: state.readOnly(),
@@ -197,7 +200,7 @@ class RequestStateProvider extends StatelessWidget {
             builder: (context, roomState, child) =>
                 ChangeNotifierProvider.value(
                     value: RequestEditorState(
-                        initialRoom: roomState.enabledValues().first),
+                        initialRoom: roomState.enabledValue()),
                     child: ChangeNotifierProvider.value(
                         value: RequestPanelSate(), child: this.child))));
   }

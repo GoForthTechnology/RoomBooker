@@ -13,26 +13,32 @@ List<Color> roomColors = [
 ];
 
 class RoomState extends ChangeNotifier {
-  final Map<String, bool> values;
+  String _activeRoom;
   final Map<String, Color> colors;
 
-  RoomState(this.colors) : values = colors.map((k, _) => MapEntry(k, true));
+  RoomState(this._activeRoom, this.colors);
 
   Color color(String room) {
     return colors[room] ?? Colors.black;
   }
 
-  Set<String> enabledValues() {
-    return values.entries.where((e) => e.value).map((e) => e.key).toSet();
+  List<String> allRooms() {
+    return colors.keys.toList();
+  }
+
+  String enabledValue() {
+    return _activeRoom;
   }
 
   bool isEnabled(String room) {
-    return values[room] ?? false;
+    return _activeRoom == room;
   }
 
-  void toggleRoom(String room) {
-    var val = values[room] ?? false;
-    values[room] = !val;
+  void setActiveRoom(String room) {
+    if (!colors.containsKey(room)) {
+      throw ArgumentError("Room $room not found in ${colors.keys}");
+    }
+    _activeRoom = room;
     notifyListeners();
   }
 }
@@ -59,7 +65,8 @@ class RoomStateProvider extends StatelessWidget {
                 initialValues[rooms[i].name] = roomColors[i];
               }
               return ChangeNotifierProvider(
-                create: (_) => RoomState(initialValues),
+                create: (_) =>
+                    RoomState(initialValues.entries.first.key, initialValues),
                 builder: (_, child) => this.child,
               );
             }));
@@ -77,20 +84,11 @@ class RoomSelector extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               children: [
                 const Text("Active Rooms:"),
-                ...state.values.keys.mapIndexed((i, e) => RoomCard(
+                ...state.allRooms().mapIndexed((i, e) => RoomCard(
                       color: !state.isEnabled(e) ? Colors.grey : roomColors[i],
                       room: e,
                       onClick: (room) {
-                        var isCurrentlyEnabled = state.isEnabled(room);
-                        if (!isCurrentlyEnabled ||
-                            state.enabledValues().length > 1) {
-                          state.toggleRoom(room);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      "At least one room must be active.")));
-                        }
+                        state.setActiveRoom(room);
                       },
                     )),
               ],
