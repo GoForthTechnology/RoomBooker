@@ -44,8 +44,9 @@ class TimeField extends StatelessWidget {
                 );
                 return;
               }
-              controller.text = formatTimeOfDay(pickedTime);
-              onChanged(pickedTime);
+              var roundedTime = roundToNearest30Minutes(pickedTime);
+              controller.text = formatTimeOfDay(roundedTime);
+              onChanged(roundedTime);
             },
     );
   }

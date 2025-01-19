@@ -315,14 +315,8 @@ class RequestEditorState extends ChangeNotifier {
   }
 
   void updateTimes(DateTime startTime, DateTime endTime) {
-    _startTime = startTime;
-    _endTime = endTime;
-    notifyListeners();
-  }
-
-  void updateStartTime(TimeOfDay time) {
-    _startTime = DateTime(_startTime!.year, _startTime!.month, _startTime!.day,
-        time.hour, time.minute);
+    _startTime = roundToNearest30Minutes(startTime);
+    _endTime = roundToNearest30Minutes(endTime);
     notifyListeners();
   }
 
@@ -360,4 +354,11 @@ class RequestEditorState extends ChangeNotifier {
       color: color,
     );
   }
+}
+
+DateTime roundToNearest30Minutes(DateTime time) {
+  final int minute = time.minute;
+  final int mod = minute % 30;
+  final int roundedMinute = mod < 15 ? minute - mod : minute + (30 - mod);
+  return DateTime(time.year, time.month, time.day, time.hour, roundedMinute);
 }
