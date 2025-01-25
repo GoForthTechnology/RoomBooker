@@ -55,14 +55,13 @@ class CurrentBookingsCalendar extends StatelessWidget {
     RemoteState remoteState,
     RoomState roomState,
   ) {
-    var newAppointemntRoom = requestEditorState.room;
-    var newAppointmentColor = roomState.color(newAppointemntRoom ?? "");
+    var newAppointmentColor = roomState.color(requestEditorState.roomID!);
     return CalendarState(
         newAppointment: requestEditorState.getAppointment(newAppointmentColor),
         remoteState.existingRequests,
         (r) => r.status == RequestStatus.confirmed ? "Booked" : "Requested",
         (r) => roomState
-            .color(r.selectedRoom)
+            .color(r.roomName)
             .withAlpha(r.status == RequestStatus.pending ? 128 : 255),
         blackoutWindows: remoteState.blackoutWindows);
   }
@@ -77,8 +76,8 @@ class RemoteState {
   static Stream<RemoteState> createStream(
       String orgID, OrgRepo repo, RoomState roomState) {
     return Rx.combineLatest2(
-        repo.listRequests(orgID, includeRooms: {
-          roomState.enabledValue()
+        repo.listRequests(orgID, includeRoomIDs: {
+          roomState.enabledValue().id!
         }, includeStatuses: [
           RequestStatus.pending,
           RequestStatus.confirmed

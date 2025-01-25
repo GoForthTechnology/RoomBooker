@@ -29,14 +29,16 @@ Map<String, dynamic> _$PrivateRequestDetailsToJson(
 Request _$RequestFromJson(Map<String, dynamic> json) => Request(
       eventStartTime: DateTime.parse(json['eventStartTime'] as String),
       eventEndTime: DateTime.parse(json['eventEndTime'] as String),
-      selectedRoom: json['selectedRoom'] as String,
+      roomID: json['roomID'] as String,
+      roomName: json['roomName'] as String,
       status: $enumDecode(_$RequestStatusEnumMap, json['status']),
     );
 
 Map<String, dynamic> _$RequestToJson(Request instance) => <String, dynamic>{
       'eventStartTime': instance.eventStartTime.toIso8601String(),
       'eventEndTime': instance.eventEndTime.toIso8601String(),
-      'selectedRoom': instance.selectedRoom,
+      'roomID': instance.roomID,
+      'roomName': instance.roomName,
       'status': _$RequestStatusEnumMap[instance.status]!,
     };
 

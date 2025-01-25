@@ -179,14 +179,14 @@ class OrgRepo extends ChangeNotifier {
   }
 
   Stream<List<Request>> listRequests(String orgID,
-      {List<RequestStatus>? includeStatuses, Set<String>? includeRooms}) {
+      {List<RequestStatus>? includeStatuses, Set<String>? includeRoomIDs}) {
     Query<Request> query = _bookingRequestsRef(orgID);
     if (includeStatuses != null) {
       query = query.where("status",
           whereIn: includeStatuses.map((s) => s.name).toList());
     }
-    if (includeRooms != null) {
-      query = query.where("selectedRoom", whereIn: includeRooms);
+    if (includeRoomIDs != null) {
+      query = query.where("roomID", whereIn: includeRoomIDs);
     }
     return query.snapshots().map((s) => s.docs.map((d) => d.data()).toList());
   }

@@ -223,7 +223,7 @@ String bookingTitle(Request booking) {
 }
 
 String bookingSubtitle(Request booking) {
-  return '${booking.selectedRoom} on ${formatDate(booking.eventStartTime)} from ${formatTime(booking.eventStartTime)} to ${formatTime(booking.eventEndTime)}';
+  return '${booking.roomName} on ${formatDate(booking.eventStartTime)} from ${formatTime(booking.eventStartTime)} to ${formatTime(booking.eventEndTime)}';
 }
 
 String formatDate(DateTime dateTime) {

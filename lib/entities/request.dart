@@ -37,13 +37,15 @@ class Request {
   final String? id;
   final DateTime eventStartTime;
   final DateTime eventEndTime;
-  final String selectedRoom;
+  final String roomID;
+  final String roomName;
   final RequestStatus status;
 
   Request({
     required this.eventStartTime,
     required this.eventEndTime,
-    required this.selectedRoom,
+    required this.roomID,
+    required this.roomName,
     required this.status,
     this.id,
   }) {
@@ -54,13 +56,15 @@ class Request {
     String? id,
     DateTime? eventStartTime,
     DateTime? eventEndTime,
-    String? selectedRoom,
+    String? roomID,
+    String? roomName,
     RequestStatus? status,
   }) {
     return Request(
       eventStartTime: eventStartTime ?? this.eventStartTime,
       eventEndTime: eventEndTime ?? this.eventEndTime,
-      selectedRoom: selectedRoom ?? this.selectedRoom,
+      roomID: roomID ?? this.roomID,
+      roomName: roomName ?? this.roomName,
       status: status ?? this.status,
       id: id ?? this.id,
     );

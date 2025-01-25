@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/repos/org_repo.dart';
 
 List<Color> roomColors = [
@@ -13,30 +14,34 @@ List<Color> roomColors = [
 ];
 
 class RoomState extends ChangeNotifier {
-  String _activeRoom;
-  final Map<String, Color> colors;
+  Room _activeRoom;
+  final Map<Room, Color> _colorMap;
 
-  RoomState(this._activeRoom, this.colors);
+  RoomState(this._activeRoom, this._colorMap);
 
-  Color color(String room) {
-    return colors[room] ?? Colors.black;
+  Color color(String roomID) {
+    return _colorMap[getRoom(roomID)] ?? Colors.black;
   }
 
-  List<String> allRooms() {
-    return colors.keys.toList();
+  Room? getRoom(String roomID) {
+    return _colorMap.keys.firstWhereOrNull((r) => r.id == roomID);
   }
 
-  String enabledValue() {
+  List<Room> allRooms() {
+    return _colorMap.keys.toList();
+  }
+
+  Room enabledValue() {
     return _activeRoom;
   }
 
-  bool isEnabled(String room) {
-    return _activeRoom == room;
+  bool isEnabled(String roomID) {
+    return _activeRoom.id == roomID;
   }
 
-  void setActiveRoom(String room) {
-    if (!colors.containsKey(room)) {
-      throw ArgumentError("Room $room not found in ${colors.keys}");
+  void setActiveRoom(Room room) {
+    if (!_colorMap.containsKey(room)) {
+      throw ArgumentError("Room $room not found in ${_colorMap.keys}");
     }
     _activeRoom = room;
     notifyListeners();
@@ -60,9 +65,9 @@ class RoomStateProvider extends StatelessWidget {
                 return const CircularProgressIndicator();
               }
               var rooms = snapshot.data!;
-              Map<String, Color> initialValues = {};
+              Map<Room, Color> initialValues = {};
               for (int i = 0; i < rooms.length; i++) {
-                initialValues[rooms[i].name] = roomColors[i];
+                initialValues[rooms[i]] = roomColors[i];
               }
               return ChangeNotifierProvider(
                 create: (_) =>
@@ -85,7 +90,8 @@ class RoomSelector extends StatelessWidget {
               children: [
                 const Text("Active Rooms:"),
                 ...state.allRooms().mapIndexed((i, e) => RoomCard(
-                      color: !state.isEnabled(e) ? Colors.grey : roomColors[i],
+                      color:
+                          !state.isEnabled(e.id!) ? Colors.grey : roomColors[i],
                       room: e,
                       onClick: (room) {
                         state.setActiveRoom(room);
@@ -98,8 +104,8 @@ class RoomSelector extends StatelessWidget {
 
 class RoomCard extends StatelessWidget {
   final Color color;
-  final String room;
-  final Function(String) onClick;
+  final Room room;
+  final Function(Room) onClick;
 
   const RoomCard(
       {super.key,
@@ -117,7 +123,7 @@ class RoomCard extends StatelessWidget {
           color: color,
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Text(room, style: const TextStyle(color: Colors.white)),
+            child: Text(room.name, style: const TextStyle(color: Colors.white)),
           ),
         ),
       ),

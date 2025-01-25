@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/date_field.dart';
@@ -48,7 +49,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           RoomField(
             readOnly: state.readOnly(),
             orgID: widget.orgID,
-            initialValue: state.room!,
+            initialRoomID: state.roomID!,
             onChanged: (value) {
               state.updateRoom(value);
               roomState.setActiveRoom(value);
@@ -130,7 +131,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             labelText: "Additional Info",
             onChanged: state.updateMessage,
           ),
-          _getButton(state, repo),
+          _getButton(state, panelState, repo),
         ],
       );
       return Padding(
@@ -140,7 +141,8 @@ class NewRequestPanelState extends State<NewRequestPanel> {
     });
   }
 
-  Widget _getButton(RequestEditorState state, OrgRepo repo) {
+  Widget _getButton(
+      RequestEditorState state, RequestPanelSate panelState, OrgRepo repo) {
     var request = state.getRequest()!;
     if (state.readOnly()) {
       if (request.status == RequestStatus.pending) {
@@ -178,6 +180,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           await repo.addBookingRequest(
               widget.orgID, request, state.getPrivateDetails());
           state.clearAppointment();
+          panelState.hidePanel();
         }
       },
       child: const Text("Submit"),
@@ -230,13 +233,17 @@ class RequestEditorState extends ChangeNotifier {
   String? _contactName;
   String? _contactEmail;
   String? _contactPhone;
-  String? _room;
+  String? _roomID;
+  String? _roomName;
   DateTime? _startTime;
   DateTime? _endTime;
 
-  RequestEditorState({required String initialRoom}) : _room = initialRoom;
+  RequestEditorState({required Room initialRoom})
+      : _roomID = initialRoom.id,
+        _roomName = initialRoom.name;
 
-  String? get room => _room;
+  String? get roomID => _roomID;
+  String? get roomName => _roomName;
   String? get eventname => _eventName;
   String? get contactName => _contactName;
   String? get contactEmail => _contactEmail;
@@ -247,7 +254,8 @@ class RequestEditorState extends ChangeNotifier {
 
   void showRequest(Request request, PrivateRequestDetails details) {
     _existingRequest = request;
-    _room = request.selectedRoom;
+    _roomID = request.roomID;
+    _roomName = request.roomName;
     _startTime = request.eventStartTime;
     _endTime = request.eventEndTime;
     _contactEmail = details.email;
@@ -287,8 +295,9 @@ class RequestEditorState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateRoom(String? room) {
-    _room = room;
+  void updateRoom(Room? room) {
+    _roomName = room?.name;
+    _roomID = room?.id;
     notifyListeners();
   }
 
@@ -324,14 +333,15 @@ class RequestEditorState extends ChangeNotifier {
   }
 
   Request? getRequest() {
-    if (_startTime == null || _endTime == null || _room == null) {
+    if (_startTime == null || _endTime == null || _roomID == null) {
       return null;
     }
     return Request(
       id: _existingRequest?.id,
       eventStartTime: _startTime!,
       eventEndTime: _endTime!,
-      selectedRoom: _room!,
+      roomID: _roomID!,
+      roomName: _roomName!,
       status: _existingRequest?.status ?? RequestStatus.pending,
     );
   }

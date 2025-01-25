@@ -158,12 +158,3 @@ class DataSource extends CalendarDataSource {
     appointments = source;
   }
 }
-
-Request fromAppointment(Appointment appointment, RequestStatus status) {
-  return Request(
-    eventStartTime: appointment.startTime,
-    eventEndTime: appointment.endTime,
-    selectedRoom: appointment.location ?? "",
-    status: status,
-  );
-}
