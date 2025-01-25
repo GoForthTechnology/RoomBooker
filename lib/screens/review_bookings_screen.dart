@@ -42,6 +42,7 @@ class _ReviewPanelState extends State<ReviewPanel> {
 
   @override
   Widget build(BuildContext context) {
+    var repo = Provider.of<OrgRepo>(context, listen: false);
     return SingleChildScrollView(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,11 +52,13 @@ class _ReviewPanelState extends State<ReviewPanel> {
               child: Column(children: [
                 const Heading("Pending"),
                 PendingBookings(
+                  repo: repo,
                   onFocusBooking: focusBooking,
                   orgID: widget.orgID,
                 ),
                 const Heading("Resolved"),
                 ResolvedBookings(
+                  repo: repo,
                   onFocusBooking: focusBooking,
                   orgID: widget.orgID,
                 )

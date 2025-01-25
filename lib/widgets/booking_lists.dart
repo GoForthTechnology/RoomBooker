@@ -4,128 +4,114 @@ import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
 
 class ResolvedBookings extends StatelessWidget {
+  final OrgRepo repo;
   final String orgID;
   final Function(Request) onFocusBooking;
 
   const ResolvedBookings(
-      {super.key, required this.onFocusBooking, required this.orgID});
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<OrgRepo>(
-      builder: (context, repo, child) => StreamBuilder(
-        stream: repo.listRequests(orgID, includeStatuses: [
-          RequestStatus.confirmed,
-          RequestStatus.denied,
-        ]),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const CircularProgressIndicator();
-          }
-          List<Request> bookings = snapshot.data!;
-          bookings.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
-          return ListView.builder(
-            shrinkWrap: true,
-            itemCount: bookings.length,
-            itemBuilder: (context, index) {
-              return ResolvedBookingTitle(
-                booking: bookings[index],
-                onFocusBooking: onFocusBooking,
-                onRevisitBooking: (b) =>
-                    repo.revisitBookingRequest(orgID, b.id!),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-
-class ResolvedBookingTitle extends StatelessWidget {
-  final Function(Request) onFocusBooking;
-  final Function(Request) onRevisitBooking;
-  final Request booking;
-
-  const ResolvedBookingTitle(
       {super.key,
+      required this.orgID,
       required this.onFocusBooking,
-      required this.booking,
-      required this.onRevisitBooking});
+      required this.repo});
 
   @override
   Widget build(BuildContext context) {
-    bool confirmed = booking.status == RequestStatus.confirmed;
-    String trailingText = confirmed ? 'CONFIRMED' : 'DENIED';
-    return Card(
-        elevation: 1,
-        color: confirmed
-            ? const Color.fromRGBO(220, 233, 213, 1.0)
-            : const Color.fromRGBO(238, 205, 205, 1.0),
-        child: ExpansionTile(
-          title: Text(bookingTitle(booking)),
-          leading: Icon(
-            Icons.event,
-            color: confirmed
-                ? const Color.fromRGBO(120, 166, 90, 1.0)
-                : const Color.fromRGBO(187, 39, 26, 1.0),
-          ),
-          subtitle: Text(bookingSubtitle(booking)),
-          trailing: Text(trailingText),
-          expandedAlignment: Alignment.topLeft,
-          expandedCrossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                detailTable(booking),
-                Column(
-                  children: [
-                    ElevatedButton(
-                        onPressed: () => onFocusBooking(booking),
-                        child: const Text("Toggle Calendar")),
-                    ElevatedButton(
-                        onPressed: () => onRevisitBooking(booking),
-                        child: const Text("Revisit")),
-                  ],
-                )
-              ],
-            )
-          ],
-        ));
+    return BookingList(
+      onFocusBooking: onFocusBooking,
+      orgID: orgID,
+      emptyText: "No Resolved Requests",
+      statusList: const [
+        RequestStatus.confirmed,
+        RequestStatus.denied,
+      ],
+      actions: [
+        RequestAction(
+            text: "Revisit",
+            onClick: (request) =>
+                repo.revisitBookingRequest(orgID, request.id!))
+      ],
+    );
   }
 }
 
 class PendingBookings extends StatelessWidget {
+  final OrgRepo repo;
   final String orgID;
   final Function(Request) onFocusBooking;
 
   const PendingBookings(
-      {super.key, required this.onFocusBooking, required this.orgID});
+      {super.key,
+      required this.orgID,
+      required this.onFocusBooking,
+      required this.repo});
+
+  @override
+  Widget build(BuildContext context) {
+    return BookingList(
+      onFocusBooking: onFocusBooking,
+      orgID: orgID,
+      statusList: const [RequestStatus.pending],
+      emptyText: "No Pending Requests",
+      actions: [
+        RequestAction(
+            text: "Approve",
+            onClick: (request) => repo.confirmRequest(orgID, request)),
+        RequestAction(
+            text: "Deny",
+            onClick: (request) => repo.denyRequest(orgID, request.id!)),
+      ],
+    );
+  }
+}
+
+class BookingList extends StatelessWidget {
+  final String orgID;
+  final String emptyText;
+  final Function(Request) onFocusBooking;
+  final List<RequestStatus> statusList;
+  final List<RequestAction> actions;
+
+  const BookingList(
+      {super.key,
+      required this.onFocusBooking,
+      required this.orgID,
+      required this.actions,
+      required this.statusList,
+      required this.emptyText});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<OrgRepo>(
       builder: (context, repo, child) => StreamBuilder(
-        stream: repo.listRequests(orgID, includeStatuses: [
-          RequestStatus.pending,
-        ]),
+        stream: repo.listRequests(orgID, includeStatuses: statusList),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();
           }
-          List<Request> bookings = snapshot.data!;
-          if (bookings.isEmpty) {
-            return const Text("No pending bookings.");
+          List<Request> requests = snapshot.data!;
+          if (requests.isEmpty) {
+            return Text(emptyText);
           }
-          bookings.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
+          requests.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
           return ListView.builder(
             shrinkWrap: true,
-            itemCount: bookings.length,
+            itemCount: requests.length,
             itemBuilder: (context, index) {
-              return PendingBookingTile(
-                orgID: orgID,
-                request: bookings[index],
-                onFocusBooking: onFocusBooking,
+              var request = requests[index];
+              return StreamBuilder(
+                stream: repo.getRequestDetails(orgID, request.id!),
+                builder: (context, detailsSnapshot) {
+                  if (!detailsSnapshot.hasData) {
+                    return const CircularProgressIndicator();
+                  }
+                  var details = detailsSnapshot.data!;
+                  return BookingTile(
+                    request: request,
+                    details: details,
+                    onFocusBooking: onFocusBooking,
+                    actions: actions,
+                  );
+                },
               );
             },
           );
@@ -135,50 +121,59 @@ class PendingBookings extends StatelessWidget {
   }
 }
 
-class PendingBookingTile extends StatelessWidget {
+class RequestAction {
+  final String text;
+  final Function(Request) onClick;
+
+  RequestAction({required this.text, required this.onClick});
+}
+
+class BookingTile extends StatelessWidget {
+  final List<RequestAction> actions;
   final Function(Request) onFocusBooking;
   final Request request;
-  final String orgID;
+  final PrivateRequestDetails details;
 
-  const PendingBookingTile(
-      {super.key,
-      required this.onFocusBooking,
-      required this.request,
-      required this.orgID});
+  const BookingTile({
+    super.key,
+    required this.onFocusBooking,
+    required this.request,
+    required this.actions,
+    required this.details,
+  });
 
   @override
   Widget build(BuildContext context) {
+    bool resolved = request.status != RequestStatus.pending;
+    bool confirmed = request.status == RequestStatus.confirmed;
     return Card(
         elevation: 1,
+        color: resolved
+            ? confirmed
+                ? const Color.fromRGBO(220, 233, 213, 1.0)
+                : const Color.fromRGBO(238, 205, 205, 1.0)
+            : null,
         child: ExpansionTile(
-          leading: const Icon(Icons.event),
-          title: Text(bookingTitle(request)),
-          subtitle: Text(bookingSubtitle(request)),
-          trailing: Consumer<OrgRepo>(
-              builder: (context, repo, child) => Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () => repo.confirmRequest(orgID, request),
-                        child: const Text('Approve'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () => repo.denyRequest(orgID, request.id!),
-                        child: const Text('Reject'),
-                      )
-                    ],
-                  )),
+          title: Text("${details.eventName} for ${details.name}"),
+          subtitle: _subtitle(),
+          leading: _leading(),
+          trailing: _trailing(),
           expandedAlignment: Alignment.topLeft,
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                detailTable(request),
+                detailTable(request, details),
                 Column(
                   children: [
                     ElevatedButton(
                         onPressed: () => onFocusBooking(request),
                         child: const Text("Toggle Calendar")),
+                    ...actions.map(
+                      (a) => ElevatedButton(
+                          onPressed: () => a.onClick(request),
+                          child: Text(a.text)),
+                    )
                   ],
                 )
               ],
@@ -186,21 +181,49 @@ class PendingBookingTile extends StatelessWidget {
           ],
         ));
   }
+
+  Widget? _trailing() {
+    if (request.status == RequestStatus.pending) {
+      return null;
+    }
+    if (request.status == RequestStatus.confirmed) {
+      return const Text('CONFIRMED');
+    }
+    if (request.status == RequestStatus.denied) {
+      return const Text('DENIED');
+    }
+    throw ("Invalid status!");
+  }
+
+  Widget? _leading() {
+    if (request.status == RequestStatus.pending) {
+      return null;
+    }
+    return Icon(Icons.event,
+        color: request.status == RequestStatus.confirmed
+            ? const Color.fromRGBO(120, 166, 90, 1.0)
+            : const Color.fromRGBO(187, 39, 26, 1.0));
+  }
+
+  Widget _subtitle() {
+    return Text(
+        '${request.roomName} on ${formatDate(request.eventStartTime)} from ${formatTime(request.eventStartTime)} to ${formatTime(request.eventEndTime)}');
+  }
 }
 
-Widget detailTable(Request booking) {
+Widget detailTable(Request booking, PrivateRequestDetails details) {
   return Padding(
       padding: const EdgeInsets.only(left: 20),
       child: Table(
         defaultColumnWidth: const FixedColumnWidth(200),
         children: [
-          // TODO: Add private fields
-          /*bookingField('Phone', booking.phone),
-          bookingField('Email', booking.email),*/
           bookingField('Start Time',
               "${formatDate(booking.eventStartTime)} ${formatTime(booking.eventStartTime)}"),
           bookingField('End Time',
               "${formatDate(booking.eventEndTime)} ${formatTime(booking.eventEndTime)}"),
+          bookingField('Phone', details.phone),
+          bookingField('Email', details.email),
+          bookingField('Message', details.message),
         ],
       ));
 }
@@ -220,10 +243,6 @@ String bookingTitle(Request booking) {
   // TODO: replace with private fields
   // return '${booking.eventName} for ${booking.name}';
   return "Some title";
-}
-
-String bookingSubtitle(Request booking) {
-  return '${booking.roomName} on ${formatDate(booking.eventStartTime)} from ${formatTime(booking.eventStartTime)} to ${formatTime(booking.eventEndTime)}';
 }
 
 String formatDate(DateTime dateTime) {
