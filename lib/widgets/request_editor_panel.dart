@@ -29,6 +29,13 @@ class NewRequestPanelState extends State<NewRequestPanel> {
 
   @override
   Widget build(BuildContext context) {
+    var editorState = Provider.of<RequestEditorState>(context, listen: false);
+    eventNameController.text = editorState.eventname ?? "";
+    contactNameController.text = editorState.contactName ?? "";
+    contactEmailController.text = editorState.contactEmail ?? "";
+    contactPhoneController.text = editorState.contactPhone ?? "";
+    messageController.text = editorState.message ?? "";
+
     return Consumer4<RoomState, RequestEditorState, RequestPanelSate, OrgRepo>(
         builder: (context, roomState, state, panelState, repo, child) {
       var formContents = Column(
@@ -284,6 +291,7 @@ class RequestEditorState extends ChangeNotifier {
   }
 
   void clearAppointment() {
+    _existingRequest = null;
     _eventName = null;
     _startTime = null;
     _endTime = null;

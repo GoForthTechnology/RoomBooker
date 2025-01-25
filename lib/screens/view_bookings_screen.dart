@@ -58,6 +58,7 @@ class ViewBookingsScreen extends StatelessWidget {
     return CurrentBookingsCalendar(
       orgID: orgID,
       onTap: (details) {
+        requestEditorState.clearAppointment();
         requestPanelState.showPanel();
         requestEditorState.createRequest(
             details.date!, details.date!.add(const Duration(hours: 1)));
