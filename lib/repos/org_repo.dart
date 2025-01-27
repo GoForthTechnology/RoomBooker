@@ -59,18 +59,14 @@ class OrgRepo extends ChangeNotifier {
 
   Future<void> approveAdminRequest(String orgID, String userID) {
     return _db.runTransaction((t) async {
-      try {
-        var requestRef = _adminRequestRef(orgID, userID);
-        var requestData = await t.get(requestRef);
-        if (!requestData.exists) {
-          return Future.error("Request not found");
-        }
-        var request = requestData.data();
-        t.delete(requestRef);
-        t.set(_activeAdminRef(orgID, userID), request!);
-      } catch (e) {
-        print(e);
+      var requestRef = _adminRequestRef(orgID, userID);
+      var requestData = await t.get(requestRef);
+      if (!requestData.exists) {
+        return Future.error("Request not found");
       }
+      var request = requestData.data();
+      t.delete(requestRef);
+      t.set(_activeAdminRef(orgID, userID), request!);
     });
   }
 
@@ -207,7 +203,7 @@ class OrgRepo extends ChangeNotifier {
     var streams = queries
         .map((q) =>
             q.snapshots().map((s) => s.docs.map((d) => d.data()).toList()))
-        .map((s) => s.doOnError((e, s) => print("$e")));
+        .map((s) => s);
     return Rx.combineLatestList(streams).map((listOfLists) {
       return listOfLists.flattenedToList;
     });
