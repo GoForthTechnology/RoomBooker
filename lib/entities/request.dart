@@ -1,5 +1,4 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:room_booker/entities/blackout_window.dart';
 
 part 'request.g.dart';
 
@@ -68,14 +67,6 @@ class Request {
       roomName: roomName ?? this.roomName,
       status: status ?? this.status,
       id: id ?? this.id,
-    );
-  }
-
-  BlackoutWindow toBlackoutWindow() {
-    return BlackoutWindow(
-      start: eventStartTime,
-      end: eventEndTime,
-      reason: "Busy",
     );
   }
 
