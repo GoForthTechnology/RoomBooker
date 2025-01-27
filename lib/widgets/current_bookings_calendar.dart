@@ -78,10 +78,10 @@ class RemoteState {
     return Rx.combineLatest2(
         repo.listRequests(orgID, includeRoomIDs: {
           roomState.enabledValue().id!
-        }, includeStatuses: [
+        }, includeStatuses: {
           RequestStatus.pending,
           RequestStatus.confirmed
-        ]).startWith([]).onErrorReturn([]),
+        }).startWith([]).onErrorReturn([]),
         repo.listBlackoutWindows(orgID).startWith([]),
         (existingRequests, blackoutWindows) => RemoteState(
             existingRequests: existingRequests,

@@ -31,7 +31,6 @@ Request _$RequestFromJson(Map<String, dynamic> json) => Request(
       eventEndTime: DateTime.parse(json['eventEndTime'] as String),
       roomID: json['roomID'] as String,
       roomName: json['roomName'] as String,
-      status: $enumDecode(_$RequestStatusEnumMap, json['status']),
     );
 
 Map<String, dynamic> _$RequestToJson(Request instance) => <String, dynamic>{
@@ -39,12 +38,4 @@ Map<String, dynamic> _$RequestToJson(Request instance) => <String, dynamic>{
       'eventEndTime': instance.eventEndTime.toIso8601String(),
       'roomID': instance.roomID,
       'roomName': instance.roomName,
-      'status': _$RequestStatusEnumMap[instance.status]!,
     };
-
-const _$RequestStatusEnumMap = {
-  RequestStatus.unknown: 'unknown',
-  RequestStatus.confirmed: 'confirmed',
-  RequestStatus.denied: 'denied',
-  RequestStatus.pending: 'pending',
-};

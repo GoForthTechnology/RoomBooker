@@ -27,8 +27,7 @@ class ResolvedBookings extends StatelessWidget {
       actions: [
         RequestAction(
             text: "Revisit",
-            onClick: (request) =>
-                repo.revisitBookingRequest(orgID, request.id!))
+            onClick: (request) => repo.revisitBookingRequest(orgID, request))
       ],
     );
   }
@@ -55,7 +54,7 @@ class PendingBookings extends StatelessWidget {
       actions: [
         RequestAction(
             text: "Approve",
-            onClick: (request) => repo.confirmRequest(orgID, request)),
+            onClick: (request) => repo.confirmRequest(orgID, request.id!)),
         RequestAction(
             text: "Deny",
             onClick: (request) => repo.denyRequest(orgID, request.id!)),
@@ -83,7 +82,7 @@ class BookingList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<OrgRepo>(
       builder: (context, repo, child) => StreamBuilder(
-        stream: repo.listRequests(orgID, includeStatuses: statusList),
+        stream: repo.listRequests(orgID, includeStatuses: Set.from(statusList)),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();

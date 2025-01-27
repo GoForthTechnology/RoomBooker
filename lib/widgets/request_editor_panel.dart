@@ -4,6 +4,7 @@ import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/date_field.dart';
+import 'package:room_booker/widgets/org_state_provider.dart';
 import 'package:room_booker/widgets/room_field.dart';
 import 'package:room_booker/widgets/room_selector.dart';
 import 'package:room_booker/widgets/simple_text_form_field.dart';
@@ -150,48 +151,67 @@ class NewRequestPanelState extends State<NewRequestPanel> {
 
   Widget _getButton(
       RequestEditorState state, RequestPanelSate panelState, OrgRepo repo) {
-    var request = state.getRequest()!;
-    if (state.readOnly()) {
-      if (request.status == RequestStatus.pending) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () async {
-                await repo.denyRequest(widget.orgID, request.id!);
-                state.updateStatus(RequestStatus.denied);
-              },
-              child: const Text("Deny"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await repo.confirmRequest(widget.orgID, state.getRequest()!);
-                state.updateStatus(RequestStatus.confirmed);
-              },
-              child: const Text("Approve"),
-            ),
-          ],
+    return Consumer<OrgState>(builder: (context, orgState, child) {
+      var request = state.getRequest()!;
+      if (state.readOnly()) {
+        if (!orgState.currentUserIsAdmin()) {
+          return Container();
+        }
+        if (request.status == RequestStatus.pending) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: () async {
+                  await repo.denyRequest(widget.orgID, request.id!);
+                  state.updateStatus(RequestStatus.denied);
+                },
+                child: const Text("Deny"),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  await repo.confirmRequest(
+                      widget.orgID, state.getRequest()!.id!);
+                  state.updateStatus(RequestStatus.confirmed);
+                },
+                child: const Text("Approve"),
+              ),
+            ],
+          );
+        }
+        return ElevatedButton(
+          onPressed: () async {
+            await repo.revisitBookingRequest(widget.orgID, request);
+            state.updateStatus(RequestStatus.pending);
+          },
+          child: const Text("Revisit"),
+        );
+      }
+      if (orgState.currentUserIsAdmin()) {
+        return ElevatedButton(
+          onPressed: () async {
+            if (_formKey.currentState!.validate()) {
+              await repo.addBookingRequest(
+                  widget.orgID, request, state.getPrivateDetails());
+              state.clearAppointment();
+              panelState.hidePanel();
+            }
+          },
+          child: const Text("Add Booking"),
         );
       }
       return ElevatedButton(
         onPressed: () async {
-          await repo.revisitBookingRequest(widget.orgID, request.id!);
-          state.updateStatus(RequestStatus.pending);
+          if (_formKey.currentState!.validate()) {
+            await repo.addBookingRequest(
+                widget.orgID, request, state.getPrivateDetails());
+            state.clearAppointment();
+            panelState.hidePanel();
+          }
         },
-        child: const Text("Revisit"),
+        child: const Text("Submit Request"),
       );
-    }
-    return ElevatedButton(
-      onPressed: () async {
-        if (_formKey.currentState!.validate()) {
-          await repo.addBookingRequest(
-              widget.orgID, request, state.getPrivateDetails());
-          state.clearAppointment();
-          panelState.hidePanel();
-        }
-      },
-      child: const Text("Submit"),
-    );
+    });
   }
 }
 

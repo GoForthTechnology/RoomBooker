@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/widgets/current_bookings_calendar.dart';
+import 'package:room_booker/widgets/org_state_provider.dart';
 import 'package:room_booker/widgets/request_editor_panel.dart';
 import 'package:room_booker/widgets/room_selector.dart';
 
@@ -17,37 +18,43 @@ class ViewBookingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-            title: const Text("Room Bookings for Church of the Resurrection"),
-            actions: _actions(context)),
-        body: RequestStateProvider(
-          orgID: orgID,
-          child: Consumer<RequestPanelSate>(
-            builder: (context, requestPanelState, child) => Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Flexible(
-                  flex: 3,
-                  child: Column(
-                    children: [
-                      const RoomSelector(),
-                      Expanded(child: _buildCalendar(context)),
-                    ],
-                  ),
-                ),
-                if (requestPanelState.active)
+    return OrgStateProvider(
+      orgID: orgID,
+      child: Consumer<OrgState>(
+        builder: (context, orgState, child) => Scaffold(
+          appBar: AppBar(
+              title: const Text("Room Bookings for Church of the Resurrection"),
+              actions: _actions(context, orgState)),
+          body: RequestStateProvider(
+            orgID: orgID,
+            child: Consumer<RequestPanelSate>(
+              builder: (context, requestPanelState, child) => Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Flexible(
-                    flex: 1,
-                    child: SingleChildScrollView(
-                        child: NewRequestPanel(
-                      orgID: orgID,
-                    )),
-                  )
-              ],
+                    flex: 3,
+                    child: Column(
+                      children: [
+                        const RoomSelector(),
+                        Expanded(child: _buildCalendar(context)),
+                      ],
+                    ),
+                  ),
+                  if (requestPanelState.active)
+                    Flexible(
+                      flex: 1,
+                      child: SingleChildScrollView(
+                          child: NewRequestPanel(
+                        orgID: orgID,
+                      )),
+                    )
+                ],
+              ),
             ),
           ),
-        ));
+        ),
+      ),
+    );
   }
 
   Widget _buildCalendar(BuildContext context) {
@@ -79,17 +86,18 @@ class ViewBookingsScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _actions(BuildContext context) {
+  List<Widget> _actions(BuildContext context, OrgState orgState) {
     if (FirebaseAuth.instance.currentUser != null) {
       return [
-        Tooltip(
-          message: "Review Bookings",
-          child: IconButton(
-            icon: const Icon(Icons.approval_rounded),
-            onPressed: () =>
-                AutoRouter.of(context).push(ReviewBookingsRoute(orgID: orgID)),
+        if (orgState.currentUserIsAdmin())
+          Tooltip(
+            message: "Review Bookings",
+            child: IconButton(
+              icon: const Icon(Icons.approval_rounded),
+              onPressed: () => AutoRouter.of(context)
+                  .push(ReviewBookingsRoute(orgID: orgID)),
+            ),
           ),
-        ),
         Tooltip(
           message: "Logout",
           child: IconButton(

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:collection/collection.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:room_booker/entities/blackout_window.dart';
@@ -153,22 +154,11 @@ class OrgRepo extends ChangeNotifier {
   Future<void> addBookingRequest(String orgID, Request request,
       PrivateRequestDetails privateDetails) async {
     await _db.runTransaction((t) async {
-      var requestRef = _bookingRequestsRef(orgID).doc();
+      var requestRef = _pendingBookingsRef(orgID).doc();
       t.set(requestRef, request);
       var privateDetailsRef = _privateRequestDetailsRef(orgID, requestRef.id);
       t.set(privateDetailsRef, privateDetails);
     });
-  }
-
-  Future<void> revisitBookingRequest(String orgID, String requestID) async {
-    var requestRef = _bookingRequestRef(orgID, requestID);
-    await requestRef.update({"status": RequestStatus.pending.name});
-  }
-
-  Stream<Request?> getRequest(String orgID, String requestID) {
-    return _bookingRequestRef(orgID, requestID)
-        .snapshots()
-        .map((s) => s.data());
   }
 
   Stream<PrivateRequestDetails?> getRequestDetails(
@@ -179,26 +169,76 @@ class OrgRepo extends ChangeNotifier {
   }
 
   Stream<List<Request>> listRequests(String orgID,
-      {List<RequestStatus>? includeStatuses, Set<String>? includeRoomIDs}) {
-    Query<Request> query = _bookingRequestsRef(orgID);
+      {Set<RequestStatus>? includeStatuses, Set<String>? includeRoomIDs}) {
+    List<Query<Request>> queries = [];
+    if (includeStatuses == null ||
+        includeStatuses.contains(RequestStatus.confirmed)) {
+      queries.add(_confirmedRequestsRef(orgID));
+    }
+    if (includeStatuses == null ||
+        includeStatuses.contains(RequestStatus.pending)) {
+      queries.add(_pendingBookingsRef(orgID));
+    }
+    if (includeStatuses == null ||
+        includeStatuses.contains(RequestStatus.denied)) {
+      queries.add(_deniedRequestsRef(orgID));
+    }
     if (includeStatuses != null) {
-      query = query.where("status",
-          whereIn: includeStatuses.map((s) => s.name).toList());
+      queries = queries
+          .map((q) => q.where("roomID", whereIn: includeRoomIDs))
+          .toList();
     }
-    if (includeRoomIDs != null) {
-      query = query.where("roomID", whereIn: includeRoomIDs);
-    }
-    return query.snapshots().map((s) => s.docs.map((d) => d.data()).toList());
+    var streams = queries
+        .map((q) =>
+            q.snapshots().map((s) => s.docs.map((d) => d.data()).toList()))
+        .map((s) => s.doOnError((e, s) => print("$e")));
+    return Rx.combineLatestList(streams).map((listOfLists) {
+      return listOfLists.flattenedToList;
+    });
   }
 
-  Future<void> confirmRequest(String orgID, Request request) async {
-    var requestRef = _bookingRequestRef(orgID, request.id!);
-    await requestRef.update({"status": RequestStatus.confirmed.name});
+  Future<void> confirmRequest(String orgID, String requestID) async {
+    var requestRef = _pendingBookingsRef(orgID).doc(requestID);
+    var confirmedRef = _confirmedRequestsRef(orgID).doc(requestID);
+    return _db.runTransaction((t) async {
+      var request = await t.get(requestRef);
+      var data = request.data();
+      if (data == null) {
+        return;
+      }
+      t.set(confirmedRef, data);
+      t.delete(requestRef);
+    });
   }
 
   Future<void> denyRequest(String orgID, String requestID) {
-    var requestRef = _bookingRequestRef(orgID, requestID);
-    return requestRef.update({"status": RequestStatus.denied.name});
+    var requestRef = _pendingBookingsRef(orgID).doc(requestID);
+    var deniedRef = _deniedRequestsRef(orgID).doc(requestID);
+    return _db.runTransaction((t) async {
+      var request = await t.get(requestRef);
+      var data = request.data();
+      if (data == null) {
+        return;
+      }
+      t.set(deniedRef, data);
+      t.delete(requestRef);
+    });
+  }
+
+  Future<void> revisitBookingRequest(String orgID, Request request) async {
+    var requestRef = _pendingBookingsRef(orgID).doc(request.id);
+    var oldRef = request.status == RequestStatus.confirmed
+        ? _confirmedRequestsRef(orgID).doc(request.id)
+        : _deniedRequestsRef(orgID).doc(request.id);
+    return _db.runTransaction((t) async {
+      var request = await t.get(oldRef);
+      var data = request.data();
+      if (data == null) {
+        throw "Request not found!";
+      }
+      t.set(requestRef, data);
+      t.delete(oldRef);
+    });
   }
 
   Stream<List<BlackoutWindow>> listBlackoutWindows(String orgID) =>
@@ -249,17 +289,13 @@ class OrgRepo extends ChangeNotifier {
         );
   }
 
-  DocumentReference<Request> _bookingRequestRef(
-      String orgID, String requestID) {
-    return _bookingRequestsRef(orgID).doc(requestID);
-  }
-
   DocumentReference<PrivateRequestDetails> _privateRequestDetailsRef(
       String orgID, String requestID) {
-    return _bookingRequestsRef(orgID)
+    return _db
+        .collection("orgs")
+        .doc(orgID)
+        .collection("request-details")
         .doc(requestID)
-        .collection("private")
-        .doc("details")
         .withConverter(
           fromFirestore: (snapshot, _) =>
               PrivateRequestDetails.fromJson(snapshot.data()!),
@@ -267,14 +303,31 @@ class OrgRepo extends ChangeNotifier {
         );
   }
 
-  CollectionReference<Request> _bookingRequestsRef(String orgID) {
+  CollectionReference<Request> _pendingBookingsRef(String orgID) {
+    return _bookingCollectionRef(
+        orgID, "pending-requests", RequestStatus.pending);
+  }
+
+  CollectionReference<Request> _deniedRequestsRef(String orgID) {
+    return _bookingCollectionRef(
+        orgID, "denied-requests", RequestStatus.denied);
+  }
+
+  CollectionReference<Request> _confirmedRequestsRef(String orgID) {
+    return _bookingCollectionRef(
+        orgID, "confirmed-requests", RequestStatus.confirmed);
+  }
+
+  CollectionReference<Request> _bookingCollectionRef(
+      String orgID, String collectionName, RequestStatus status) {
     return _db
         .collection("orgs")
         .doc(orgID)
-        .collection("booking-requests")
+        .collection(collectionName)
         .withConverter(
-          fromFirestore: (snapshot, _) =>
-              Request.fromJson(snapshot.data()!).copyWith(id: snapshot.id),
+          fromFirestore: (snapshot, _) => Request.fromJson(snapshot.data()!)
+              .copyWith(id: snapshot.id)
+              .copyWith(status: status),
           toFirestore: (request, _) => request.toJson(),
         );
   }

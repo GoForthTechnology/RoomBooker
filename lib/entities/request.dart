@@ -39,14 +39,15 @@ class Request {
   final DateTime eventEndTime;
   final String roomID;
   final String roomName;
-  final RequestStatus status;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final RequestStatus? status;
 
   Request({
     required this.eventStartTime,
     required this.eventEndTime,
     required this.roomID,
     required this.roomName,
-    required this.status,
+    this.status,
     this.id,
   }) {
     assert(eventStartTime.isBefore(eventEndTime));
