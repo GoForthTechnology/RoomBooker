@@ -32,6 +32,9 @@ class UserRepo extends ChangeNotifier {
     if (profile == null) {
       profile = UserProfile(orgIDs: [orgID]);
     } else {
+      if (profile.orgIDs.contains(orgID)) {
+        return;
+      }
       profile.orgIDs.add(orgID);
     }
     profileRef.set(profile);

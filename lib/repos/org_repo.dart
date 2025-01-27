@@ -32,7 +32,7 @@ class OrgRepo extends ChangeNotifier {
     return orgID;
   }
 
-  Future<void> addAdminRequestForCurrentUser(String orgID) {
+  Future<void> addAdminRequestForCurrentUser(String orgID) async {
     var user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return Future.error("User not logged in!");
@@ -41,7 +41,10 @@ class OrgRepo extends ChangeNotifier {
       return Future.error("User does not have an email address");
     }
     var entry = AdminEntry(email: user.email!, lastUpdated: DateTime.now());
-    return _adminRequestRef(orgID, user.uid).set(entry);
+    return _db.runTransaction((t) async {
+      _userRepo.addOrg(t, user.uid, orgID);
+      t.set(_adminRequestRef(orgID, user.uid), entry);
+    });
   }
 
   Stream<List<AdminEntry>> adminRequests(String orgID) {
@@ -56,15 +59,18 @@ class OrgRepo extends ChangeNotifier {
 
   Future<void> approveAdminRequest(String orgID, String userID) {
     return _db.runTransaction((t) async {
-      var requestRef = _adminRequestRef(orgID, userID);
-      var requestData = await t.get(requestRef);
-      if (!requestData.exists) {
-        return Future.error("Request not found");
+      try {
+        var requestRef = _adminRequestRef(orgID, userID);
+        var requestData = await t.get(requestRef);
+        if (!requestData.exists) {
+          return Future.error("Request not found");
+        }
+        var request = requestData.data();
+        t.delete(requestRef);
+        t.set(_activeAdminRef(orgID, userID), request!);
+      } catch (e) {
+        print(e);
       }
-      var request = requestData.data();
-      t.delete(requestRef);
-      t.set(_activeAdminRef(orgID, userID), request);
-      _userRepo.addOrg(t, userID, orgID);
     });
   }
 
@@ -72,7 +78,7 @@ class OrgRepo extends ChangeNotifier {
     return _db.runTransaction((t) async {
       var adminRef = _activeAdminRef(orgID, userID);
       t.delete(adminRef);
-      _userRepo.removeOrg(t, userID, orgID);
+      //_userRepo.removeOrg(t, userID, orgID);
     });
   }
 
