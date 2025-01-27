@@ -191,7 +191,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
         return ElevatedButton(
           onPressed: () async {
             if (_formKey.currentState!.validate()) {
-              await repo.addBookingRequest(
+              await repo.addBooking(
                   widget.orgID, request, state.getPrivateDetails());
               state.clearAppointment();
               panelState.hidePanel();
@@ -203,7 +203,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
       return ElevatedButton(
         onPressed: () async {
           if (_formKey.currentState!.validate()) {
-            await repo.addBookingRequest(
+            await repo.submitBookingRequest(
                 widget.orgID, request, state.getPrivateDetails());
             state.clearAppointment();
             panelState.hidePanel();

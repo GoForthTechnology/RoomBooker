@@ -151,10 +151,20 @@ class OrgRepo extends ChangeNotifier {
         .startWith([]);
   }
 
-  Future<void> addBookingRequest(String orgID, Request request,
+  Future<void> submitBookingRequest(String orgID, Request request,
       PrivateRequestDetails privateDetails) async {
     await _db.runTransaction((t) async {
       var requestRef = _pendingBookingsRef(orgID).doc();
+      t.set(requestRef, request);
+      var privateDetailsRef = _privateRequestDetailsRef(orgID, requestRef.id);
+      t.set(privateDetailsRef, privateDetails);
+    });
+  }
+
+  Future<void> addBooking(String orgID, Request request,
+      PrivateRequestDetails privateDetails) async {
+    await _db.runTransaction((t) async {
+      var requestRef = _confirmedRequestsRef(orgID).doc();
       t.set(requestRef, request);
       var privateDetailsRef = _privateRequestDetailsRef(orgID, requestRef.id);
       t.set(privateDetailsRef, privateDetails);
