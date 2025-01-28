@@ -1,12 +1,11 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/entities/blackout_window.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/heading.dart';
 import 'package:room_booker/widgets/booking_lists.dart';
-import 'package:room_booker/widgets/streaming_calendar.dart';
+import 'package:room_booker/widgets/stateful_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
@@ -96,26 +95,66 @@ class Calendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<OrgRepo>(
-      builder: (context, repo, child) => StreamingCalendar(
-        displayDate: request.eventStartTime,
-        stateStream: Rx.combineLatest3(
-            repo.listRequests(orgID,
+    return CalendarStateProvider(
+        child: Consumer2<OrgRepo, CalendarState>(
+      builder: (context, repo, calendarState, child) => StreamBuilder(
+        stream: Rx.combineLatest3(
+            repo.listRequests(
+                orgID: orgID,
+                startTime: stripTime(request.eventStartTime),
+                endTime:
+                    stripTime(request.eventStartTime).add(Duration(days: 1)),
                 includeRoomIDs: {request.roomID},
                 includeStatuses: {RequestStatus.confirmed}),
             repo.getRequestDetails(orgID, request.id!),
             repo.listBlackoutWindows(orgID),
-            (requests, requestDetails, blackoutWindows) {
-          return CalendarState(
-            [request],
-            (_) => requestDetails?.eventName ?? "Some Event",
-            (_) => Colors.blue,
-            blackoutWindows: blackoutWindows +
-                requests.map((r) => BlackoutWindow.fromRequest(r)).toList(),
+            (requests, requestDetails, blackoutWindows) => CalendarData(
+                existingRequests: requests,
+                blackoutWindows: blackoutWindows,
+                privateDetails: [requestDetails!])),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            print(snapshot.error);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error: ${snapshot.error}')),
+              );
+            });
+            return const Placeholder();
+          }
+          if (!snapshot.hasData) {
+            return const CircularProgressIndicator();
+          }
+          var calendarData = snapshot.data as CalendarData;
+          return StatefulCalendar(
+            view: CalendarView.day,
+            showNavigationArrow: true,
+            showDatePickerButton: true,
+            showTodayButton: true,
+            onAppointmentResizeEnd: (details) {},
+            newAppointment: Appointment(
+              subject: calendarData.privateDetails![0].eventName,
+              color: Colors.blue,
+              startTime: request.eventStartTime,
+              endTime: request.eventEndTime,
+            ),
+            blackoutWindows: calendarData.blackoutWindows,
+            appointments: {
+              for (var request in calendarData.existingRequests)
+                Appointment(
+                  subject: "Some Request",
+                  color: Colors.grey,
+                  startTime: request.eventStartTime,
+                  endTime: request.eventEndTime,
+                ): request
+            },
           );
-        }),
-        view: CalendarView.day,
+        },
       ),
-    );
+    ));
   }
+}
+
+DateTime stripTime(DateTime time) {
+  return DateTime(time.year, time.month, time.day);
 }

@@ -82,8 +82,21 @@ class BookingList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<OrgRepo>(
       builder: (context, repo, child) => StreamBuilder(
-        stream: repo.listRequests(orgID, includeStatuses: Set.from(statusList)),
+        stream: repo.listRequests(
+            orgID: orgID,
+            startTime: DateTime.now(),
+            endTime: DateTime.now().add(const Duration(days: 365)),
+            includeStatuses: Set.from(statusList)),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            print(snapshot.error);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error: ${snapshot.error}')),
+              );
+            });
+            return const Placeholder();
+          }
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();
           }

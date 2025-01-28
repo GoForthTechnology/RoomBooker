@@ -180,8 +180,12 @@ class OrgRepo extends ChangeNotifier {
         .map((s) => s.data());
   }
 
-  Stream<List<Request>> listRequests(String orgID,
-      {Set<RequestStatus>? includeStatuses, Set<String>? includeRoomIDs}) {
+  Stream<List<Request>> listRequests(
+      {required String orgID,
+      required DateTime startTime,
+      required DateTime endTime,
+      Set<RequestStatus>? includeStatuses,
+      Set<String>? includeRoomIDs}) {
     List<Query<Request>> queries = [];
     if (includeStatuses == null ||
         includeStatuses.contains(RequestStatus.confirmed)) {
@@ -200,6 +204,14 @@ class OrgRepo extends ChangeNotifier {
           .map((q) => q.where("roomID", whereIn: includeRoomIDs))
           .toList();
     }
+    queries = queries
+        .map((q) => q.where("eventStartTime",
+            isGreaterThanOrEqualTo: startTime.toString()))
+        .toList();
+    queries = queries
+        .map((q) =>
+            q.where("eventEndTime", isLessThanOrEqualTo: endTime.toString()))
+        .toList();
     var streams = queries
         .map((q) =>
             q.snapshots().map((s) => s.docs.map((d) => d.data()).toList()))
