@@ -10,11 +10,12 @@ import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 extension on Request {
-  Appointment toAppointment(RoomState roomState) {
+  Appointment toAppointment(RoomState roomState, {String? subject}) {
     var alphaLevel = status == RequestStatus.pending ? 128 : 255;
     var color = roomState.color(roomName).withAlpha(alphaLevel);
     return Appointment(
-      subject: status == RequestStatus.confirmed ? "Booked" : "Requested",
+      subject: subject ??
+          (status == RequestStatus.confirmed ? "Booked" : "Requested"),
       color: color,
       startTime: eventStartTime,
       endTime: eventEndTime,
@@ -35,8 +36,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CalendarStateProvider(
-        child: Consumer3<OrgRepo, RoomState, CalendarState>(
+    return Consumer3<OrgRepo, RoomState, CalendarState>(
       builder: (context, repo, roomState, calendarState, _) => StreamBuilder(
         stream: RemoteState.createStream(orgID, repo, roomState, calendarState),
         builder: (context, snapshot) {
@@ -60,6 +60,20 @@ class CurrentBookingsCalendar extends StatelessWidget {
                   roomState.color(requestEditorState.roomID!);
               var newAppointment =
                   requestEditorState.getAppointment(newApointmentColor);
+              var appointments = {
+                for (var request in remoteState.existingRequests)
+                  request.toAppointment(roomState): request
+              };
+              var series = requestEditorState.getSeries();
+              if (series != null) {
+                var requests = series.expand(
+                    calendarState.windowStartDate, calendarState.windowEndDate,
+                    includeRequestDate: false);
+                for (var request in requests) {
+                  appointments[request.toAppointment(roomState,
+                      subject: "Another occurance")] = request;
+                }
+              }
               return StatefulCalendar(
                 view: CalendarView.week,
                 showNavigationArrow: true,
@@ -72,16 +86,13 @@ class CurrentBookingsCalendar extends StatelessWidget {
                 onTapBooking: onTapRequest,
                 newAppointment: newAppointment,
                 blackoutWindows: remoteState.blackoutWindows,
-                appointments: {
-                  for (var request in remoteState.existingRequests)
-                    request.toAppointment(roomState): request
-                },
+                appointments: appointments,
               );
             },
           );
         },
       ),
-    ));
+    );
   }
 }
 

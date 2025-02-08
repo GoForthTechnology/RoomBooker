@@ -70,6 +70,41 @@ class Request {
     );
   }
 
+  @override
+  String toString() {
+    return """Request{
+      id: $id,
+      eventStartTime: $eventStartTime,
+      eventEndTime: $eventEndTime,
+      roomID: $roomID,
+      roomName: $roomName,
+      status: $status,
+    }""";
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is Request &&
+        other.id == id &&
+        other.eventStartTime == eventStartTime &&
+        other.eventEndTime == eventEndTime &&
+        other.roomID == roomID &&
+        other.roomName == roomName &&
+        other.status == status;
+  }
+
+  @override
+  int get hashCode {
+    return id.hashCode ^
+        eventStartTime.hashCode ^
+        eventEndTime.hashCode ^
+        roomID.hashCode ^
+        roomName.hashCode ^
+        status.hashCode;
+  }
+
   factory Request.fromJson(Map<String, dynamic> json) =>
       _$RequestFromJson(json);
   Map<String, dynamic> toJson() => _$RequestToJson(this);

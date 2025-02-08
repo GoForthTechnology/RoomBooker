@@ -102,8 +102,8 @@ class Calendar extends StatelessWidget {
             repo.listRequests(
                 orgID: orgID,
                 startTime: stripTime(request.eventStartTime),
-                endTime:
-                    stripTime(request.eventStartTime).add(Duration(days: 1)),
+                endTime: stripTime(request.eventStartTime)
+                    .add(const Duration(days: 1)),
                 includeRoomIDs: {request.roomID},
                 includeStatuses: {RequestStatus.confirmed}),
             repo.getRequestDetails(orgID, request.id!),

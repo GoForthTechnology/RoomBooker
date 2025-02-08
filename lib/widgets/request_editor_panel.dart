@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
+import 'package:room_booker/entities/series.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/date_field.dart';
 import 'package:room_booker/widgets/org_state_provider.dart';
@@ -27,6 +28,9 @@ class NewRequestPanelState extends State<NewRequestPanel> {
   final contactEmailController = TextEditingController();
   final contactPhoneController = TextEditingController();
   final messageController = TextEditingController();
+
+  final repeatPeriodController = TextEditingController(text: "1");
+  final repeatNthController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +114,25 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                     newTime.minute);
                 state.updateTimes(state.startTime, newEndTime);
               }),
+          DropdownButtonFormField<Frequency>(
+            value: Frequency.never,
+            decoration: const InputDecoration(
+              labelText: 'Repeats',
+              border: OutlineInputBorder(),
+            ),
+            items: Frequency.values.map<DropdownMenuItem<Frequency>>((value) {
+              return DropdownMenuItem<Frequency>(
+                value: value,
+                child: Text(value.name),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                state.updateFrequency(value);
+              }
+            },
+          ),
+          ..._recurrentPatternFields(state.recurrancePattern.frequency, state),
           const Divider(),
           SimpleTextFormField(
             readOnly: state.readOnly(),
@@ -147,6 +170,55 @@ class NewRequestPanelState extends State<NewRequestPanel> {
         child: Form(key: _formKey, child: formContents),
       );
     });
+  }
+
+  List<Widget> _recurrentPatternFields(
+      Frequency frequency, RequestEditorState state) {
+    switch (frequency) {
+      case Frequency.never:
+        return [];
+      case Frequency.daily:
+        return [];
+      case Frequency.weekly:
+        return [
+          _weekdayField(state, "Day of Week"),
+        ];
+      case Frequency.monthly:
+        return [
+          SimpleTextFormField(
+            controller: repeatNthController,
+            readOnly: false,
+            labelText: "Every Nth Week",
+          ),
+          _weekdayField(state, "Day of Week"),
+        ];
+      case Frequency.annually:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+    }
+  }
+
+  Widget _weekdayField(RequestEditorState state, String labelText) {
+    return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: DropdownButtonFormField<Weekday>(
+          value: getWeekday(state._startTime!),
+          decoration: InputDecoration(
+            labelText: labelText,
+            border: const OutlineInputBorder(),
+          ),
+          items: Weekday.values.map<DropdownMenuItem<Weekday>>((value) {
+            return DropdownMenuItem<Weekday>(
+              value: value,
+              child: Text(value.name),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              state.updateWeeday(value);
+            }
+          },
+        ));
   }
 
   Widget _getButton(
@@ -264,6 +336,7 @@ class RequestEditorState extends ChangeNotifier {
   String? _roomName;
   DateTime? _startTime;
   DateTime? _endTime;
+  RecurrancePattern _recurrancePattern = RecurrancePattern.never();
 
   RequestEditorState({required Room initialRoom})
       : _roomID = initialRoom.id,
@@ -278,6 +351,7 @@ class RequestEditorState extends ChangeNotifier {
   String? get message => _message;
   DateTime get startTime => _startTime!;
   DateTime get endTime => _endTime!;
+  RecurrancePattern get recurrancePattern => _recurrancePattern;
 
   void showRequest(Request request, PrivateRequestDetails details) {
     _existingRequest = request;
@@ -290,6 +364,18 @@ class RequestEditorState extends ChangeNotifier {
     _contactPhone = details.phone;
     _eventName = details.eventName;
     _message = details.message;
+    notifyListeners();
+  }
+
+  void updateFrequency(Frequency frequency) {
+    var weekday = getWeekday(startTime);
+    _recurrancePattern =
+        _recurrancePattern.copyWith(frequency: frequency, weekday: {weekday});
+    notifyListeners();
+  }
+
+  void updateWeeday(Weekday weekday) {
+    _recurrancePattern = _recurrancePattern.copyWith(weekday: {weekday});
     notifyListeners();
   }
 
@@ -381,6 +467,16 @@ class RequestEditorState extends ChangeNotifier {
       phone: _contactPhone!,
       eventName: _eventName!,
       message: _message,
+    );
+  }
+
+  Series? getSeries() {
+    if (_recurrancePattern.frequency == Frequency.never) {
+      return null;
+    }
+    return Series(
+      request: getRequest()!,
+      pattern: _recurrancePattern,
     );
   }
 
