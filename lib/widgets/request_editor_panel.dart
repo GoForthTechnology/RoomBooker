@@ -61,7 +61,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           RoomField(
             readOnly: state.readOnly(),
             orgID: widget.orgID,
-            initialRoomID: state.roomID!,
+            initialRoomID: roomState.enabledValue().id!,
             onChanged: (value) {
               state.updateRoom(value);
               roomState.setActiveRoom(value);
@@ -224,17 +224,18 @@ class NewRequestPanelState extends State<NewRequestPanel> {
   Widget _getButton(
       RequestEditorState state, RequestPanelSate panelState, OrgRepo repo) {
     return Consumer<OrgState>(builder: (context, orgState, child) {
-      var request = state.getRequest()!;
+      var status = state.getStatus();
       if (state.readOnly()) {
         if (!orgState.currentUserIsAdmin()) {
           return Container();
         }
-        if (request.status == RequestStatus.pending) {
+        if (status == RequestStatus.pending) {
           return Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton(
                 onPressed: () async {
+                  var request = state.getRequest()!;
                   await repo.denyRequest(widget.orgID, request.id!);
                   state.updateStatus(RequestStatus.denied);
                 },
@@ -253,6 +254,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
         }
         return ElevatedButton(
           onPressed: () async {
+            var request = state.getRequest()!;
             await repo.revisitBookingRequest(widget.orgID, request);
             state.updateStatus(RequestStatus.pending);
           },
@@ -263,6 +265,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
         return ElevatedButton(
           onPressed: () async {
             if (_formKey.currentState!.validate()) {
+              var request = state.getRequest()!;
               await repo.addBooking(
                   widget.orgID, request, state.getPrivateDetails());
               state.clearAppointment();
@@ -275,6 +278,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
       return ElevatedButton(
         onPressed: () async {
           if (_formKey.currentState!.validate()) {
+            var request = state.getRequest()!;
             await repo.submitBookingRequest(
                 widget.orgID, request, state.getPrivateDetails());
             state.clearAppointment();
@@ -298,13 +302,12 @@ class RequestStateProvider extends StatelessWidget {
   Widget build(BuildContext context) {
     return RoomStateProvider(
         orgID: orgID,
-        child: Consumer<RoomState>(
-            builder: (context, roomState, child) =>
-                ChangeNotifierProvider.value(
-                    value: RequestEditorState(
-                        initialRoom: roomState.enabledValue()),
-                    child: ChangeNotifierProvider.value(
-                        value: RequestPanelSate(), child: this.child))));
+        builder: (context, roomState) => ChangeNotifierProvider.value(
+            value: RequestEditorState(initialRoom: roomState.enabledValue()),
+            child: ChangeNotifierProvider.value(
+                value: RequestPanelSate(),
+                child: ChangeNotifierProvider.value(
+                    value: roomState, child: child))));
   }
 }
 
@@ -460,6 +463,10 @@ class RequestEditorState extends ChangeNotifier {
     );
   }
 
+  RequestStatus getStatus() {
+    return _existingRequest?.status ?? RequestStatus.pending;
+  }
+
   PrivateRequestDetails getPrivateDetails() {
     return PrivateRequestDetails(
       name: _contactName!,
@@ -474,8 +481,12 @@ class RequestEditorState extends ChangeNotifier {
     if (_recurrancePattern.frequency == Frequency.never) {
       return null;
     }
+    var request = getRequest();
+    if (request == null) {
+      return null;
+    }
     return Series(
-      request: getRequest()!,
+      request: request,
       pattern: _recurrancePattern,
     );
   }

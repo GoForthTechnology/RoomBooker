@@ -54,10 +54,11 @@ class CurrentBookingsCalendar extends StatelessWidget {
           }
           var remoteState = snapshot.data as RemoteState;
           print("Remote state: ${remoteState.existingRequests.length}");
+          var roomState = Provider.of<RoomState>(context, listen: false);
           return Consumer<RequestEditorState>(
             builder: (context, requestEditorState, child) {
               var newApointmentColor =
-                  roomState.color(requestEditorState.roomID!);
+                  roomState.color(roomState.enabledValue().id!);
               var newAppointment =
                   requestEditorState.getAppointment(newApointmentColor);
               var appointments = {

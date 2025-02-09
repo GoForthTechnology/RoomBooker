@@ -50,10 +50,10 @@ class RoomState extends ChangeNotifier {
 
 class RoomStateProvider extends StatelessWidget {
   final String orgID;
-  final Widget child;
+  final Widget Function(BuildContext, RoomState) builder;
 
   const RoomStateProvider(
-      {super.key, required this.orgID, required this.child});
+      {super.key, required this.orgID, required this.builder});
 
   @override
   Widget build(BuildContext context) {
@@ -69,11 +69,7 @@ class RoomStateProvider extends StatelessWidget {
               for (int i = 0; i < rooms.length; i++) {
                 initialValues[rooms[i]] = roomColors[i];
               }
-              return ChangeNotifierProvider(
-                create: (_) =>
-                    RoomState(initialValues.entries.first.key, initialValues),
-                builder: (_, child) => this.child,
-              );
+              return builder(context, RoomState(rooms.first, initialValues));
             }));
   }
 }
