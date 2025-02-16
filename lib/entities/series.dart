@@ -1,4 +1,7 @@
+import 'package:json_annotation/json_annotation.dart';
 import 'package:room_booker/entities/request.dart';
+
+part 'series.g.dart';
 
 class Series {
   final Request request;
@@ -26,6 +29,9 @@ class Series {
     // Cap the end date if it is before the window end
     var effectiveEnd =
         windowEnd.isBefore(end ?? windowEnd) ? windowEnd : end ?? windowEnd;
+    if (pattern.end != null) {
+      effectiveEnd = min(effectiveEnd, pattern.end!);
+    }
     // Ensure the start date is after the window start
     var effectiveStart = request.eventStartTime.isAfter(windowStart)
         ? request.eventStartTime
@@ -46,34 +52,57 @@ class Series {
       case Frequency.monthly:
         return _generateMonthly(effectiveStart, effectiveEnd);
       case Frequency.annually:
-        throw UnimplementedError();
+      case Frequency.custom:
+        // TODO: real implementation
+        return [];
     }
   }
 
   List<DateTime> _generateDaily(DateTime windowStart, DateTime windowEnd) {
     var dates = <DateTime>[];
     var current = windowStart;
+    var periodInDays = pattern.period;
+    if (pattern.frequency == Frequency.weekly) {
+      periodInDays = periodInDays * 7;
+    }
     while (current.isBefore(windowEnd)) {
-      dates.add(current);
+      if (dates.isEmpty ||
+          current.difference(dates.last).inDays >= periodInDays) {
+        dates.add(current);
+      }
       current = current.add(const Duration(days: 1));
     }
     return dates;
   }
 
   List<DateTime> _generateWeekly(DateTime windowStart, DateTime windowEnd) {
+    var effectiveStart = DateTime(
+        request.eventStartTime.year,
+        request.eventStartTime.month,
+        request.eventStartTime.day - request.eventStartTime.weekday);
     var dates = <DateTime>[];
     var current = windowStart;
-    while (!(pattern.weekday?.contains(getWeekday(current)) ?? false)) {
-      current = current.add(const Duration(days: 1));
-    }
     while (current.isBefore(windowEnd)) {
-      dates.add(current);
-      current = current.add(const Duration(days: 7));
+      int weeksSinceStart = current.difference(effectiveStart).inDays ~/ 7;
+      bool activeWeek = weeksSinceStart % pattern.period == 0;
+      if (activeWeek &&
+          (pattern.weekday?.contains(getWeekday(current)) ?? false)) {
+        dates.add(current);
+      }
+      current = current.add(const Duration(days: 1));
     }
     return dates;
   }
 
   List<DateTime> _generateMonthly(DateTime windowStart, DateTime windowEnd) {
+    var weekday = pattern.weekday?.first;
+    if (weekday == null) {
+      return [];
+    }
+    var offset = pattern.offset;
+    if (offset == null) {
+      return [];
+    }
     var dates = <DateTime>[];
     var currentDate = windowStart;
     var currentMonth = windowStart.month - 1;
@@ -81,8 +110,7 @@ class Series {
     while (currentDate.isBefore(windowEnd)) {
       if (currentDate.month != currentMonth) {
         currentMonth = currentDate.month;
-        nthWeekday = nthWeekdayOfMonth(
-            currentDate, pattern.weekday!.first, pattern.offset!);
+        nthWeekday = nthWeekdayOfMonth(currentDate, weekday, offset);
       }
       if (nthWeekday == currentDate) {
         dates.add(currentDate);
@@ -133,21 +161,24 @@ Weekday getWeekday(DateTime date) {
   throw Exception("Invalid weekday");
 }
 
-enum Frequency { never, daily, weekly, monthly, annually }
+enum Frequency { never, daily, weekly, monthly, annually, custom }
 
 enum Weekday { sunday, monday, tuesday, wednesday, thursday, friday, saturday }
 
+@JsonSerializable(explicitToJson: true)
 class RecurrancePattern {
   final Frequency frequency;
   final int period;
   final int? offset;
   final Set<Weekday>? weekday;
+  final DateTime? end;
 
   RecurrancePattern({
     required this.frequency,
     required this.period,
     this.offset,
     this.weekday,
+    this.end,
   });
 
   RecurrancePattern copyWith({
@@ -155,14 +186,20 @@ class RecurrancePattern {
     Set<Weekday>? weekday,
     int? period,
     int? offset,
+    DateTime? end,
   }) {
     return RecurrancePattern(
       frequency: frequency ?? this.frequency,
       weekday: weekday ?? this.weekday,
       period: period ?? this.period,
       offset: offset ?? this.offset,
+      end: end ?? this.end,
     );
   }
+
+  factory RecurrancePattern.fromJson(Map<String, dynamic> json) =>
+      _$RecurrancePatternFromJson(json);
+  Map<String, dynamic> toJson() => _$RecurrancePatternToJson(this);
 
   static RecurrancePattern never() {
     return RecurrancePattern(frequency: Frequency.never, period: 0);

@@ -27,6 +27,10 @@ Map<String, dynamic> _$PrivateRequestDetailsToJson(
     };
 
 Request _$RequestFromJson(Map<String, dynamic> json) => Request(
+      recurrancePattern: json['recurrancePattern'] == null
+          ? null
+          : RecurrancePattern.fromJson(
+              json['recurrancePattern'] as Map<String, dynamic>),
       eventStartTime: DateTime.parse(json['eventStartTime'] as String),
       eventEndTime: DateTime.parse(json['eventEndTime'] as String),
       roomID: json['roomID'] as String,
@@ -38,4 +42,5 @@ Map<String, dynamic> _$RequestToJson(Request instance) => <String, dynamic>{
       'eventEndTime': instance.eventEndTime.toIso8601String(),
       'roomID': instance.roomID,
       'roomName': instance.roomName,
+      'recurrancePattern': instance.recurrancePattern?.toJson(),
     };

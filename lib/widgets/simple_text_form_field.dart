@@ -6,6 +6,7 @@ class SimpleTextFormField extends StatelessWidget {
   final String? validationMessage;
   final GestureTapCallback? onTap;
   final bool readOnly;
+  final bool clearable;
   final Function(String)? onChanged;
 
   const SimpleTextFormField({
@@ -16,10 +17,22 @@ class SimpleTextFormField extends StatelessWidget {
     this.validationMessage,
     this.onTap,
     this.onChanged,
+    this.clearable = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    Widget? suffixIcon = !clearable
+        ? null
+        : IconButton(
+            icon: const Icon(Icons.clear),
+            onPressed: () {
+              controller.clear();
+              if (onChanged != null) {
+                onChanged!("");
+              }
+            },
+          );
     return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: TextFormField(
@@ -30,6 +43,7 @@ class SimpleTextFormField extends StatelessWidget {
           decoration: InputDecoration(
             labelText: labelText,
             border: const OutlineInputBorder(),
+            suffixIcon: suffixIcon,
           ),
           onChanged: (value) {
             if (onChanged != null) {

@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:room_booker/entities/series.dart';
 
 part 'request.g.dart';
 
@@ -40,8 +41,10 @@ class Request {
   final String roomName;
   @JsonKey(includeFromJson: false, includeToJson: false)
   final RequestStatus? status;
+  final RecurrancePattern? recurrancePattern;
 
   Request({
+    this.recurrancePattern,
     required this.eventStartTime,
     required this.eventEndTime,
     required this.roomID,
@@ -59,6 +62,7 @@ class Request {
     String? roomID,
     String? roomName,
     RequestStatus? status,
+    RecurrancePattern? recurrancePattern,
   }) {
     return Request(
       eventStartTime: eventStartTime ?? this.eventStartTime,
@@ -67,6 +71,7 @@ class Request {
       roomName: roomName ?? this.roomName,
       status: status ?? this.status,
       id: id ?? this.id,
+      recurrancePattern: recurrancePattern ?? this.recurrancePattern,
     );
   }
 
@@ -79,6 +84,7 @@ class Request {
       roomID: $roomID,
       roomName: $roomName,
       status: $status,
+      recurrencePattern: $recurrancePattern
     }""";
   }
 
@@ -92,6 +98,7 @@ class Request {
         other.eventEndTime == eventEndTime &&
         other.roomID == roomID &&
         other.roomName == roomName &&
+        other.recurrancePattern == recurrancePattern &&
         other.status == status;
   }
 
@@ -102,6 +109,7 @@ class Request {
         eventEndTime.hashCode ^
         roomID.hashCode ^
         roomName.hashCode ^
+        recurrancePattern.hashCode ^
         status.hashCode;
   }
 
