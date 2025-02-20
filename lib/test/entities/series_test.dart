@@ -77,8 +77,7 @@ void main() {
       );
       var series = Series(
         request: request,
-        end: DateTime(2021, 1, 3),
-        pattern: RecurrancePattern.daily(),
+        pattern: RecurrancePattern.daily().copyWith(end: DateTime(2021, 1, 3)),
       );
       var dates = series.expand(
         DateTime(2021, 1, 1),

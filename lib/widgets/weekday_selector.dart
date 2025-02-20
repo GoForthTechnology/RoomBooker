@@ -2,7 +2,7 @@
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:room_booker/entities/series.dart';
+import 'package:room_booker/entities/request.dart';
 
 class WeekdaySelector extends StatelessWidget {
   final DateTime startTime;

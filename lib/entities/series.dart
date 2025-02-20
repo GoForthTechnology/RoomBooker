@@ -1,14 +1,10 @@
-import 'package:json_annotation/json_annotation.dart';
 import 'package:room_booker/entities/request.dart';
-
-part 'series.g.dart';
 
 class Series {
   final Request request;
-  final DateTime? end;
   final RecurrancePattern pattern;
 
-  Series({required this.request, this.end, required this.pattern});
+  Series({required this.request, required this.pattern});
 
   List<Request> expand(DateTime windowStart, DateTime windowEnd,
       {bool includeRequestDate = true}) {
@@ -27,8 +23,9 @@ class Series {
 
   List<DateTime> _generateDates(DateTime windowStart, DateTime windowEnd) {
     // Cap the end date if it is before the window end
-    var effectiveEnd =
-        windowEnd.isBefore(end ?? windowEnd) ? windowEnd : end ?? windowEnd;
+    var effectiveEnd = windowEnd.isBefore(pattern.end ?? windowEnd)
+        ? windowEnd
+        : pattern.end ?? windowEnd;
     if (pattern.end != null) {
       effectiveEnd = min(effectiveEnd, pattern.end!);
     }
@@ -159,76 +156,4 @@ Weekday getWeekday(DateTime date) {
       return Weekday.saturday;
   }
   throw Exception("Invalid weekday");
-}
-
-enum Frequency { never, daily, weekly, monthly, annually, custom }
-
-enum Weekday { sunday, monday, tuesday, wednesday, thursday, friday, saturday }
-
-@JsonSerializable(explicitToJson: true)
-class RecurrancePattern {
-  final Frequency frequency;
-  final int period;
-  final int? offset;
-  final Set<Weekday>? weekday;
-  final DateTime? end;
-
-  RecurrancePattern({
-    required this.frequency,
-    required this.period,
-    this.offset,
-    this.weekday,
-    this.end,
-  });
-
-  RecurrancePattern copyWith({
-    Frequency? frequency,
-    Set<Weekday>? weekday,
-    int? period,
-    int? offset,
-    DateTime? end,
-  }) {
-    return RecurrancePattern(
-      frequency: frequency ?? this.frequency,
-      weekday: weekday ?? this.weekday,
-      period: period ?? this.period,
-      offset: offset ?? this.offset,
-      end: end ?? this.end,
-    );
-  }
-
-  factory RecurrancePattern.fromJson(Map<String, dynamic> json) =>
-      _$RecurrancePatternFromJson(json);
-  Map<String, dynamic> toJson() => _$RecurrancePatternToJson(this);
-
-  static RecurrancePattern never() {
-    return RecurrancePattern(frequency: Frequency.never, period: 0);
-  }
-
-  static RecurrancePattern every(int n, Frequency frequency,
-      {required Weekday on}) {
-    return RecurrancePattern(frequency: frequency, weekday: {on}, period: n);
-  }
-
-  static RecurrancePattern daily() {
-    return RecurrancePattern(frequency: Frequency.daily, period: 1);
-  }
-
-  static RecurrancePattern weekly({required Weekday on, int? period}) {
-    return RecurrancePattern(
-        frequency: Frequency.weekly, weekday: {on}, period: period ?? 1);
-  }
-
-  static RecurrancePattern monthlyOnNth(int nth, Weekday on) {
-    return RecurrancePattern(
-      frequency: Frequency.monthly,
-      period: 1,
-      weekday: {on},
-      offset: nth,
-    );
-  }
-
-  static RecurrancePattern annually() {
-    return RecurrancePattern(frequency: Frequency.annually, period: 1);
-  }
 }

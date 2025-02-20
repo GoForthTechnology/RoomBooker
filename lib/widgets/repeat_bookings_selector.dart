@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:room_booker/entities/series.dart';
+import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/logic/recurring_bookings.dart';
 import 'package:room_booker/widgets/repeat_period_selector.dart';
 import 'package:room_booker/widgets/weekday_selector.dart';
