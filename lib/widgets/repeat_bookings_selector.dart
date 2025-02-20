@@ -9,6 +9,7 @@ class RepeatBookingsSelector extends StatelessWidget {
   final Frequency frequency;
   final RecurrancePattern pattern;
   final bool isCustom;
+  final bool readOnly;
   final Function(Frequency) onFrequencyChanged;
   final Function(int) onIntervalChanged;
   final Function(RecurrancePattern) onPatternChanged;
@@ -23,7 +24,8 @@ class RepeatBookingsSelector extends StatelessWidget {
       required this.isCustom,
       required this.toggleDay,
       required this.pattern,
-      required this.onIntervalChanged});
+      required this.onIntervalChanged,
+      required this.readOnly});
 
   @override
   Widget build(BuildContext context) {
@@ -82,11 +84,13 @@ class RepeatBookingsSelector extends StatelessWidget {
                 child: Text(e.value),
               ))
           .toList(),
-      onChanged: (value) {
-        if (value != null) {
-          onFrequencyChanged(value);
-        }
-      },
+      onChanged: readOnly
+          ? null
+          : (value) {
+              if (value != null) {
+                onFrequencyChanged(value);
+              }
+            },
     );
   }
 

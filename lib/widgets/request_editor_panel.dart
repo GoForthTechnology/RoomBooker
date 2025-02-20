@@ -113,6 +113,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                 state.updateTimes(state.startTime, newEndTime);
               }),
           RepeatBookingsSelector(
+            readOnly: state.readOnly(),
             startTime: state.startTime,
             isCustom: state.isCustomRecurrencePattern,
             onIntervalChanged: state.updateInterval,
