@@ -25,8 +25,7 @@ class ViewBookingsScreen extends StatelessWidget {
         child: Consumer<OrgState>(
           builder: (context, orgState, child) => Scaffold(
             appBar: AppBar(
-                title:
-                    const Text("Room Bookings for Church of the Resurrection"),
+                title: Text(orgState.org.name),
                 actions: _actions(context, orgState)),
             body: CalendarStateProvider(
               child: RequestStateProvider(
