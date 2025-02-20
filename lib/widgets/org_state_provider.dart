@@ -3,18 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/repos/org_repo.dart';
+import 'package:rxdart/rxdart.dart';
 
 class OrgState extends ChangeNotifier {
   final Organization org;
+  final Map<String, AdminEntry> admins;
 
-  OrgState({required this.org});
+  OrgState({required this.org, required this.admins});
 
   bool currentUserIsAdmin() {
     var user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return false; // not logged in
     }
-    return org.ownerID == user.uid;
+    if (user == org.ownerID) {
+      return true; // owner is always an admin
+    }
+    return admins.containsKey(user.uid);
   }
 }
 
@@ -26,8 +31,15 @@ class OrgStateProvider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Organization?>(
-      future: Provider.of<OrgRepo>(context, listen: false).getOrg(orgID).first,
+    var orgRepo = Provider.of<OrgRepo>(context, listen: false);
+    return FutureBuilder<OrgState?>(
+      future: Rx.combineLatest2(
+          orgRepo.getOrg(orgID), orgRepo.activeAdmins(orgID), (org, admins) {
+        if (org == null) {
+          return null;
+        }
+        return OrgState(org: org, admins: {for (var a in admins) a.id!: a});
+      }).first,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -39,7 +51,7 @@ class OrgStateProvider extends StatelessWidget {
           return const Center(child: Text('Organization not found'));
         }
         return ChangeNotifierProvider(
-          create: (_) => OrgState(org: snapshot.data!),
+          create: (_) => snapshot.data!,
           child: child,
         );
       },
