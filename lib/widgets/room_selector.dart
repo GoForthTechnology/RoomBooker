@@ -79,22 +79,32 @@ class RoomSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<RoomState>(
-        builder: (context, state, child) => Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                const Text("Active Rooms:"),
-                ...state.allRooms().mapIndexed((i, e) => RoomCard(
-                      color:
-                          !state.isEnabled(e.id!) ? Colors.grey : roomColors[i],
-                      room: e,
-                      onClick: (room) {
-                        state.setActiveRoom(room);
-                      },
-                    )),
-              ],
-            ));
+    var field = Consumer<RoomState>(
+      builder: (context, state, child) => DropdownButtonFormField<Room>(
+        value: state.enabledValue(),
+        decoration: const InputDecoration(
+          labelText: 'Room',
+          border: OutlineInputBorder(),
+        ),
+        items: state
+            .allRooms()
+            .map((r) => DropdownMenuItem(
+                  value: r,
+                  child: Text(r.name),
+                ))
+            .toList(),
+        onChanged: (room) {
+          state.setActiveRoom(room!);
+        },
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints.tightFor(width: 400),
+        child: field,
+      ),
+    );
   }
 }
 
