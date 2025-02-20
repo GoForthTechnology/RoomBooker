@@ -9,6 +9,7 @@ import 'package:room_booker/widgets/org_state_provider.dart';
 import 'package:room_booker/widgets/request_editor_panel.dart';
 import 'package:room_booker/widgets/room_selector.dart';
 import 'package:room_booker/widgets/stateful_calendar.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()
 class ViewBookingsScreen extends StatelessWidget {
@@ -60,31 +61,67 @@ class ViewBookingsScreen extends StatelessWidget {
         ));
   }
 
+  CalendarView _getView(BuildContext context) {
+    if (_isSmallView(context)) {
+      return CalendarView.day;
+    }
+    return CalendarView.week;
+  }
+
+  bool _isSmallView(BuildContext context) {
+    return MediaQuery.sizeOf(context).width < 600;
+  }
+
   Widget _buildCalendar(BuildContext context) {
     var requestEditorState =
         Provider.of<RequestEditorState>(context, listen: false);
     var requestPanelState =
         Provider.of<RequestPanelSate>(context, listen: false);
+    var roomState = Provider.of<RoomState>(context, listen: false);
+    var orgState = Provider.of<OrgState>(context, listen: false);
     return CurrentBookingsCalendar(
+      view: _getView(context),
       orgID: orgID,
       onTap: (details) {
         requestEditorState.clearAppointment();
-        requestPanelState.showPanel();
         requestEditorState.createRequest(
             details.date!, details.date!.add(const Duration(hours: 1)));
+        if (_isSmallView(context)) {
+          showDialog(
+              context: context,
+              builder: (context) => MultiProvider(
+                      providers: [
+                        ChangeNotifierProvider.value(value: requestEditorState),
+                        ChangeNotifierProvider.value(value: roomState),
+                        ChangeNotifierProvider.value(value: requestPanelState),
+                        ChangeNotifierProvider.value(value: orgState),
+                      ],
+                      child: Dialog.fullscreen(
+                          child: NewRequestPanel(orgID: orgID))));
+        } else {
+          requestPanelState.showPanel();
+        }
       },
       onTapRequest: (request) async {
         if (FirebaseAuth.instance.currentUser == null) {
           return;
         }
+        var isSmallView = _isSmallView(context);
         var details = await Provider.of<OrgRepo>(context, listen: false)
             .getRequestDetails(orgID, request.id!)
             .first;
         if (details == null) {
           return;
         }
-        requestPanelState.showPanel();
         requestEditorState.showRequest(request, details);
+        if (isSmallView) {
+          showDialog(
+              context: context,
+              builder: (context) =>
+                  Dialog.fullscreen(child: NewRequestPanel(orgID: orgID)));
+        } else {
+          requestPanelState.showPanel();
+        }
       },
     );
   }

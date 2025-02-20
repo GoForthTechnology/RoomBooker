@@ -109,8 +109,8 @@ class StatefulCalendar extends StatelessWidget {
         [if (newAppointment != null) newAppointment!]);
     var specialRegions = blackoutWindows.map((w) => w.toTimeRegion()).toList();
     var calendarState = Provider.of<CalendarState>(context, listen: false);
+    calendarState.controller.view = view;
     return SfCalendar(
-      view: view,
       controller: calendarState.controller,
       showNavigationArrow: showNavigationArrow,
       showTodayButton: showTodayButton,

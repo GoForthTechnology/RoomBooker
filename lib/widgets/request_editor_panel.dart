@@ -49,7 +49,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () {
-                  panelState.hidePanel();
+                  panelState.hidePanel(context);
                   state.clearAppointment();
                 },
               )
@@ -172,10 +172,11 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           _getButton(state, panelState, repo),
         ],
       );
-      return Padding(
+      return SingleChildScrollView(
+          child: Padding(
         padding: const EdgeInsets.all(4),
         child: Form(key: _formKey, child: formContents),
-      );
+      ));
     });
   }
 
@@ -227,7 +228,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               await repo.addBooking(
                   widget.orgID, request, state.getPrivateDetails());
               state.clearAppointment();
-              panelState.hidePanel();
+              panelState.hidePanel(context);
             }
           },
           child: const Text("Add Booking"),
@@ -240,7 +241,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             await repo.submitBookingRequest(
                 widget.orgID, request, state.getPrivateDetails());
             state.clearAppointment();
-            panelState.hidePanel();
+            panelState.hidePanel(context);
           }
         },
         child: const Text("Submit Request"),
@@ -279,9 +280,13 @@ class RequestPanelSate extends ChangeNotifier {
     notifyListeners();
   }
 
-  void hidePanel() {
-    _active = false;
-    notifyListeners();
+  void hidePanel(BuildContext context) {
+    if (_active) {
+      _active = false;
+      notifyListeners();
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 }
 

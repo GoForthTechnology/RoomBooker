@@ -72,6 +72,7 @@ class RepeatBookingsSelector extends StatelessWidget {
 
   Widget _frequencySelector() {
     return DropdownButtonFormField<Frequency>(
+      isExpanded: true,
       value: Frequency.never,
       decoration: const InputDecoration(
         labelText: 'Repeats',

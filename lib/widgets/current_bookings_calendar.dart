@@ -25,11 +25,13 @@ extension on Request {
 
 class CurrentBookingsCalendar extends StatelessWidget {
   final String orgID;
+  final CalendarView view;
   final Function(CalendarTapDetails) onTap;
   final Function(Request) onTapRequest;
 
   const CurrentBookingsCalendar(
       {super.key,
+      required this.view,
       required this.orgID,
       required this.onTap,
       required this.onTapRequest});
@@ -80,7 +82,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
                 }
               }
               return StatefulCalendar(
-                view: CalendarView.week,
+                view: view,
                 showNavigationArrow: true,
                 showDatePickerButton: true,
                 showTodayButton: true,
