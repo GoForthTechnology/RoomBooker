@@ -212,6 +212,12 @@ class OrgRepo extends ChangeNotifier {
         .map((q) =>
             q.where("eventEndTime", isLessThanOrEqualTo: endTime.toString()))
         .toList();
+    queries.add(_confirmedRequestsRef(orgID)
+        .where("eventStartTime", isLessThanOrEqualTo: startTime.toString())
+        .where(Filter.or(
+          Filter("recurrancePattern.end", isNull: true),
+          Filter("recurrancePattern.end", isGreaterThan: endTime.toString()),
+        )));
     var streams = queries
         .map((q) =>
             q.snapshots().map((s) => s.docs.map((d) => d.data()).toList()))

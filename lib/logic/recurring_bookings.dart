@@ -1,4 +1,4 @@
-import 'package:room_booker/entities/series.dart';
+import 'package:room_booker/entities/request.dart';
 import 'package:intl/intl.dart';
 
 Map<Frequency, String> getRecurringBookingOptions(DateTime currentDate) {
