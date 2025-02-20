@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +21,8 @@ class ViewBookingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    FirebaseAnalytics.instance.logScreenView(
+        screenName: "View Bookings", parameters: {"orgID": orgID});
     return OrgStateProvider(
         orgID: orgID,
         child: Consumer<OrgState>(
@@ -121,6 +124,7 @@ class ViewBookingsScreen extends StatelessWidget {
         } else {
           requestPanelState.showPanel();
         }
+        FirebaseAnalytics.instance.logEvent(name: "Start creating request");
       },
     );
   }

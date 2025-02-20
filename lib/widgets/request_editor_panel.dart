@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
@@ -197,6 +198,9 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                   var request = state.getRequest()!;
                   await repo.denyRequest(widget.orgID, request.id!);
                   state.updateStatus(RequestStatus.denied);
+                  FirebaseAnalytics.instance.logEvent(
+                      name: "Booking Rejected",
+                      parameters: {"orgID": widget.orgID});
                 },
                 child: const Text("Deny"),
               ),
@@ -205,6 +209,9 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                   await repo.confirmRequest(
                       widget.orgID, state.getRequest()!.id!);
                   state.updateStatus(RequestStatus.confirmed);
+                  FirebaseAnalytics.instance.logEvent(
+                      name: "Booking Approved",
+                      parameters: {"orgID": widget.orgID});
                 },
                 child: const Text("Approve"),
               ),
@@ -229,6 +236,8 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                   widget.orgID, request, state.getPrivateDetails());
               state.clearAppointment();
               panelState.hidePanel(context);
+              FirebaseAnalytics.instance.logEvent(
+                  name: "Booking Added", parameters: {"orgID": widget.orgID});
             }
           },
           child: const Text("Add Booking"),
@@ -242,6 +251,8 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                 widget.orgID, request, state.getPrivateDetails());
             state.clearAppointment();
             panelState.hidePanel(context);
+            FirebaseAnalytics.instance.logEvent(
+                name: "Request Submitted", parameters: {"orgID": widget.orgID});
           }
         },
         child: const Text("Submit Request"),
