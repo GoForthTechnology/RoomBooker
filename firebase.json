@@ -1,1 +1,30 @@
-{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"roombooker-5e947","configurations":{"web":"1:610453083826:web:a8f19c0f8e570eb2d21bab"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "roombooker-5e947",
+          "configurations": {
+            "web": "1:610453083826:web:a8f19c0f8e570eb2d21bab"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ]
+}
