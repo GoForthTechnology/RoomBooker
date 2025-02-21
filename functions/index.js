@@ -10,17 +10,19 @@
 const functions = require("firebase-functions/v1");
 const logger = require("firebase-functions/logger");
 
-
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
-
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
-
-exports.createUser = functions.firestore
-    .document("orgs/{orgID}/booking-requests/{bookingID}")
+exports.receivedNewBooking = functions.firestore
+    .document("orgs/{orgID}/request-details/{bookingID}")
     .onCreate((snap, context) => {
-      logger.log(`Got new booking for ${snap.params.orgID}`);
+      const details = snap.data();
+      logger.log(`Got new booking for ${context.params.orgID}, name: ${details.eventName}`);
+
+      var message = `
+      Dear ${details.name},
+
+      Thank you for your request for ${details.eventName} has been received and we will be in touch shortly.
+
+      Best,
+      RoomBooker
+      `
+      logger.log(`Sending notification to ${details.email}: ${message}`);
     });

@@ -49,6 +49,7 @@ class OrgList extends StatelessWidget {
         stream: repo.getOrgsForCurrentUser(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
+            print(snapshot.error);
             return const Text('Error loading organizations');
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
