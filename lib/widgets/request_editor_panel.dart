@@ -218,14 +218,32 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             ],
           );
         }
-        return ElevatedButton(
-          onPressed: () async {
-            var request = state.getRequest()!;
-            await repo.revisitBookingRequest(widget.orgID, request);
-            state.updateStatus(RequestStatus.pending);
-          },
-          child: const Text("Revisit"),
-        );
+        var buttons = <Widget>[
+          ElevatedButton(
+            onPressed: () async {
+              var request = state.getRequest()!;
+              await repo.revisitBookingRequest(widget.orgID, request);
+              state.updateStatus(RequestStatus.pending);
+            },
+            child: const Text("Revisit"),
+          )
+        ];
+        if (state.recurrancePattern.frequency != Frequency.never &&
+            state.recurrancePattern.end == null) {
+          buttons.add(ElevatedButton(
+            onPressed: () async {
+              var request = state.getRequest();
+              await repo.endBooking(
+                  widget.orgID, request!.id!, state.startTime);
+              state.updateEndDate(state.startTime);
+              FirebaseAnalytics.instance.logEvent(
+                  name: "Series Cancelled",
+                  parameters: {"orgID": widget.orgID});
+            },
+            child: const Text("End Series"),
+          ));
+        }
+        return Row(children: buttons);
       }
       if (orgState.currentUserIsAdmin()) {
         return ElevatedButton(
@@ -338,6 +356,7 @@ class RequestEditorState extends ChangeNotifier {
     _roomName = request.roomName;
     _startTime = request.eventStartTime;
     _endTime = request.eventEndTime;
+    _recurrancePattern = request.recurrancePattern ?? RecurrancePattern.never();
     _contactEmail = details.email;
     _contactName = details.name;
     _contactPhone = details.phone;
@@ -400,6 +419,7 @@ class RequestEditorState extends ChangeNotifier {
     _contactName = null;
     _eventName = null;
     _message = "";
+    _recurrancePattern = RecurrancePattern.never();
     notifyListeners();
   }
 

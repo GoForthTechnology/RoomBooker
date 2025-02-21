@@ -72,7 +72,8 @@ class CurrentBookingsCalendar extends StatelessWidget {
                 }
               }
               var request = requestEditorState.getRequest();
-              if (request != null) {
+              if (request != null &&
+                  request.status != RequestStatus.confirmed) {
                 var requests = request.expand(
                     calendarState.windowStartDate, calendarState.windowEndDate,
                     includeRequestDate: false);

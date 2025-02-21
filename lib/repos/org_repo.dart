@@ -174,8 +174,9 @@ class OrgRepo extends ChangeNotifier {
   }
 
   Future<void> endBooking(String orgID, String requestID, DateTime end) async {
+    var trimmedEnd = DateTime(end.year, end.month, end.day, 0, 0);
     await _confirmedRequestsRef(orgID).doc(requestID).update({
-      "recurrancePattern.end": end.toString(),
+      "recurrancePattern.end": trimmedEnd.toString(),
     });
   }
 
