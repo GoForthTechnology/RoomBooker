@@ -173,6 +173,12 @@ class OrgRepo extends ChangeNotifier {
     });
   }
 
+  Future<void> endBooking(String orgID, String requestID, DateTime end) async {
+    await _confirmedRequestsRef(orgID).doc(requestID).update({
+      "recurrancePattern.end": end.toString(),
+    });
+  }
+
   Stream<PrivateRequestDetails?> getRequestDetails(
       String orgID, String requestID) {
     return _privateRequestDetailsRef(orgID, requestID)
@@ -216,7 +222,7 @@ class OrgRepo extends ChangeNotifier {
         .where("eventStartTime", isLessThanOrEqualTo: startTime.toString())
         .where(Filter.or(
           Filter("recurrancePattern.end", isNull: true),
-          Filter("recurrancePattern.end", isGreaterThan: endTime.toString()),
+          Filter("recurrancePattern.end", isLessThan: endTime.toString()),
         )));
     var streams = queries
         .map((q) =>
