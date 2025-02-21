@@ -16,7 +16,7 @@ class OrgState extends ChangeNotifier {
     if (user == null) {
       return false; // not logged in
     }
-    if (user == org.ownerID) {
+    if (user.uid == org.ownerID) {
       return true; // owner is always an admin
     }
     return admins.containsKey(user.uid);
