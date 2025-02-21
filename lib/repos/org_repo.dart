@@ -197,6 +197,12 @@ class OrgRepo extends ChangeNotifier {
     if (includeStatuses == null ||
         includeStatuses.contains(RequestStatus.confirmed)) {
       queries.add(_confirmedRequestsRef(orgID));
+      queries.add(_confirmedRequestsRef(orgID)
+          .where("eventStartTime", isLessThanOrEqualTo: startTime.toString())
+          .where(Filter.or(
+            Filter("recurrancePattern.end", isNull: true),
+            Filter("recurrancePattern.end", isLessThan: endTime.toString()),
+          )));
     }
     if (includeStatuses == null ||
         includeStatuses.contains(RequestStatus.pending)) {
@@ -206,11 +212,6 @@ class OrgRepo extends ChangeNotifier {
         includeStatuses.contains(RequestStatus.denied)) {
       queries.add(_deniedRequestsRef(orgID));
     }
-    if (includeStatuses != null) {
-      queries = queries
-          .map((q) => q.where("roomID", whereIn: includeRoomIDs))
-          .toList();
-    }
     queries = queries
         .map((q) => q.where("eventStartTime",
             isGreaterThanOrEqualTo: startTime.toString()))
@@ -219,12 +220,11 @@ class OrgRepo extends ChangeNotifier {
         .map((q) =>
             q.where("eventEndTime", isLessThanOrEqualTo: endTime.toString()))
         .toList();
-    queries.add(_confirmedRequestsRef(orgID)
-        .where("eventStartTime", isLessThanOrEqualTo: startTime.toString())
-        .where(Filter.or(
-          Filter("recurrancePattern.end", isNull: true),
-          Filter("recurrancePattern.end", isLessThan: endTime.toString()),
-        )));
+    if (includeRoomIDs != null) {
+      queries = queries
+          .map((q) => q.where("roomID", whereIn: includeRoomIDs))
+          .toList();
+    }
     var streams = queries
         .map((q) =>
             q.snapshots().map((s) => s.docs.map((d) => d.data()).toList()))
