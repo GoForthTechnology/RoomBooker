@@ -144,7 +144,7 @@ class OrgRepo extends ChangeNotifier {
     yield* _userRepo
         .streamUser(user!.uid)
         .map((profile) {
-          var orgIDs = profile.orgIDs;
+          var orgIDs = profile?.orgIDs ?? [];
           var streams = orgIDs.map(getOrg).toList();
           return Rx.combineLatestList(streams).map(
               (orgs) => orgs.where((o) => o != null).map((o) => o!).toList());

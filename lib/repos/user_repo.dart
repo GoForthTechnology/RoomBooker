@@ -47,8 +47,8 @@ class UserRepo extends ChangeNotifier {
     });
   }
 
-  Stream<UserProfile> streamUser(String uID) {
-    return _userRef(uID).snapshots().map((s) => s.data()!);
+  Stream<UserProfile?> streamUser(String uID) {
+    return _userRef(uID).snapshots().map((s) => s.data());
   }
 
   Future<UserProfile?> getUser(String uID) {
