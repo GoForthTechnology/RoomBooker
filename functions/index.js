@@ -9,20 +9,45 @@
 
 const functions = require("firebase-functions/v1");
 const logger = require("firebase-functions/logger");
+const admin = require('firebase-admin');
+
+admin.initializeApp();
+const db = admin.firestore();
+
+async function sendEmail(to, subject, message) {
+  await admin
+    .firestore()
+    .collection("mail")
+    .add({
+      to: to,
+      message: {
+        subject: subject,
+        text: message,
+      }
+    })
+}
 
 exports.receivedNewBooking = functions.firestore
     .document("orgs/{orgID}/request-details/{bookingID}")
-    .onCreate((snap, context) => {
+    .onCreate(async (snap, context) => {
       const details = snap.data();
-      logger.log(`Got new booking for ${context.params.orgID}, name: ${details.eventName}`);
+      const bookingID = context.params.bookingID
+      logger.log(`Received new booking request (${bookingID})`)
 
-      var message = `
-      Dear ${details.name},
+      try {
+        await sendEmail(
+          details.email,
+          'Booking Request Received', `
+          Dear ${details.name},
 
-      Thank you for your request for ${details.eventName} has been received and we will be in touch shortly.
+          Thank you for your request for ${details.eventName} has been received and we will be in touch shortly.
 
-      Best,
-      RoomBooker
-      `
-      logger.log(`Sending notification to ${details.email}: ${message}`);
+          Best,
+          RoomBooker
+          `)
+        logger.info(`Sent email notification for ${bookingID}`)
+      } catch (error) {
+        logger.error(`Error sending email for ${bookingID}: ${error}`)
+      }
+      logger.log(`Function finished for ${bookingID}`);
     });
