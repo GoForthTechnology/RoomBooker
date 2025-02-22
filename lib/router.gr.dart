@@ -1,3 +1,4 @@
+// dart format width=80
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 // **************************************************************************
@@ -13,10 +14,7 @@ part of 'router.dart';
 /// [EmailVerifyScreen]
 class EmailVerifyRoute extends PageRouteInfo<void> {
   const EmailVerifyRoute({List<PageRouteInfo>? children})
-      : super(
-          EmailVerifyRoute.name,
-          initialChildren: children,
-        );
+    : super(EmailVerifyRoute.name, initialChildren: children);
 
   static const String name = 'EmailVerifyRoute';
 
@@ -31,19 +29,13 @@ class EmailVerifyRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [JoinOrgScreen]
 class JoinOrgRoute extends PageRouteInfo<JoinOrgRouteArgs> {
-  JoinOrgRoute({
-    Key? key,
-    required String orgID,
-    List<PageRouteInfo>? children,
-  }) : super(
-          JoinOrgRoute.name,
-          args: JoinOrgRouteArgs(
-            key: key,
-            orgID: orgID,
-          ),
-          rawPathParams: {'orgID': orgID},
-          initialChildren: children,
-        );
+  JoinOrgRoute({Key? key, required String orgID, List<PageRouteInfo>? children})
+    : super(
+        JoinOrgRoute.name,
+        args: JoinOrgRouteArgs(key: key, orgID: orgID),
+        rawPathParams: {'orgID': orgID},
+        initialChildren: children,
+      );
 
   static const String name = 'JoinOrgRoute';
 
@@ -52,20 +44,15 @@ class JoinOrgRoute extends PageRouteInfo<JoinOrgRouteArgs> {
     builder: (data) {
       final pathParams = data.inheritedPathParams;
       final args = data.argsAs<JoinOrgRouteArgs>(
-          orElse: () => JoinOrgRouteArgs(orgID: pathParams.getString('orgID')));
-      return JoinOrgScreen(
-        key: args.key,
-        orgID: args.orgID,
+        orElse: () => JoinOrgRouteArgs(orgID: pathParams.getString('orgID')),
       );
+      return JoinOrgScreen(key: args.key, orgID: args.orgID);
     },
   );
 }
 
 class JoinOrgRouteArgs {
-  const JoinOrgRouteArgs({
-    this.key,
-    required this.orgID,
-  });
+  const JoinOrgRouteArgs({this.key, required this.orgID});
 
   final Key? key;
 
@@ -81,10 +68,7 @@ class JoinOrgRouteArgs {
 /// [LandingScreen]
 class LandingRoute extends PageRouteInfo<void> {
   const LandingRoute({List<PageRouteInfo>? children})
-      : super(
-          LandingRoute.name,
-          initialChildren: children,
-        );
+    : super(LandingRoute.name, initialChildren: children);
 
   static const String name = 'LandingRoute';
 
@@ -99,19 +83,13 @@ class LandingRoute extends PageRouteInfo<void> {
 /// generated route for
 /// [LoginScreen]
 class LoginRoute extends PageRouteInfo<LoginRouteArgs> {
-  LoginRoute({
-    Key? key,
-    String? orgID,
-    List<PageRouteInfo>? children,
-  }) : super(
-          LoginRoute.name,
-          args: LoginRouteArgs(
-            key: key,
-            orgID: orgID,
-          ),
-          rawPathParams: {'orgID': orgID},
-          initialChildren: children,
-        );
+  LoginRoute({Key? key, String? orgID, List<PageRouteInfo>? children})
+    : super(
+        LoginRoute.name,
+        args: LoginRouteArgs(key: key, orgID: orgID),
+        rawPathParams: {'orgID': orgID},
+        initialChildren: children,
+      );
 
   static const String name = 'LoginRoute';
 
@@ -120,20 +98,15 @@ class LoginRoute extends PageRouteInfo<LoginRouteArgs> {
     builder: (data) {
       final pathParams = data.inheritedPathParams;
       final args = data.argsAs<LoginRouteArgs>(
-          orElse: () => LoginRouteArgs(orgID: pathParams.optString('orgID')));
-      return LoginScreen(
-        key: args.key,
-        orgID: args.orgID,
+        orElse: () => LoginRouteArgs(orgID: pathParams.optString('orgID')),
       );
+      return LoginScreen(key: args.key, orgID: args.orgID);
     },
   );
 }
 
 class LoginRouteArgs {
-  const LoginRouteArgs({
-    this.key,
-    this.orgID,
-  });
+  const LoginRouteArgs({this.key, this.orgID});
 
   final Key? key;
 
@@ -153,14 +126,11 @@ class OrgSettingsRoute extends PageRouteInfo<OrgSettingsRouteArgs> {
     required String orgID,
     List<PageRouteInfo>? children,
   }) : super(
-          OrgSettingsRoute.name,
-          args: OrgSettingsRouteArgs(
-            key: key,
-            orgID: orgID,
-          ),
-          rawPathParams: {'orgID': orgID},
-          initialChildren: children,
-        );
+         OrgSettingsRoute.name,
+         args: OrgSettingsRouteArgs(key: key, orgID: orgID),
+         rawPathParams: {'orgID': orgID},
+         initialChildren: children,
+       );
 
   static const String name = 'OrgSettingsRoute';
 
@@ -169,21 +139,16 @@ class OrgSettingsRoute extends PageRouteInfo<OrgSettingsRouteArgs> {
     builder: (data) {
       final pathParams = data.inheritedPathParams;
       final args = data.argsAs<OrgSettingsRouteArgs>(
-          orElse: () =>
-              OrgSettingsRouteArgs(orgID: pathParams.getString('orgID')));
-      return OrgSettingsScreen(
-        key: args.key,
-        orgID: args.orgID,
+        orElse:
+            () => OrgSettingsRouteArgs(orgID: pathParams.getString('orgID')),
       );
+      return OrgSettingsScreen(key: args.key, orgID: args.orgID);
     },
   );
 }
 
 class OrgSettingsRouteArgs {
-  const OrgSettingsRouteArgs({
-    this.key,
-    required this.orgID,
-  });
+  const OrgSettingsRouteArgs({this.key, required this.orgID});
 
   final Key? key;
 
@@ -203,14 +168,11 @@ class ReviewBookingsRoute extends PageRouteInfo<ReviewBookingsRouteArgs> {
     required String orgID,
     List<PageRouteInfo>? children,
   }) : super(
-          ReviewBookingsRoute.name,
-          args: ReviewBookingsRouteArgs(
-            key: key,
-            orgID: orgID,
-          ),
-          rawPathParams: {'orgID': orgID},
-          initialChildren: children,
-        );
+         ReviewBookingsRoute.name,
+         args: ReviewBookingsRouteArgs(key: key, orgID: orgID),
+         rawPathParams: {'orgID': orgID},
+         initialChildren: children,
+       );
 
   static const String name = 'ReviewBookingsRoute';
 
@@ -219,21 +181,16 @@ class ReviewBookingsRoute extends PageRouteInfo<ReviewBookingsRouteArgs> {
     builder: (data) {
       final pathParams = data.inheritedPathParams;
       final args = data.argsAs<ReviewBookingsRouteArgs>(
-          orElse: () =>
-              ReviewBookingsRouteArgs(orgID: pathParams.getString('orgID')));
-      return ReviewBookingsScreen(
-        key: args.key,
-        orgID: args.orgID,
+        orElse:
+            () => ReviewBookingsRouteArgs(orgID: pathParams.getString('orgID')),
       );
+      return ReviewBookingsScreen(key: args.key, orgID: args.orgID);
     },
   );
 }
 
 class ReviewBookingsRouteArgs {
-  const ReviewBookingsRouteArgs({
-    this.key,
-    required this.orgID,
-  });
+  const ReviewBookingsRouteArgs({this.key, required this.orgID});
 
   final Key? key;
 
@@ -253,14 +210,11 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
     required String orgID,
     List<PageRouteInfo>? children,
   }) : super(
-          ViewBookingsRoute.name,
-          args: ViewBookingsRouteArgs(
-            key: key,
-            orgID: orgID,
-          ),
-          rawPathParams: {'orgID': orgID},
-          initialChildren: children,
-        );
+         ViewBookingsRoute.name,
+         args: ViewBookingsRouteArgs(key: key, orgID: orgID),
+         rawPathParams: {'orgID': orgID},
+         initialChildren: children,
+       );
 
   static const String name = 'ViewBookingsRoute';
 
@@ -269,21 +223,16 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
     builder: (data) {
       final pathParams = data.inheritedPathParams;
       final args = data.argsAs<ViewBookingsRouteArgs>(
-          orElse: () =>
-              ViewBookingsRouteArgs(orgID: pathParams.getString('orgID')));
-      return ViewBookingsScreen(
-        key: args.key,
-        orgID: args.orgID,
+        orElse:
+            () => ViewBookingsRouteArgs(orgID: pathParams.getString('orgID')),
       );
+      return ViewBookingsScreen(key: args.key, orgID: args.orgID);
     },
   );
 }
 
 class ViewBookingsRouteArgs {
-  const ViewBookingsRouteArgs({
-    this.key,
-    required this.orgID,
-  });
+  const ViewBookingsRouteArgs({this.key, required this.orgID});
 
   final Key? key;
 

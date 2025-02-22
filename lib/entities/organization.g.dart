@@ -21,6 +21,10 @@ Organization _$OrganizationFromJson(Map<String, dynamic> json) => Organization(
       name: json['name'] as String,
       ownerID: json['ownerID'] as String,
       acceptingAdminRequests: json['acceptingAdminRequests'] as bool,
+      notificationSettings: json['notificationSettings'] == null
+          ? null
+          : NotificationSettings.fromJson(
+              json['notificationSettings'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$OrganizationToJson(Organization instance) =>
@@ -28,7 +32,34 @@ Map<String, dynamic> _$OrganizationToJson(Organization instance) =>
       'name': instance.name,
       'ownerID': instance.ownerID,
       'acceptingAdminRequests': instance.acceptingAdminRequests,
+      'notificationSettings': instance.notificationSettings?.toJson(),
     };
+
+NotificationSettings _$NotificationSettingsFromJson(
+        Map<String, dynamic> json) =>
+    NotificationSettings(
+      notificationTargets:
+          (json['notificationTargets'] as Map<String, dynamic>).map(
+        (k, e) =>
+            MapEntry($enumDecode(_$NotificationEventEnumMap, k), e as String),
+      ),
+    );
+
+Map<String, dynamic> _$NotificationSettingsToJson(
+        NotificationSettings instance) =>
+    <String, dynamic>{
+      'notificationTargets': instance.notificationTargets
+          .map((k, e) => MapEntry(_$NotificationEventEnumMap[k]!, e)),
+    };
+
+const _$NotificationEventEnumMap = {
+  NotificationEvent.bookingCreated: 'bookingCreated',
+  NotificationEvent.bookingApproved: 'bookingApproved',
+  NotificationEvent.bookingRejected: 'bookingRejected',
+  NotificationEvent.adminRequestCreated: 'adminRequestCreated',
+  NotificationEvent.adminRequestApproved: 'adminRequestApproved',
+  NotificationEvent.adminRequestRejected: 'adminRequestRejected',
+};
 
 Room _$RoomFromJson(Map<String, dynamic> json) => Room(
       name: json['name'] as String,

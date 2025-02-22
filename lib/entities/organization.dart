@@ -31,27 +31,64 @@ class Organization {
   final String name;
   final String ownerID;
   final bool acceptingAdminRequests;
+  final NotificationSettings? notificationSettings;
 
   Organization({
     required this.name,
     required this.ownerID,
     required this.acceptingAdminRequests,
     this.id,
+    this.notificationSettings,
   });
+
+  String? emailForNotification(NotificationEvent event) {
+    if (notificationSettings == null) {
+      return null;
+    }
+    return notificationSettings!.notificationTargets[event];
+  }
 
   Organization copyWith({String? id, bool? acceptingAdminRequests}) {
     return Organization(
-      name: name,
-      ownerID: ownerID,
-      acceptingAdminRequests:
-          acceptingAdminRequests ?? this.acceptingAdminRequests,
-      id: this.id ?? id,
-    );
+        name: name,
+        ownerID: ownerID,
+        acceptingAdminRequests:
+            acceptingAdminRequests ?? this.acceptingAdminRequests,
+        id: this.id ?? id,
+        notificationSettings: notificationSettings);
   }
 
   factory Organization.fromJson(Map<String, dynamic> json) =>
       _$OrganizationFromJson(json);
   Map<String, dynamic> toJson() => _$OrganizationToJson(this);
+}
+
+enum NotificationEvent {
+  bookingCreated,
+  bookingApproved,
+  bookingRejected,
+  adminRequestCreated,
+  adminRequestApproved,
+  adminRequestRejected,
+}
+
+@JsonSerializable(explicitToJson: true)
+class NotificationSettings {
+  final Map<NotificationEvent, String> notificationTargets;
+
+  NotificationSettings({required this.notificationTargets});
+
+  static NotificationSettings defaultSettings(String defaultEmail) {
+    return NotificationSettings(
+      notificationTargets: {
+        for (var event in NotificationEvent.values) event: defaultEmail,
+      },
+    );
+  }
+
+  factory NotificationSettings.fromJson(Map<String, dynamic> json) =>
+      _$NotificationSettingsFromJson(json);
+  Map<String, dynamic> toJson() => _$NotificationSettingsToJson(this);
 }
 
 @JsonSerializable(explicitToJson: true)

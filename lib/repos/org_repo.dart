@@ -23,6 +23,8 @@ class OrgRepo extends ChangeNotifier {
       name: orgName,
       ownerID: user.uid,
       acceptingAdminRequests: false,
+      notificationSettings:
+          NotificationSettings.defaultSettings(user.email ?? ""),
     );
     var orgID = await _db.runTransaction((t) async {
       var orgRef = await _db.collection("orgs").add(org.toJson());
@@ -30,6 +32,13 @@ class OrgRepo extends ChangeNotifier {
       return orgRef.id;
     });
     return orgID;
+  }
+
+  Future<void> updateNotificationSettings(
+      String orgID, NotificationSettings settings) async {
+    return _db.collection("orgs").doc(orgID).update({
+      "notificationSettings": settings.toJson(),
+    });
   }
 
   Future<void> addAdminRequestForCurrentUser(String orgID) async {
@@ -131,7 +140,9 @@ class OrgRepo extends ChangeNotifier {
       if (!s.exists) {
         return null;
       }
-      return Organization.fromJson(s.data()!).copyWith(id: s.id);
+      var json = s.data()!;
+      var org = Organization.fromJson(json).copyWith(id: s.id);
+      return org;
     });
   }
 

@@ -8,6 +8,7 @@ class SimpleTextFormField extends StatelessWidget {
   final bool readOnly;
   final bool clearable;
   final Function(String)? onChanged;
+  final RegExp? validationRegex;
 
   const SimpleTextFormField({
     super.key,
@@ -18,6 +19,7 @@ class SimpleTextFormField extends StatelessWidget {
     this.onTap,
     this.onChanged,
     this.clearable = false,
+    this.validationRegex,
   });
 
   @override
@@ -51,7 +53,16 @@ class SimpleTextFormField extends StatelessWidget {
             }
           },
           validator: (value) {
-            if (value == null || value.isEmpty) {
+            if (validationMessage == null) {
+              return null;
+            }
+            var hasValue = value != null && value.isNotEmpty;
+
+            if (validationRegex != null) {
+              if (hasValue && !validationRegex!.hasMatch(value)) {
+                return validationMessage;
+              }
+            } else if (!hasValue) {
               return validationMessage;
             }
             return null;
