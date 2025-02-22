@@ -154,6 +154,8 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             controller: contactEmailController,
             labelText: "Your Email",
             validationMessage: "Please provide your email",
+            validationRegex:
+                RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'),
             onChanged: state.updateContactEmail,
           ),
           SimpleTextFormField(
