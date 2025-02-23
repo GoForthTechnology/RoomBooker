@@ -67,7 +67,9 @@ class RoomStateProvider extends StatelessWidget {
               var rooms = snapshot.data!;
               Map<Room, Color> initialValues = {};
               for (int i = 0; i < rooms.length; i++) {
-                initialValues[rooms[i]] = roomColors[i];
+                var room = rooms[i];
+                var color = roomColors[i];
+                initialValues[room] = color;
               }
               return builder(context, RoomState(rooms.first, initialValues));
             }));

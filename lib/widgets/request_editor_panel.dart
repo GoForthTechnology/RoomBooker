@@ -3,12 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
-import 'package:room_booker/entities/series.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/date_field.dart';
 import 'package:room_booker/widgets/org_state_provider.dart';
 import 'package:room_booker/widgets/repeat_bookings_selector.dart';
-import 'package:room_booker/widgets/room_field.dart';
 import 'package:room_booker/widgets/room_selector.dart';
 import 'package:room_booker/widgets/simple_text_form_field.dart';
 import 'package:room_booker/widgets/time_field.dart';
@@ -42,6 +40,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
 
     return Consumer4<RoomState, RequestEditorState, RequestPanelSate, OrgRepo>(
         builder: (context, roomState, state, panelState, repo, child) {
+      print("ROOM: " + roomState.enabledValue().name);
       var formContents = Column(
         children: [
           AppBar(
@@ -56,15 +55,6 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               )
             ],
             automaticallyImplyLeading: false,
-          ),
-          RoomField(
-            readOnly: state.readOnly(),
-            orgID: widget.orgID,
-            initialRoomID: roomState.enabledValue().id!,
-            onChanged: (value) {
-              state.updateRoom(value);
-              roomState.setActiveRoom(value);
-            },
           ),
           SimpleTextFormField(
               readOnly: state.readOnly(),
@@ -172,7 +162,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             labelText: "Additional Info",
             onChanged: state.updateMessage,
           ),
-          _getButton(state, panelState, repo),
+          _getButton(state, panelState, roomState, repo),
         ],
       );
       return SingleChildScrollView(
@@ -183,8 +173,8 @@ class NewRequestPanelState extends State<NewRequestPanel> {
     });
   }
 
-  Widget _getButton(
-      RequestEditorState state, RequestPanelSate panelState, OrgRepo repo) {
+  Widget _getButton(RequestEditorState state, RequestPanelSate panelState,
+      RoomState roomState, OrgRepo repo) {
     return Consumer<OrgState>(builder: (context, orgState, child) {
       var status = state.getStatus();
       if (state.readOnly()) {
@@ -197,7 +187,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             children: [
               ElevatedButton(
                 onPressed: () async {
-                  var request = state.getRequest()!;
+                  var request = state.getRequest(roomState)!;
                   await repo.denyRequest(widget.orgID, request.id!);
                   state.updateStatus(RequestStatus.denied);
                   FirebaseAnalytics.instance.logEvent(
@@ -209,7 +199,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               ElevatedButton(
                 onPressed: () async {
                   await repo.confirmRequest(
-                      widget.orgID, state.getRequest()!.id!);
+                      widget.orgID, state.getRequest(roomState)!.id!);
                   state.updateStatus(RequestStatus.confirmed);
                   FirebaseAnalytics.instance.logEvent(
                       name: "Booking Approved",
@@ -223,7 +213,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
         var buttons = <Widget>[
           ElevatedButton(
             onPressed: () async {
-              var request = state.getRequest()!;
+              var request = state.getRequest(roomState)!;
               await repo.revisitBookingRequest(widget.orgID, request);
               state.updateStatus(RequestStatus.pending);
             },
@@ -234,7 +224,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             state.recurrancePattern.end == null) {
           buttons.add(ElevatedButton(
             onPressed: () async {
-              var request = state.getRequest();
+              var request = state.getRequest(roomState);
               await repo.endBooking(
                   widget.orgID, request!.id!, state.startTime);
               state.updateEndDate(state.startTime);
@@ -251,7 +241,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
         return ElevatedButton(
           onPressed: () async {
             if (_formKey.currentState!.validate()) {
-              var request = state.getRequest()!;
+              var request = state.getRequest(roomState)!;
               await repo.addBooking(
                   widget.orgID, request, state.getPrivateDetails());
               state.clearAppointment();
@@ -266,7 +256,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
       return ElevatedButton(
         onPressed: () async {
           if (_formKey.currentState!.validate()) {
-            var request = state.getRequest()!;
+            var request = state.getRequest(roomState)!;
             await repo.submitBookingRequest(
                 widget.orgID, request, state.getPrivateDetails());
             state.clearAppointment();
@@ -293,7 +283,7 @@ class RequestStateProvider extends StatelessWidget {
     return RoomStateProvider(
         orgID: orgID,
         builder: (context, roomState) => ChangeNotifierProvider.value(
-            value: RequestEditorState(initialRoom: roomState.enabledValue()),
+            value: RequestEditorState(),
             child: ChangeNotifierProvider.value(
                 value: RequestPanelSate(),
                 child: ChangeNotifierProvider.value(
@@ -329,19 +319,11 @@ class RequestEditorState extends ChangeNotifier {
   String? _contactName;
   String? _contactEmail;
   String? _contactPhone;
-  String? _roomID;
-  String? _roomName;
   DateTime? _startTime;
   DateTime? _endTime;
   RecurrancePattern _recurrancePattern = RecurrancePattern.never();
   bool _customRecurrencePattern = false;
 
-  RequestEditorState({required Room initialRoom})
-      : _roomID = initialRoom.id,
-        _roomName = initialRoom.name;
-
-  String? get roomID => _roomID;
-  String? get roomName => _roomName;
   String? get eventname => _eventName;
   String? get contactName => _contactName;
   String? get contactEmail => _contactEmail;
@@ -354,8 +336,6 @@ class RequestEditorState extends ChangeNotifier {
 
   void showRequest(Request request, PrivateRequestDetails details) {
     _existingRequest = request;
-    _roomID = request.roomID;
-    _roomName = request.roomName;
     _startTime = request.eventStartTime;
     _endTime = request.eventEndTime;
     _recurrancePattern = request.recurrancePattern ?? RecurrancePattern.never();
@@ -425,12 +405,6 @@ class RequestEditorState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateRoom(Room? room) {
-    _roomName = room?.name;
-    _roomID = room?.id;
-    notifyListeners();
-  }
-
   void updateEventName(String name) {
     _eventName = name;
     notifyListeners();
@@ -462,16 +436,17 @@ class RequestEditorState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Request? getRequest() {
-    if (_startTime == null || _endTime == null || _roomID == null) {
+  Request? getRequest(RoomState roomState) {
+    var room = roomState.enabledValue();
+    if (_startTime == null || _endTime == null || room.id == null) {
       return null;
     }
     return Request(
       id: _existingRequest?.id,
       eventStartTime: _startTime!,
       eventEndTime: _endTime!,
-      roomID: _roomID!,
-      roomName: _roomName!,
+      roomID: room.id!,
+      roomName: room.name,
       status: _existingRequest?.status ?? RequestStatus.pending,
       recurrancePattern: _recurrancePattern,
     );
@@ -488,20 +463,6 @@ class RequestEditorState extends ChangeNotifier {
       phone: _contactPhone!,
       eventName: _eventName!,
       message: _message,
-    );
-  }
-
-  Series? getSeries() {
-    if (_recurrancePattern.frequency == Frequency.never) {
-      return null;
-    }
-    var request = getRequest();
-    if (request == null) {
-      return null;
-    }
-    return Series(
-      request: request,
-      pattern: _recurrancePattern,
     );
   }
 

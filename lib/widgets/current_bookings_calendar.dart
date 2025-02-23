@@ -55,7 +55,6 @@ class CurrentBookingsCalendar extends StatelessWidget {
             return const CircularProgressIndicator();
           }
           var remoteState = snapshot.data as RemoteState;
-          var roomState = Provider.of<RoomState>(context, listen: false);
           return Consumer<RequestEditorState>(
             builder: (context, requestEditorState, child) {
               var newApointmentColor =
@@ -71,7 +70,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
                   appointments[repeat.toAppointment(roomState)] = repeat;
                 }
               }
-              var request = requestEditorState.getRequest();
+              var request = requestEditorState.getRequest(roomState);
               if (request != null &&
                   request.status != RequestStatus.confirmed) {
                 var requests = request.expand(
