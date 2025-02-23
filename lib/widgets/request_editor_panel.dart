@@ -39,7 +39,6 @@ class NewRequestPanelState extends State<NewRequestPanel> {
 
     return Consumer4<RoomState, RequestEditorState, RequestPanelSate, OrgRepo>(
         builder: (context, roomState, state, panelState, repo, child) {
-      print("ROOM: " + roomState.enabledValue().name);
       var formContents = Column(
         children: [
           AppBar(

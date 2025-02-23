@@ -55,7 +55,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
             return const Placeholder();
           }
           if (!snapshot.hasData) {
-            return const CircularProgressIndicator();
+            return Container();
           }
           var remoteState = snapshot.data as RemoteState;
           return Consumer<RequestEditorState>(

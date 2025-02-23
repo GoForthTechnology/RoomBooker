@@ -119,6 +119,12 @@ class StatefulCalendar extends StatelessWidget {
       minDate: nowRoundedUpToNearestHour(),
       onAppointmentResizeEnd: onResizeEnd,
       onTap: (details) {
+        if (!{
+          CalendarElement.appointment,
+          CalendarElement.calendarCell,
+        }.contains(details.targetElement)) {
+          return;
+        }
         calendarState.controller.selectedDate = null; // Clear the selected date
         var appointments = details.appointments ?? [];
         if (appointments.isEmpty && onTap != null) {
