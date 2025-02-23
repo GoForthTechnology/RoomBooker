@@ -146,7 +146,7 @@ class RemoteState {
           RequestStatus.confirmed
         }).startWith([]).switchMap((requests) {
       return Rx.combineLatest2(
-          _privateDetailsStream(orgState, repo, requests),
+          _privateDetailsStream(orgState, repo, requests).startWith([]),
           repo.listBlackoutWindows(orgState.org.id!).startWith([]),
           (privateRequestDetails, blackoutWindows) => RemoteState(
               existingRequests: requests,
