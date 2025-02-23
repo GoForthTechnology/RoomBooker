@@ -13,7 +13,7 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 extension on Request {
   Appointment toAppointment(RoomState roomState, {String? subject}) {
     var alphaLevel = status == RequestStatus.pending ? 128 : 255;
-    var color = roomState.color(roomName).withAlpha(alphaLevel);
+    var color = roomState.color(roomID).withAlpha(alphaLevel);
     return Appointment(
       subject: subject ??
           (status == RequestStatus.confirmed ? "Booked" : "Requested"),
@@ -60,8 +60,10 @@ class CurrentBookingsCalendar extends StatelessWidget {
           var remoteState = snapshot.data as RemoteState;
           return Consumer<RequestEditorState>(
             builder: (context, requestEditorState, child) {
-              var newApointmentColor =
-                  roomState.color(roomState.enabledValue().id!);
+              var enabledRoom = roomState.enabledValue();
+              var newApointmentColor = enabledRoom == null
+                  ? Colors.blue
+                  : roomState.color(enabledRoom.id!);
               var newAppointment =
                   requestEditorState.getAppointment(newApointmentColor);
               Map<Appointment, Request> appointments = {};
@@ -138,9 +140,7 @@ class RemoteState {
         orgID: orgState.org.id!,
         startTime: calendarState.windowStartDate,
         endTime: calendarState.windowEndDate,
-        includeRoomIDs: {
-          roomState.enabledValue().id!
-        },
+        includeRoomIDs: roomState.enabledValues().map((r) => r.id!).toSet(),
         includeStatuses: {
           RequestStatus.pending,
           RequestStatus.confirmed

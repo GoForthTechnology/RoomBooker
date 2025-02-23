@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
@@ -14,46 +13,66 @@ List<Color> roomColors = [
 ];
 
 class RoomState extends ChangeNotifier {
-  Room _activeRoom;
-  final Map<Room, Color> _colorMap;
+  final Map<String, Room> _rooms;
+  final Set<String> _activeIDs;
+  final Map<String, Color> _colorMap;
 
-  RoomState(this._activeRoom, this._colorMap);
+  RoomState(List<Room> rooms, Set<Room> activeRooms)
+      : _rooms = Map.fromEntries(rooms.map((r) => MapEntry(r.id!, r))),
+        _activeIDs = activeRooms.map((r) => r.id!).toSet(),
+        _colorMap =
+            Map.fromEntries(rooms.map((r) => MapEntry(r.id!, Colors.black))) {
+    for (int i = 0; i < rooms.length; i++) {
+      var room = rooms[i];
+      _colorMap[room.id!] = roomColors[i];
+    }
+  }
 
   Color color(String roomID) {
-    return _colorMap[getRoom(roomID)] ?? Colors.black;
+    var color = _colorMap[roomID];
+    return color ?? Colors.black;
   }
 
   Room? getRoom(String roomID) {
-    return _colorMap.keys.firstWhereOrNull((r) => r.id == roomID);
+    return _rooms[roomID];
   }
 
   List<Room> allRooms() {
-    return _colorMap.keys.toList();
+    return _rooms.values.toList();
   }
 
-  Room enabledValue() {
-    return _activeRoom;
+  Room? enabledValue() {
+    return _activeIDs.map((id) => _rooms[id]).first;
+  }
+
+  Set<Room> enabledValues() {
+    return _activeIDs.map((id) => _rooms[id]!).toSet();
   }
 
   bool isEnabled(String roomID) {
-    return _activeRoom.id == roomID;
+    return _activeIDs.contains(roomID);
   }
 
   void setActiveRoom(Room room) {
-    if (!_colorMap.containsKey(room)) {
-      throw ArgumentError("Room $room not found in ${_colorMap.keys}");
+    if (!_rooms.containsKey(room.id!)) {
+      throw ArgumentError("Room $room not found in ${_rooms.keys}");
     }
-    _activeRoom = room;
+    _activeIDs.clear();
+    _activeIDs.add(room.id!);
     notifyListeners();
   }
 }
 
 class RoomStateProvider extends StatelessWidget {
   final String orgID;
+  final bool enableAllRooms;
   final Widget Function(BuildContext, RoomState) builder;
 
   const RoomStateProvider(
-      {super.key, required this.orgID, required this.builder});
+      {super.key,
+      required this.orgID,
+      required this.builder,
+      this.enableAllRooms = false});
 
   @override
   Widget build(BuildContext context) {
@@ -65,13 +84,9 @@ class RoomStateProvider extends StatelessWidget {
                 return const CircularProgressIndicator();
               }
               var rooms = snapshot.data!;
-              Map<Room, Color> initialValues = {};
-              for (int i = 0; i < rooms.length; i++) {
-                var room = rooms[i];
-                var color = roomColors[i];
-                initialValues[room] = color;
-              }
-              return builder(context, RoomState(rooms.first, initialValues));
+              var activeRooms = enableAllRooms ? rooms.toSet() : {rooms.first};
+              var roomState = RoomState(rooms, activeRooms);
+              return builder(context, roomState);
             }));
   }
 }

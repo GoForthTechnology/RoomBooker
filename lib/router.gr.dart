@@ -203,6 +203,47 @@ class ReviewBookingsRouteArgs {
 }
 
 /// generated route for
+/// [ScheduleScreen]
+class ScheduleRoute extends PageRouteInfo<ScheduleRouteArgs> {
+  ScheduleRoute({
+    Key? key,
+    required String orgID,
+    List<PageRouteInfo>? children,
+  }) : super(
+         ScheduleRoute.name,
+         args: ScheduleRouteArgs(key: key, orgID: orgID),
+         rawPathParams: {'orgID': orgID},
+         initialChildren: children,
+       );
+
+  static const String name = 'ScheduleRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final args = data.argsAs<ScheduleRouteArgs>(
+        orElse: () => ScheduleRouteArgs(orgID: pathParams.getString('orgID')),
+      );
+      return ScheduleScreen(key: args.key, orgID: args.orgID);
+    },
+  );
+}
+
+class ScheduleRouteArgs {
+  const ScheduleRouteArgs({this.key, required this.orgID});
+
+  final Key? key;
+
+  final String orgID;
+
+  @override
+  String toString() {
+    return 'ScheduleRouteArgs{key: $key, orgID: $orgID}';
+  }
+}
+
+/// generated route for
 /// [ViewBookingsScreen]
 class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
   ViewBookingsRoute({

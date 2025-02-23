@@ -243,7 +243,7 @@ class OrgRepo extends ChangeNotifier {
         .map((s) => s);
     return Rx.combineLatestList(streams).map((listOfLists) {
       return listOfLists.flattenedToList;
-    });
+    }).startWith([]);
   }
 
   Future<void> confirmRequest(String orgID, String requestID) async {

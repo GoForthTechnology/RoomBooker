@@ -32,6 +32,7 @@ class ViewBookingsScreen extends StatelessWidget {
                 actions: _actions(context, orgState)),
             body: CalendarStateProvider(
               child: RequestStateProvider(
+                enableAllRooms: true,
                 orgID: orgID,
                 child: Consumer<RequestPanelSate>(
                   builder: (context, requestPanelState, child) => Row(
@@ -131,16 +132,27 @@ class ViewBookingsScreen extends StatelessWidget {
 
   List<Widget> _actions(BuildContext context, OrgState orgState) {
     if (FirebaseAuth.instance.currentUser != null) {
-      return [
-        if (orgState.currentUserIsAdmin())
-          Tooltip(
-            message: "Review Bookings",
-            child: IconButton(
-              icon: const Icon(Icons.approval_rounded),
-              onPressed: () => AutoRouter.of(context)
-                  .push(ReviewBookingsRoute(orgID: orgID)),
-            ),
+      var privilegedActions = <Widget>[];
+      if (orgState.currentUserIsAdmin()) {
+        privilegedActions.add(Tooltip(
+          message: "View Agenda",
+          child: IconButton(
+            icon: const Icon(Icons.view_agenda),
+            onPressed: () =>
+                AutoRouter.of(context).push(ScheduleRoute(orgID: orgID)),
           ),
+        ));
+        privilegedActions.add(Tooltip(
+          message: "Review Bookings",
+          child: IconButton(
+            icon: const Icon(Icons.approval_rounded),
+            onPressed: () =>
+                AutoRouter.of(context).push(ReviewBookingsRoute(orgID: orgID)),
+          ),
+        ));
+      }
+      return [
+        ...privilegedActions,
         Tooltip(
           message: "Logout",
           child: IconButton(

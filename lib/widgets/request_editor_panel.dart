@@ -272,14 +272,19 @@ class NewRequestPanelState extends State<NewRequestPanel> {
 class RequestStateProvider extends StatelessWidget {
   final String orgID;
   final Widget child;
+  final bool enableAllRooms;
 
   const RequestStateProvider(
-      {super.key, required this.child, required this.orgID});
+      {super.key,
+      required this.child,
+      required this.orgID,
+      required this.enableAllRooms});
 
   @override
   Widget build(BuildContext context) {
     return RoomStateProvider(
         orgID: orgID,
+        enableAllRooms: enableAllRooms,
         builder: (context, roomState) => ChangeNotifierProvider.value(
             value: RequestEditorState(),
             child: ChangeNotifierProvider.value(
@@ -443,7 +448,7 @@ class RequestEditorState extends ChangeNotifier {
 
   Request? getRequest(RoomState roomState) {
     var room = roomState.enabledValue();
-    if (_startTime == null || _endTime == null || room.id == null) {
+    if (_startTime == null || _endTime == null || room == null) {
       return null;
     }
     return Request(
