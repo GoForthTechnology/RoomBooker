@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
@@ -53,6 +54,15 @@ class RoomState extends ChangeNotifier {
     return _activeIDs.contains(roomID);
   }
 
+  void toggleRoom(Room room) {
+    if (_activeIDs.contains(room.id!)) {
+      _activeIDs.remove(room.id!);
+    } else {
+      _activeIDs.add(room.id!);
+    }
+    notifyListeners();
+  }
+
   void setActiveRoom(Room room) {
     if (!_rooms.containsKey(room.id!)) {
       throw ArgumentError("Room $room not found in ${_rooms.keys}");
@@ -91,8 +101,32 @@ class RoomStateProvider extends StatelessWidget {
   }
 }
 
-class RoomSelector extends StatelessWidget {
-  const RoomSelector({super.key});
+class RoomCardSelector extends StatelessWidget {
+  const RoomCardSelector({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<RoomState>(
+        builder: (context, state, child) => Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                const Text("Active Rooms:"),
+                ...state.allRooms().mapIndexed((i, e) => RoomCard(
+                      color:
+                          !state.isEnabled(e.id!) ? Colors.grey : roomColors[i],
+                      room: e,
+                      onClick: (room) {
+                        state.toggleRoom(room);
+                      },
+                    )),
+              ],
+            ));
+  }
+}
+
+class RoomDropdownSelector extends StatelessWidget {
+  const RoomDropdownSelector({super.key});
 
   @override
   Widget build(BuildContext context) {

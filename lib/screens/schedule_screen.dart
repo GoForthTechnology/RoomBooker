@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/widgets/current_bookings_calendar.dart';
 import 'package:room_booker/widgets/org_state_provider.dart';
 import 'package:room_booker/widgets/request_editor_panel.dart';
+import 'package:room_booker/widgets/room_selector.dart';
 import 'package:room_booker/widgets/stateful_calendar.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
@@ -27,12 +28,17 @@ class ScheduleScreen extends StatelessWidget {
             child: RequestStateProvider(
               enableAllRooms: true,
               orgID: orgID,
-              child: CurrentBookingsCalendar(
-                view: CalendarView.schedule,
-                showAllRooms: true,
-                orgID: orgID,
-                onTap: (details) {},
-                onTapRequest: (r) {},
+              child: Column(
+                children: [
+                  RoomCardSelector(),
+                  Expanded(
+                      child: CurrentBookingsCalendar(
+                    view: CalendarView.schedule,
+                    orgID: orgID,
+                    onTap: (details) {},
+                    onTapRequest: (r) {},
+                  ))
+                ],
               ),
             ),
           ),

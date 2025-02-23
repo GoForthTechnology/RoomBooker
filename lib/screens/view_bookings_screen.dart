@@ -42,7 +42,7 @@ class ViewBookingsScreen extends StatelessWidget {
                         flex: 3,
                         child: Column(
                           children: [
-                            const RoomSelector(),
+                            const RoomDropdownSelector(),
                             Expanded(child: _buildCalendar(context)),
                           ],
                         ),
