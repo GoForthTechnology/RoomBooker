@@ -1,7 +1,6 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/date_field.dart';
@@ -350,8 +349,15 @@ class RequestEditorState extends ChangeNotifier {
   void updateFrequency(Frequency frequency, bool isCustom) {
     _customRecurrencePattern = isCustom || frequency == Frequency.custom;
     var weekday = getWeekday(startTime);
-    _recurrancePattern =
-        _recurrancePattern.copyWith(frequency: frequency, weekday: {weekday});
+    var interval = _recurrancePattern.period;
+    if (frequency != Frequency.never && interval == 0) {
+      interval = 1;
+    }
+    _recurrancePattern = _recurrancePattern.copyWith(
+      frequency: frequency,
+      weekday: {weekday},
+      period: interval,
+    );
     notifyListeners();
   }
 
