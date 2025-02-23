@@ -56,6 +56,9 @@ class RoomState extends ChangeNotifier {
 
   void toggleRoom(Room room) {
     if (_activeIDs.contains(room.id!)) {
+      if (_activeIDs.length == 1) {
+        return;
+      }
       _activeIDs.remove(room.id!);
     } else {
       _activeIDs.add(room.id!);
