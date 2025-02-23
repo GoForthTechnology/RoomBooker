@@ -347,7 +347,8 @@ class OrgRepo extends ChangeNotifier {
         .doc(requestID)
         .withConverter(
           fromFirestore: (snapshot, _) =>
-              PrivateRequestDetails.fromJson(snapshot.data()!),
+              PrivateRequestDetails.fromJson(snapshot.data()!)
+                  .copyWith(id: snapshot.id),
           toFirestore: (details, _) => details.toJson(),
         );
   }

@@ -11,6 +11,8 @@ enum RequestStatus {
 
 @JsonSerializable(explicitToJson: true)
 class PrivateRequestDetails {
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? id;
   final String name;
   final String email;
   final String phone;
@@ -19,11 +21,30 @@ class PrivateRequestDetails {
 
   PrivateRequestDetails({
     this.message = "",
+    this.id,
     required this.eventName,
     required this.name,
     required this.email,
     required this.phone,
   });
+
+  PrivateRequestDetails copyWith({
+    String? id,
+    String? name,
+    String? email,
+    String? phone,
+    String? message,
+    String? eventName,
+  }) {
+    return PrivateRequestDetails(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      message: message ?? this.message,
+      eventName: eventName ?? this.eventName,
+    );
+  }
 
   factory PrivateRequestDetails.fromJson(Map<String, dynamic> json) =>
       _$PrivateRequestDetailsFromJson(json);

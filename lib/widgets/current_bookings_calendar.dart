@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/entities/blackout_window.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/widgets/org_state_provider.dart';
 import 'package:room_booker/widgets/request_editor_panel.dart';
 import 'package:room_booker/widgets/room_selector.dart';
 import 'package:room_booker/widgets/stateful_calendar.dart';
@@ -38,9 +39,11 @@ class CurrentBookingsCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer3<OrgRepo, RoomState, CalendarState>(
-      builder: (context, repo, roomState, calendarState, _) => StreamBuilder(
-        stream: RemoteState.createStream(orgID, repo, roomState, calendarState),
+    return Consumer4<OrgRepo, OrgState, RoomState, CalendarState>(
+      builder: (context, repo, orgState, roomState, calendarState, _) =>
+          StreamBuilder(
+        stream:
+            RemoteState.createStream(repo, roomState, calendarState, orgState),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             print(snapshot.error);
@@ -63,11 +66,20 @@ class CurrentBookingsCalendar extends StatelessWidget {
                   requestEditorState.getAppointment(newApointmentColor);
               Map<Appointment, Request> appointments = {};
               for (var request in remoteState.existingRequests) {
-                appointments[request.toAppointment(roomState)] = request;
+                String? subject;
+                var details = remoteState.privateRequestDetails(request.id!);
+                if (details != null) {
+                  subject = details.eventName;
+                }
+                var appointment =
+                    request.toAppointment(roomState, subject: subject);
+                appointments[appointment] = request;
                 for (var repeat in request.expand(
                     calendarState.windowStartDate, calendarState.windowEndDate,
                     includeRequestDate: false)) {
-                  appointments[repeat.toAppointment(roomState)] = repeat;
+                  appointment =
+                      repeat.toAppointment(roomState, subject: subject);
+                  appointments[appointment] = repeat;
                 }
               }
               var request = requestEditorState.getRequest(roomState);
@@ -105,27 +117,60 @@ class CurrentBookingsCalendar extends StatelessWidget {
 
 class RemoteState {
   final List<Request> existingRequests;
+  final Map<String, PrivateRequestDetails> _privateRequestDetails;
   final List<BlackoutWindow> blackoutWindows;
 
-  RemoteState({required this.existingRequests, required this.blackoutWindows});
+  RemoteState(
+      {required this.existingRequests,
+      required this.blackoutWindows,
+      List<PrivateRequestDetails> privateRequestDetails = const []})
+      : _privateRequestDetails = {
+          for (var d in privateRequestDetails) d.id!: d
+        };
 
-  static Stream<RemoteState> createStream(String orgID, OrgRepo repo,
-      RoomState roomState, CalendarState calendarState) {
-    return Rx.combineLatest2(
-        repo.listRequests(
-            orgID: orgID,
-            startTime: calendarState.windowStartDate,
-            endTime: calendarState.windowEndDate,
-            includeRoomIDs: {
-              roomState.enabledValue().id!
-            },
-            includeStatuses: {
-              RequestStatus.pending,
-              RequestStatus.confirmed
-            }).startWith([]),
-        repo.listBlackoutWindows(orgID).startWith([]),
-        (existingRequests, blackoutWindows) => RemoteState(
-            existingRequests: existingRequests,
-            blackoutWindows: blackoutWindows));
+  PrivateRequestDetails? privateRequestDetails(String requestID) {
+    return _privateRequestDetails[requestID];
+  }
+
+  static Stream<RemoteState> createStream(OrgRepo repo, RoomState roomState,
+      CalendarState calendarState, OrgState orgState) {
+    return repo.listRequests(
+        orgID: orgState.org.id!,
+        startTime: calendarState.windowStartDate,
+        endTime: calendarState.windowEndDate,
+        includeRoomIDs: {
+          roomState.enabledValue().id!
+        },
+        includeStatuses: {
+          RequestStatus.pending,
+          RequestStatus.confirmed
+        }).startWith([]).switchMap((requests) {
+      return Rx.combineLatest2(
+          _privateDetailsStream(orgState, repo, requests),
+          repo.listBlackoutWindows(orgState.org.id!).startWith([]),
+          (privateRequestDetails, blackoutWindows) => RemoteState(
+              existingRequests: requests,
+              privateRequestDetails: privateRequestDetails,
+              blackoutWindows: blackoutWindows));
+    });
+  }
+
+  static Stream<List<PrivateRequestDetails>> _privateDetailsStream(
+      OrgState orgState, OrgRepo repo, List<Request> requests) {
+    if (!orgState.currentUserIsAdmin()) {
+      return Stream.value([]);
+    }
+    var orgID = orgState.org.id!;
+    var streams =
+        requests.map((r) => repo.getRequestDetails(orgID, r.id!)).toList();
+    return Rx.combineLatestList(streams).map((details) {
+      var out = <PrivateRequestDetails>[];
+      for (var d in details) {
+        if (d != null) {
+          out.add(d);
+        }
+      }
+      return out;
+    });
   }
 }
