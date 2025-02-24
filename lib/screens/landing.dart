@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
+import 'package:rxdart/rxdart.dart';
 
 @RoutePage()
 class LandingScreen extends StatelessWidget {
@@ -71,6 +72,28 @@ class OrgList extends StatelessWidget {
   }
 }
 
+class CardState {
+  final int numPendingBookings;
+  final int numPendingAdminRequests;
+
+  CardState(
+      {required this.numPendingBookings,
+      required this.numPendingAdminRequests});
+
+  static Stream<CardState> stream(OrgRepo repo, String orgID) {
+    return Rx.combineLatest2(
+      repo.listRequests(
+          orgID: orgID,
+          startTime: DateTime.now(),
+          endTime: DateTime.now().add(Duration(days: 365))),
+      repo.adminRequests(orgID),
+      (pendingRequests, adminRequests) => CardState(
+          numPendingBookings: pendingRequests.length,
+          numPendingAdminRequests: adminRequests.length),
+    );
+  }
+}
+
 class OrgTile extends StatelessWidget {
   final Organization org;
 
@@ -78,18 +101,33 @@ class OrgTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var orgRepo = Provider.of<OrgRepo>(context, listen: false);
     return Card(
       elevation: 1,
-      child: ListTile(
-        leading: const Icon(Icons.business),
-        title: Text(org.name),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _settingsButton(context),
-            _viewCalendarButton(context),
-          ],
-        ),
+      child: StreamBuilder(
+        stream: CardState.stream(orgRepo, org.id!),
+        builder: (context, snapshot) {
+          String? subtitle;
+          if (snapshot.hasData) {
+            var state = snapshot.data!;
+            subtitle = "${state.numPendingAdminRequests} pending bookings";
+            if (state.numPendingAdminRequests > 0) {
+              subtitle += ", ${state.numPendingAdminRequests} admin requests";
+            }
+          }
+          return ListTile(
+            leading: const Icon(Icons.business),
+            title: Text(org.name),
+            subtitle: subtitle != null ? Text(subtitle) : null,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _settingsButton(context),
+                _viewCalendarButton(context),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
