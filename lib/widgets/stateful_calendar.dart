@@ -5,14 +5,15 @@ import 'package:room_booker/entities/request.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CalendarStateProvider extends StatelessWidget {
+  final DateTime? focusDate;
   final Widget child;
 
-  const CalendarStateProvider({super.key, required this.child});
+  const CalendarStateProvider({super.key, required this.child, this.focusDate});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
-      value: CalendarState(),
+      value: CalendarState(focusDate: focusDate),
       child: child,
     );
   }
@@ -35,7 +36,8 @@ class CalendarState extends ChangeNotifier {
   DateTime _windowEndDate = getEndDate(DateTime.now());
   bool initialized = false;
 
-  CalendarState() {
+  CalendarState({DateTime? focusDate}) {
+    _controller.displayDate = focusDate;
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _controller.addPropertyChangedListener((property) {
         if (property == "displayDate") {

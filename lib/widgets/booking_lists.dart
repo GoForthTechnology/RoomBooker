@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/widgets/stateful_calendar.dart';
+import 'package:rxdart/rxdart.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
 
-class ResolvedBookings extends StatelessWidget {
+class ConfirmedOneOffBookings extends StatelessWidget {
   final OrgRepo repo;
   final String orgID;
   final Function(Request) onFocusBooking;
 
-  const ResolvedBookings(
+  const ConfirmedOneOffBookings(
       {super.key,
       required this.orgID,
       required this.onFocusBooking,
@@ -19,9 +22,109 @@ class ResolvedBookings extends StatelessWidget {
     return BookingList(
       onFocusBooking: onFocusBooking,
       orgID: orgID,
-      emptyText: "No Resolved Requests",
+      emptyText: "No confirmed bookings",
+      requestFilter: (r) => !r.isRepeating(),
       statusList: const [
         RequestStatus.confirmed,
+      ],
+      actions: [
+        RequestAction(
+            text: "Revisit",
+            onClick: (request) => repo.revisitBookingRequest(orgID, request))
+      ],
+    );
+  }
+}
+
+class ConfirmedRepeatingBookings extends StatelessWidget {
+  final OrgRepo repo;
+  final String orgID;
+  final Function(Request) onFocusBooking;
+
+  const ConfirmedRepeatingBookings(
+      {super.key,
+      required this.orgID,
+      required this.onFocusBooking,
+      required this.repo});
+
+  @override
+  Widget build(BuildContext context) {
+    return BookingList(
+      onFocusBooking: onFocusBooking,
+      orgID: orgID,
+      emptyText: "No recurring bookings",
+      requestFilter: (r) => r.isRepeating() && !r.hasEndDate(),
+      statusList: const [
+        RequestStatus.confirmed,
+      ],
+      actions: [
+        RequestAction(
+          text: "End",
+          onClick: (request) => _confirmEndBooking(context, orgID, request),
+        ),
+        RequestAction(
+          text: "Revisit",
+          onClick: (request) => repo.revisitBookingRequest(orgID, request),
+        ),
+      ],
+    );
+  }
+
+  void _confirmEndBooking(
+      BuildContext context, String orgID, Request request) async {
+    bool shouldEnd = await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: const Text("End Booking"),
+              content: const Text("Are you sure you want to end this booking?"),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text("Cancel"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  },
+                  child: const Text("End"),
+                ),
+              ],
+            ));
+    if (!shouldEnd) {
+      return;
+    }
+    DateTime? endDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    print(endDate);
+    if (endDate == null) {
+      return;
+    }
+    await repo.endBooking(orgID, request.id!, endDate);
+  }
+}
+
+class RejectedBookings extends StatelessWidget {
+  final OrgRepo repo;
+  final String orgID;
+  final Function(Request) onFocusBooking;
+
+  const RejectedBookings(
+      {super.key,
+      required this.orgID,
+      required this.onFocusBooking,
+      required this.repo});
+
+  @override
+  Widget build(BuildContext context) {
+    return BookingList(
+      onFocusBooking: onFocusBooking,
+      orgID: orgID,
+      emptyText: "No confirmed bookings",
+      statusList: const [
         RequestStatus.denied,
       ],
       actions: [
@@ -68,6 +171,7 @@ class BookingList extends StatelessWidget {
   final String emptyText;
   final Function(Request) onFocusBooking;
   final List<RequestStatus> statusList;
+  final bool Function(Request)? requestFilter;
   final List<RequestAction> actions;
 
   const BookingList(
@@ -76,17 +180,21 @@ class BookingList extends StatelessWidget {
       required this.orgID,
       required this.actions,
       required this.statusList,
-      required this.emptyText});
+      required this.emptyText,
+      this.requestFilter});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<OrgRepo>(
       builder: (context, repo, child) => StreamBuilder(
-        stream: repo.listRequests(
-            orgID: orgID,
-            startTime: DateTime.now(),
-            endTime: DateTime.now().add(const Duration(days: 365)),
-            includeStatuses: Set.from(statusList)),
+        stream: repo
+            .listRequests(
+                orgID: orgID,
+                startTime: DateTime.now(),
+                endTime: DateTime.now().add(const Duration(days: 365)),
+                includeStatuses: Set.from(statusList))
+            .map((requests) =>
+                requests.where(requestFilter ?? (r) => true).toList()),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             print(snapshot.error);
@@ -97,10 +205,7 @@ class BookingList extends StatelessWidget {
             });
             return const Placeholder();
           }
-          if (!snapshot.hasData) {
-            return const CircularProgressIndicator();
-          }
-          List<Request> requests = snapshot.data!;
+          List<Request> requests = snapshot.data ?? [];
           if (requests.isEmpty) {
             return Text(emptyText);
           }
@@ -118,6 +223,7 @@ class BookingList extends StatelessWidget {
                   }
                   var details = detailsSnapshot.data!;
                   return BookingTile(
+                    orgID: orgID,
                     request: request,
                     details: details,
                     onFocusBooking: onFocusBooking,
@@ -141,6 +247,7 @@ class RequestAction {
 }
 
 class BookingTile extends StatelessWidget {
+  final String orgID;
   final List<RequestAction> actions;
   final Function(Request) onFocusBooking;
   final Request request;
@@ -152,19 +259,18 @@ class BookingTile extends StatelessWidget {
     required this.request,
     required this.actions,
     required this.details,
+    required this.orgID,
   });
 
   @override
   Widget build(BuildContext context) {
-    bool resolved = request.status != RequestStatus.pending;
-    bool confirmed = request.status == RequestStatus.confirmed;
     return Card(
         elevation: 1,
-        color: resolved
+        /*color: resolved
             ? confirmed
                 ? const Color.fromRGBO(220, 233, 213, 1.0)
                 : const Color.fromRGBO(238, 205, 205, 1.0)
-            : null,
+            : null,*/
         child: ExpansionTile(
           title: Text("${details.eventName} for ${details.name}"),
           subtitle: _subtitle(),
@@ -173,48 +279,34 @@ class BookingTile extends StatelessWidget {
           expandedAlignment: Alignment.topLeft,
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                detailTable(request, details),
-                Column(
-                  children: [
-                    ElevatedButton(
-                        onPressed: () => onFocusBooking(request),
-                        child: const Text("Toggle Calendar")),
-                    ...actions.map(
-                      (a) => ElevatedButton(
-                          onPressed: () => a.onClick(request),
-                          child: Text(a.text)),
-                    )
-                  ],
-                )
-              ],
-            )
+            detailTable(request, details),
+            Calendar(request: request, orgID: orgID)
           ],
         ));
   }
 
   Widget? _trailing() {
-    if (request.status == RequestStatus.pending) {
-      return null;
-    }
-    if (request.status == RequestStatus.confirmed) {
-      return const Text('CONFIRMED');
-    }
-    if (request.status == RequestStatus.denied) {
-      return const Text('DENIED');
-    }
-    throw ("Invalid status!");
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: actions
+          .map(
+            (a) => ElevatedButton(
+                onPressed: () => a.onClick(request), child: Text(a.text)),
+          )
+          .toList(),
+    );
   }
 
   Widget? _leading() {
     if (request.status == RequestStatus.pending) {
       return null;
     }
-    return Icon(Icons.event,
-        color: request.status == RequestStatus.confirmed
+    return Icon(
+      Icons.event,
+      /*color: request.status == RequestStatus.confirmed
             ? const Color.fromRGBO(120, 166, 90, 1.0)
-            : const Color.fromRGBO(187, 39, 26, 1.0));
+            : const Color.fromRGBO(187, 39, 26, 1.0),*/
+    );
   }
 
   Widget _subtitle() {
@@ -229,10 +321,6 @@ Widget detailTable(Request booking, PrivateRequestDetails details) {
       child: Table(
         defaultColumnWidth: const FixedColumnWidth(200),
         children: [
-          bookingField('Start Time',
-              "${formatDate(booking.eventStartTime)} ${formatTime(booking.eventStartTime)}"),
-          bookingField('End Time',
-              "${formatDate(booking.eventEndTime)} ${formatTime(booking.eventEndTime)}"),
           bookingField('Phone', details.phone),
           bookingField('Email', details.email),
           bookingField('Message', details.message),
@@ -265,4 +353,76 @@ String formatTime(DateTime dateTime) {
   var hourStr = dateTime.hour.toString().padLeft(2, '0');
   var minuteStr = dateTime.minute.toString().padLeft(2, '0');
   return "$hourStr:$minuteStr";
+}
+
+class Calendar extends StatelessWidget {
+  final String orgID;
+  final Request request;
+
+  const Calendar({super.key, required this.request, required this.orgID});
+
+  @override
+  Widget build(BuildContext context) {
+    return CalendarStateProvider(
+        focusDate: request.eventStartTime,
+        child: Consumer2<OrgRepo, CalendarState>(
+          builder: (context, repo, calendarState, child) => StreamBuilder(
+            stream: Rx.combineLatest3(
+                repo.listRequests(
+                    orgID: orgID,
+                    startTime: stripTime(request.eventStartTime),
+                    endTime: stripTime(request.eventStartTime)
+                        .add(const Duration(days: 1)),
+                    includeRoomIDs: {request.roomID},
+                    includeStatuses: {RequestStatus.confirmed}),
+                repo.getRequestDetails(orgID, request.id!),
+                repo.listBlackoutWindows(orgID),
+                (requests, requestDetails, blackoutWindows) => CalendarData(
+                    existingRequests: requests,
+                    blackoutWindows: blackoutWindows,
+                    privateDetails: [requestDetails!])),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                print(snapshot.error);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: ${snapshot.error}')),
+                  );
+                });
+                return const Placeholder();
+              }
+              if (!snapshot.hasData) {
+                return const CircularProgressIndicator();
+              }
+              var calendarData = snapshot.data as CalendarData;
+              var filteredRequests = calendarData.existingRequests
+                  .where((r) => r.id != request.id)
+                  .toList();
+              return StatefulCalendar(
+                view: CalendarView.day,
+                showNavigationArrow: false,
+                showDatePickerButton: false,
+                showTodayButton: false,
+                onAppointmentResizeEnd: (details) {},
+                newAppointment: Appointment(
+                  subject: calendarData.privateDetails![0].eventName,
+                  color: Colors.blue,
+                  startTime: request.eventStartTime,
+                  endTime: request.eventEndTime,
+                ),
+                blackoutWindows: calendarData.blackoutWindows,
+                appointments: {
+                  for (var request in filteredRequests)
+                    Appointment(
+                      subject: "Some Request",
+                      color: Colors.grey,
+                      startTime: request.eventStartTime,
+                      endTime: request.eventEndTime,
+                    ): request
+                },
+              );
+            },
+          ),
+        ));
+  }
 }

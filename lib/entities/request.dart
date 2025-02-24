@@ -75,6 +75,15 @@ class Request {
     assert(eventStartTime.isBefore(eventEndTime));
   }
 
+  bool isRepeating() {
+    return recurrancePattern != null &&
+        recurrancePattern!.frequency != Frequency.never;
+  }
+
+  bool hasEndDate() {
+    return isRepeating() && recurrancePattern?.end != null;
+  }
+
   Request copyWith({
     String? id,
     DateTime? eventStartTime,
