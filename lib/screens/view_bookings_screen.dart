@@ -32,7 +32,7 @@ class ViewBookingsScreen extends StatelessWidget {
                 actions: _actions(context, orgState)),
             body: CalendarStateProvider(
               child: RequestStateProvider(
-                enableAllRooms: true,
+                enableAllRooms: false,
                 orgID: orgID,
                 child: Consumer<RequestPanelSate>(
                   builder: (context, requestPanelState, child) => Row(

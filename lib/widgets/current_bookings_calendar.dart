@@ -136,11 +136,12 @@ class RemoteState {
 
   static Stream<RemoteState> createStream(OrgRepo repo, RoomState roomState,
       CalendarState calendarState, OrgState orgState) {
+    var roomIDs = roomState.enabledValues().map((r) => r.id!).toSet();
     return repo.listRequests(
         orgID: orgState.org.id!,
         startTime: calendarState.windowStartDate,
         endTime: calendarState.windowEndDate,
-        includeRoomIDs: roomState.enabledValues().map((r) => r.id!).toSet(),
+        includeRoomIDs: roomIDs,
         includeStatuses: {
           RequestStatus.pending,
           RequestStatus.confirmed
