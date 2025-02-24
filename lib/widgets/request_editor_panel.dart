@@ -1,4 +1,5 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/request.dart';
@@ -30,15 +31,14 @@ class NewRequestPanelState extends State<NewRequestPanel> {
 
   @override
   Widget build(BuildContext context) {
-    var editorState = Provider.of<RequestEditorState>(context, listen: false);
-    eventNameController.text = editorState.eventname ?? "";
-    contactNameController.text = editorState.contactName ?? "";
-    contactEmailController.text = editorState.contactEmail ?? "";
-    contactPhoneController.text = editorState.contactPhone ?? "";
-    messageController.text = editorState.message ?? "";
-
+    var orgState = Provider.of<OrgState>(context, listen: false);
     return Consumer4<RoomState, RequestEditorState, RequestPanelSate, OrgRepo>(
         builder: (context, roomState, state, panelState, repo, child) {
+      eventNameController.text = state.eventname ?? "";
+      contactNameController.text = state.contactName ?? "";
+      contactEmailController.text = state.contactEmail ?? "";
+      contactPhoneController.text = state.contactPhone ?? "";
+      messageController.text = state.message ?? "";
       var formContents = Column(
         children: [
           AppBar(
@@ -153,6 +153,11 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             validationMessage: "Please provide your phone number",
             onChanged: state.updateContactPhone,
           ),
+          if (orgState.currentUserIsAdmin())
+            ElevatedButton(
+              onPressed: () => state.useAdminContactInfo(),
+              child: Text("Use My Info"),
+            ),
           const Divider(),
           SimpleTextFormField(
             readOnly: state.readOnly(),
@@ -427,6 +432,13 @@ class RequestEditorState extends ChangeNotifier {
 
   void updateContactEmail(String email) {
     _contactEmail = email;
+    notifyListeners();
+  }
+
+  void useAdminContactInfo() {
+    _contactEmail = FirebaseAuth.instance.currentUser!.email!;
+    _contactName = "Org Admin";
+    _contactPhone = "n/a";
     notifyListeners();
   }
 
