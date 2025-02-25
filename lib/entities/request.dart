@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:room_booker/logic/recurring_bookings.dart';
 
 part 'request.g.dart';
 
@@ -305,6 +306,24 @@ class RecurrancePattern {
       offset: offset ?? this.offset,
       end: end ?? this.end,
     );
+  }
+
+  @override
+  String toString() {
+    switch (frequency) {
+      case Frequency.never:
+        return "Never";
+      case Frequency.daily:
+        return "Daily";
+      case Frequency.weekly:
+        return "Weekly on ${weekday?.map((w) => w.name)}";
+      case Frequency.monthly:
+        return "Monthly on $period${numberSuffix(period)} ${weekday?.map((e) => e.name)}";
+      case Frequency.annually:
+        return "Annually";
+      case Frequency.custom:
+        return "Custom";
+    }
   }
 
   factory RecurrancePattern.fromJson(Map<String, dynamic> json) =>

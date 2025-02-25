@@ -310,8 +310,12 @@ class BookingTile extends StatelessWidget {
   }
 
   Widget _subtitle() {
-    return Text(
-        '${request.roomName} on ${formatDate(request.eventStartTime)} from ${formatTime(request.eventStartTime)} to ${formatTime(request.eventEndTime)}');
+    var subtitle =
+        '${request.roomName} on ${formatDate(request.eventStartTime)} from ${formatTime(request.eventStartTime)} to ${formatTime(request.eventEndTime)}';
+    if (request.recurrancePattern != null) {
+      subtitle += ' (recurring ${request.recurrancePattern})';
+    }
+    return Text(subtitle);
   }
 }
 
