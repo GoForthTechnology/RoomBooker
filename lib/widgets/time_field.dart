@@ -36,6 +36,9 @@ class TimeField extends StatelessWidget {
                 context: context,
                 initialTime: initialValue,
               );
+              if (pickedTime == null) {
+                return;
+              }
               if (minimumTime.isAfter(pickedTime!)) {
                 messenger.showSnackBar(
                   SnackBar(
