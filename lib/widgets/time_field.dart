@@ -29,22 +29,11 @@ class TimeField extends StatelessWidget {
       onTap: readOnly
           ? null
           : () async {
-              var minimumTime = TimeOfDay.now();
-              var messenger = ScaffoldMessenger.of(context);
-              var minimumTimeStr = minimumTime.format(context);
               TimeOfDay? pickedTime = await showTimePicker(
                 context: context,
                 initialTime: initialValue,
               );
               if (pickedTime == null) {
-                return;
-              }
-              if (minimumTime.isAfter(pickedTime!)) {
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Time must be after $minimumTimeStr'),
-                  ),
-                );
                 return;
               }
               var roundedTime = roundToNearest30Minutes(pickedTime);
