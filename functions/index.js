@@ -131,6 +131,10 @@ async function notifyRequesterOfPeningBooking(orgID, bookingID) {
 async function notifyRequesterOfBookingApproval(orgID, bookingID) {
   try {
     const details = await getRequestDetails(orgID, bookingID);
+    if (details.name == "Org Admin") {
+      // We don't want to spam the admins for actions they took themselves.
+      return;
+    }
     await sendEmail(
         details.email,
         "Booking Request Approved", `
