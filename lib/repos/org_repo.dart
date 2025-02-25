@@ -206,9 +206,11 @@ class OrgRepo extends ChangeNotifier {
       Set<RequestStatus>? includeStatuses,
       Set<String>? includeRoomIDs}) {
     List<Query<Request>> queries = [];
-    if (includeStatuses == null ||
-        includeStatuses.contains(RequestStatus.confirmed)) {
-      queries.add(_confirmedRequestsRef(orgID));
+    var hasConfirmed = includeStatuses == null ||
+        includeStatuses.contains(RequestStatus.confirmed);
+    if (hasConfirmed) {
+      queries.add(_confirmedRequestsRef(orgID)
+          .where("recurrancePattern", isNull: true));
     }
     if (includeStatuses == null ||
         includeStatuses.contains(RequestStatus.pending)) {
@@ -227,12 +229,14 @@ class OrgRepo extends ChangeNotifier {
             q.where("eventEndTime", isLessThanOrEqualTo: endTime.toString()))
         .toList();
     // Add this one after the queries that are bound to the current time window
-    queries.add(_confirmedRequestsRef(orgID)
-        .where("eventStartTime", isLessThanOrEqualTo: startTime.toString())
-        .where(Filter.or(
-          Filter("recurrancePattern.end", isNull: true),
-          Filter("recurrancePattern.end", isLessThan: endTime.toString()),
-        )));
+    if (hasConfirmed) {
+      queries.add(_confirmedRequestsRef(orgID)
+          .where("recurrancePattern", isNotEqualTo: null)
+          .where(Filter.or(
+            Filter("recurrancePattern.end", isNull: true),
+            Filter("recurrancePattern.end", isLessThan: endTime.toString()),
+          )));
+    }
     if (includeRoomIDs != null) {
       queries = queries
           .map((q) => q.where("roomID", whereIn: includeRoomIDs))
