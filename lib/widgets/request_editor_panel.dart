@@ -29,16 +29,22 @@ class NewRequestPanelState extends State<NewRequestPanel> {
   final contactPhoneController = TextEditingController();
   final messageController = TextEditingController();
 
+  void _updateControllers(RequestEditorState state) {
+    eventNameController.text = state.eventname ?? "";
+    contactNameController.text = state.contactName ?? "";
+    contactEmailController.text = state.contactEmail ?? "";
+    contactPhoneController.text = state.contactPhone ?? "";
+    messageController.text = state.message ?? "";
+  }
+
   @override
   Widget build(BuildContext context) {
+    var editorState = Provider.of<RequestEditorState>(context, listen: false);
+    _updateControllers(editorState);
+
     var orgState = Provider.of<OrgState>(context, listen: false);
     return Consumer4<RoomState, RequestEditorState, RequestPanelSate, OrgRepo>(
         builder: (context, roomState, state, panelState, repo, child) {
-      eventNameController.text = state.eventname ?? "";
-      contactNameController.text = state.contactName ?? "";
-      contactEmailController.text = state.contactEmail ?? "";
-      contactPhoneController.text = state.contactPhone ?? "";
-      messageController.text = state.message ?? "";
       var formContents = Column(
         children: [
           AppBar(
@@ -155,7 +161,10 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           ),
           if (orgState.currentUserIsAdmin())
             ElevatedButton(
-              onPressed: () => state.useAdminContactInfo(),
+              onPressed: () {
+                state.useAdminContactInfo();
+                _updateControllers(state);
+              },
               child: Text("Use My Info"),
             ),
           const Divider(),
