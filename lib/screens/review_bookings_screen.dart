@@ -3,6 +3,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/router.dart';
 import 'package:room_booker/widgets/heading.dart';
 import 'package:room_booker/widgets/booking_lists.dart';
 
@@ -37,6 +38,16 @@ class ReviewBookingsScreen extends StatelessWidget {
         return Scaffold(
             appBar: AppBar(
               title: Text('Booking Requests for ${org!.name}'),
+              leading: BackButton(
+                onPressed: () {
+                  var router = AutoRouter.of(context);
+                  if (router.canPop()) {
+                    router.popForced();
+                  } else {
+                    router.replace(LandingRoute());
+                  }
+                },
+              ),
             ),
             body: SingleChildScrollView(
                 child: Column(

@@ -1,6 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/router.dart';
 import 'package:room_booker/widgets/current_bookings_calendar.dart';
 import 'package:room_booker/widgets/org_state_provider.dart';
 import 'package:room_booker/widgets/request_editor_panel.dart';
@@ -22,6 +23,16 @@ class ScheduleScreen extends StatelessWidget {
         builder: (context, orgState, child) => Scaffold(
           appBar: AppBar(
             title: Text("Schedule for ${orgState.org.name}"),
+            leading: BackButton(
+              onPressed: () {
+                var router = AutoRouter.of(context);
+                if (router.canPop()) {
+                  router.popForced();
+                } else {
+                  router.replace(LandingRoute());
+                }
+              },
+            ),
             actions: [],
           ),
           body: CalendarStateProvider(

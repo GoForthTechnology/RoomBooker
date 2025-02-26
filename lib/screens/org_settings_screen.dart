@@ -18,6 +18,16 @@ class OrgSettingsScreen extends StatelessWidget {
     return Scaffold(
         appBar: AppBar(
           title: const Text("Organization Settings"),
+          leading: BackButton(
+            onPressed: () {
+              var router = AutoRouter.of(context);
+              if (router.canPop()) {
+                router.popForced();
+              } else {
+                router.replace(LandingRoute());
+              }
+            },
+          ),
         ),
         body: Consumer<OrgRepo>(
           builder: (context, repo, child) => StreamBuilder(
