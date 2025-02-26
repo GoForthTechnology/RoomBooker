@@ -82,7 +82,7 @@ class RepeatBookingsSelector extends StatelessWidget {
       items: patterns.entries
           .map((e) => DropdownMenuItem(
                 value: e.key,
-                child: Text(e.value.toString()),
+                child: Text(e.value?.toString() ?? "Custom"),
               ))
           .toList(),
       onChanged: readOnly

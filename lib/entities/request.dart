@@ -286,6 +286,27 @@ enum Frequency { never, daily, weekly, monthly, annually, custom }
 
 enum Weekday { sunday, monday, tuesday, wednesday, thursday, friday, saturday }
 
+extension WeekdayExt on Weekday {
+  String get name {
+    switch (this) {
+      case Weekday.sunday:
+        return "Sunday";
+      case Weekday.monday:
+        return "Monday";
+      case Weekday.tuesday:
+        return "Tuesday";
+      case Weekday.wednesday:
+        return "Wednesday";
+      case Weekday.thursday:
+        return "Thursday";
+      case Weekday.friday:
+        return "Friday";
+      case Weekday.saturday:
+        return "Saturday";
+    }
+  }
+}
+
 @JsonSerializable(explicitToJson: true)
 class RecurrancePattern {
   final Frequency frequency;

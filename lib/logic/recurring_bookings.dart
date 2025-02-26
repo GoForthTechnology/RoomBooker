@@ -21,9 +21,7 @@ Map<Frequency, RecurrancePattern?> getRecurringBookingOptions(
 }
 
 String getWeekdayName(DateTime date) {
-  var weekdayName = getWeekday(date).toString().split('.').last;
-  weekdayName = weekdayName[0].toUpperCase() + weekdayName.substring(1);
-  return getWeekday(date).toString().split('.').last;
+  return getWeekday(date).name;
 }
 
 int getMonthlyOccurrence(DateTime date) {
