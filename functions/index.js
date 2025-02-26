@@ -16,6 +16,96 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 const db = admin.firestore();
 
+exports.onNewPendingBooking = functions.firestore
+    .document("orgs/{orgID}/pending-requests/{bookingID}")
+    .onCreate(async (snap, context) => {
+      const orgID = context.params.orgID;
+      const bookingID = context.params.bookingID;
+      logger.log(`Received new booking request (${bookingID})`);
+      await notifyRequesterOfPeningBooking(orgID, bookingID);
+      await notifyOwnerOfPendingBooking(orgID, bookingID);
+      logger.log(`Function finished for request ${bookingID}`);
+    });
+
+exports.onRequestApproved = functions.firestore
+    .document("orgs/{orgID}/confirmed-requests/{bookingID}")
+    .onCreate(async (snap, context) => {
+      const orgID = context.params.orgID;
+      const bookingID = context.params.bookingID;
+      logger.log(`Received new request approval (${bookingID})`);
+      await notifyRequesterOfBookingApproval(orgID, bookingID);
+      logger.log(`Function finished for approval of ${bookingID}`);
+    });
+
+exports.onRequestDenied = functions.firestore
+    .document("orgs/{orgID}/denied-requests/{bookingID}")
+    .onCreate(async (snap, context) => {
+      const orgID = context.params.orgID;
+      const bookingID = context.params.bookingID;
+      logger.log(`Received new request denial (${bookingID})`);
+      await notifyRequesterOfBookingDenial(orgID, bookingID);
+      logger.log(`Function finished for denial of ${bookingID}`);
+    });
+
+exports.onNewAdminRequest = functions.firestore
+    .document("orgs/{orgID}/admin-requests/{requestID}")
+    .onCreate(async (snap, context) => {
+      const orgID = context.params.orgID;
+      const requestID = context.params.requestID;
+      const email = snap.data().email;
+      const org = await getOrg(orgID);
+      logger.log(`Got admin request from ${email} to join ${org.name} ${requestID}`);
+      await sendEmail(
+          email,
+          "Admin Request Received",
+          `Your request to join ${org.name} as an administrator has been received and will be reviewed shortly.`,
+      );
+      logger.log(`Function finished for admin request ${requestID}`);
+    });
+
+exports.onAdminRequestApproved = functions.firestore
+    .document("orgs/{orgID}/active-admins/{requestID}")
+    .onCreate(async (snap, context) => {
+      const orgID = context.params.orgID;
+      const requestID = context.params.requestID;
+      const email = snap.data().email;
+      const org = await getOrg(orgID);
+      logger.log(`Got admin request approval for ${email} to join ${org.name} ${requestID}`);
+      await sendEmail(
+          email,
+          "Admin Request Approved",
+          `Your request to join ${org.name} as an administrator has been approved.`,
+      );
+      logger.log(`Function finished for admin request approval ${requestID}`);
+    });
+
+exports.onAdminRequestRevoked = functions.firestore
+    .document("orgs/{orgID}/active-admins/{requestID}")
+    .onDelete(async (snap, context) => {
+      const orgID = context.params.orgID;
+      const requestID = context.params.requestID;
+      const email = snap.data().email;
+      const org = await getOrg(orgID);
+      logger.log(`Got admin removal for ${email} to leave ${org.name} ${requestID}`);
+      await sendEmail(
+          email,
+          "Admin Access Revoked",
+          `Your admin access for ${org.name} has been revoked.`,
+      );
+      logger.log(`Function finished for admin removal ${requestID}`);
+    });
+
+/**
+ * Retrieves the organization data for a given organization ID.
+ *
+ * @param {string} orgID - The ID of the organization to retrieve.
+ * @return {Promise<Object>} A promise that resolves to the organization data.
+ */
+async function getOrg(orgID) {
+  const snap = await db.collection("orgs").doc(orgID).get();
+  return snap.data();
+}
+
 /**
  * Sends an email by adding a document to the "mail" collection in the
  * database.
@@ -46,6 +136,16 @@ async function getEmailTargets(orgID) {
   const snapshot = await db.collection("orgs").doc(orgID).get();
   const org = snapshot.data();
   return org.notificationSettings.notificationTargets;
+}
+
+/**
+ * Checks if the provided details are from an admin.
+ *
+ * @param {Object} details - The details object to check.
+ * @return {boolean} - Returns true if the name is "Org Admin", otherwise false.
+ */
+function isFromAdmin(details) {
+  return details.name == "Org Admin";
 }
 
 /**
@@ -131,7 +231,7 @@ async function notifyRequesterOfPeningBooking(orgID, bookingID) {
 async function notifyRequesterOfBookingApproval(orgID, bookingID) {
   try {
     const details = await getRequestDetails(orgID, bookingID);
-    if (details.name == "Org Admin") {
+    if (isFromAdmin(details)) {
       // We don't want to spam the admins for actions they took themselves.
       return;
     }
@@ -161,6 +261,10 @@ async function notifyRequesterOfBookingApproval(orgID, bookingID) {
 async function notifyRequesterOfBookingDenial(orgID, bookingID) {
   try {
     const details = await getRequestDetails(orgID, bookingID);
+    if (isFromAdmin(details)) {
+      // We don't want to spam the admins for actions they took themselves.
+      return;
+    }
     await sendEmail(
         details.email,
         "Booking Request Denied", `
@@ -176,34 +280,3 @@ async function notifyRequesterOfBookingDenial(orgID, bookingID) {
     logger.error(`Error sending email for ${bookingID}: ${error}`);
   }
 }
-
-exports.onNewPendingBooking = functions.firestore
-    .document("orgs/{orgID}/pending-requests/{bookingID}")
-    .onCreate(async (snap, context) => {
-      const orgID = context.params.orgID;
-      const bookingID = context.params.bookingID;
-      logger.log(`Received new booking request (${bookingID})`);
-      await notifyRequesterOfPeningBooking(orgID, bookingID);
-      await notifyOwnerOfPendingBooking(orgID, bookingID);
-      logger.log(`Function finished for request ${bookingID}`);
-    });
-
-exports.onRequestApproved = functions.firestore
-    .document("orgs/{orgID}/confirmed-requests/{bookingID}")
-    .onCreate(async (snap, context) => {
-      const orgID = context.params.orgID;
-      const bookingID = context.params.bookingID;
-      logger.log(`Received new request approval (${bookingID})`);
-      await notifyRequesterOfBookingApproval(orgID, bookingID);
-      logger.log(`Function finished for approval of ${bookingID}`);
-    });
-
-exports.onRequestDenied = functions.firestore
-    .document("orgs/{orgID}/denied-requests/{bookingID}")
-    .onCreate(async (snap, context) => {
-      const orgID = context.params.orgID;
-      const bookingID = context.params.bookingID;
-      logger.log(`Received new request denial (${bookingID})`);
-      await notifyRequesterOfBookingDenial(orgID, bookingID);
-      logger.log(`Function finished for denial of ${bookingID}`);
-    });
