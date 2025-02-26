@@ -60,6 +60,16 @@ exports.onNewAdminRequest = functions.firestore
           "Admin Request Received",
           `Your request to join ${org.name} as an administrator has been received and will be reviewed shortly.`,
       );
+      const targets = await getEmailTargets(orgID);
+      const target = targets.adminRequestCreated;
+      if (target != null && target != "") {
+        await sendEmail(
+            target,
+            "Admin Request Received", `
+            A new admin request is ready for review.
+            `);
+        logger.debug(`Sent email notification for ${requestID} to org owner ${target}`);
+      }
       logger.log(`Function finished for admin request ${requestID}`);
     });
 
