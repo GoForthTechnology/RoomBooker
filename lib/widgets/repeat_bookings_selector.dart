@@ -12,7 +12,7 @@ class RepeatBookingsSelector extends StatelessWidget {
   final bool readOnly;
   final Function(Frequency) onFrequencyChanged;
   final Function(int) onIntervalChanged;
-  final Function(RecurrancePattern) onPatternChanged;
+  final Function(RecurrancePattern, bool) onPatternChanged;
   final Function(Weekday) toggleDay;
 
   const RepeatBookingsSelector(
@@ -71,6 +71,7 @@ class RepeatBookingsSelector extends StatelessWidget {
   }
 
   Widget _frequencySelector() {
+    var patterns = getRecurringBookingOptions(startTime);
     return DropdownButtonFormField<Frequency>(
       isExpanded: true,
       value: Frequency.never,
@@ -78,18 +79,22 @@ class RepeatBookingsSelector extends StatelessWidget {
         labelText: 'Repeats',
         border: OutlineInputBorder(),
       ),
-      items: getRecurringBookingOptions(startTime)
-          .entries
+      items: patterns.entries
           .map((e) => DropdownMenuItem(
                 value: e.key,
-                child: Text(e.value),
+                child: Text(e.value.toString()),
               ))
           .toList(),
       onChanged: readOnly
           ? null
           : (value) {
-              if (value != null) {
-                onFrequencyChanged(value);
+              if (value == Frequency.custom) {
+                onFrequencyChanged(value!);
+                return;
+              }
+              var pattern = patterns[value];
+              if (pattern != null) {
+                onPatternChanged(pattern, false);
               }
             },
     );

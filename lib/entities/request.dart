@@ -1,5 +1,4 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:room_booker/logic/recurring_bookings.dart';
 
 part 'request.g.dart';
 
@@ -211,7 +210,7 @@ class Request {
           current.difference(dates.last).inDays >= periodInDays) {
         dates.add(current);
       }
-      current = current.add(const Duration(days: 1));
+      current = advanceOneDay(current);
     }
     return dates;
   }
@@ -232,7 +231,7 @@ class Request {
           (pattern.weekday?.contains(getWeekday(current)) ?? false)) {
         dates.add(current);
       }
-      current = current.add(const Duration(days: 1));
+      current = advanceOneDay(current);
     }
     return dates;
   }
@@ -262,7 +261,7 @@ class Request {
       if (nthWeekday == currentDate) {
         dates.add(currentDate);
       }
-      currentDate = currentDate.add(const Duration(days: 1));
+      currentDate = advanceOneDay(currentDate);
     }
     return dates;
   }
@@ -270,6 +269,17 @@ class Request {
   factory Request.fromJson(Map<String, dynamic> json) =>
       _$RequestFromJson(json);
   Map<String, dynamic> toJson() => _$RequestToJson(this);
+}
+
+DateTime advanceOneDay(DateTime date) {
+  var newDate = date.add(const Duration(days: 1));
+  // Strip off the time to avoid the extra hour from starting DST
+  newDate = DateTime(newDate.year, newDate.month, newDate.day);
+  if (newDate == date) {
+    // Add an extra hour to avoid the extra hour from ending DST
+    newDate = newDate.add(const Duration(days: 1));
+  }
+  return newDate;
 }
 
 enum Frequency { never, daily, weekly, monthly, annually, custom }
@@ -318,7 +328,7 @@ class RecurrancePattern {
       case Frequency.weekly:
         return "Weekly on ${weekday?.map((w) => w.name)}";
       case Frequency.monthly:
-        return "Monthly on $period${numberSuffix(period)} ${weekday?.map((e) => e.name)}";
+        return "Monthly on $offset${numberSuffix(offset!)} ${weekday?.map((e) => e.name)}";
       case Frequency.annually:
         return "Annually";
       case Frequency.custom:
@@ -400,4 +410,21 @@ Weekday getWeekday(DateTime date) {
       return Weekday.saturday;
   }
   throw Exception("Invalid weekday");
+}
+
+String numberSuffix(int i) {
+  switch (i) {
+    case 1:
+    case 21:
+    case 31:
+      return "st";
+    case 2:
+    case 22:
+      return "nd";
+    case 3:
+    case 23:
+      return "rd";
+    default:
+      return "th";
+  }
 }

@@ -120,9 +120,10 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                 state.updateFrequency(value, state.isCustomRecurrencePattern);
               }
             },
-            onPatternChanged: (pattern) {
-              state.updateFrequency(pattern.frequency, true);
+            onPatternChanged: (pattern, isCustom) {
+              state.updateFrequency(pattern.frequency, isCustom);
               state.updateInterval(pattern.period);
+              state.updateOffset(pattern.offset);
             },
             toggleDay: state.toggleWeekday,
             frequency: state.recurrancePattern.frequency,
@@ -381,6 +382,11 @@ class RequestEditorState extends ChangeNotifier {
 
   void updateInterval(int interval) {
     _recurrancePattern = _recurrancePattern.copyWith(period: interval);
+    notifyListeners();
+  }
+
+  void updateOffset(int? offset) {
+    _recurrancePattern = _recurrancePattern.copyWith(offset: offset);
     notifyListeners();
   }
 
