@@ -28,6 +28,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
   final contactEmailController = TextEditingController();
   final contactPhoneController = TextEditingController();
   final messageController = TextEditingController();
+  final idController = TextEditingController();
 
   void _updateControllers(RequestEditorState state) {
     eventNameController.text = state.eventname ?? "";
@@ -35,6 +36,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
     contactEmailController.text = state.contactEmail ?? "";
     contactPhoneController.text = state.contactPhone ?? "";
     messageController.text = state.message ?? "";
+    idController.text = state.requestID() ?? "";
   }
 
   @override
@@ -178,6 +180,12 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             labelText: "Additional Info",
             onChanged: state.updateMessage,
           ),
+          if (state.showID())
+            SimpleTextFormField(
+              controller: idController,
+              readOnly: state.readOnly(),
+              labelText: "Request ID",
+            ),
           _getButton(state, panelState, roomState, repo),
         ],
       );
@@ -366,6 +374,14 @@ class RequestEditorState extends ChangeNotifier {
     _eventName = details.eventName;
     _message = details.message;
     notifyListeners();
+  }
+
+  bool showID() {
+    return readOnly() && _existingRequest?.id != null;
+  }
+
+  String? requestID() {
+    return _existingRequest?.id;
   }
 
   void updateFrequency(Frequency frequency, bool isCustom) {
