@@ -18,41 +18,58 @@ class ReviewBookingsScreen extends StatelessWidget {
     FirebaseAnalytics.instance.logScreenView(
         screenName: "Review Bookings", parameters: {"orgID": orgID});
     var repo = Provider.of<OrgRepo>(context, listen: false);
-    return Scaffold(
-        appBar: AppBar(
-          title: const Text('Booking Requests'),
-        ),
-        body: SingleChildScrollView(
-            child: Expanded(
+    return StreamBuilder(
+      stream: repo.getOrg(orgID),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          print(snapshot.error);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: ${snapshot.error}')),
+            );
+          });
+          return const Placeholder();
+        }
+        if (!snapshot.hasData) {
+          return Container();
+        }
+        var org = snapshot.data;
+        return Scaffold(
+            appBar: AppBar(
+              title: Text('Booking Requests for ${org!.name}'),
+            ),
+            body: SingleChildScrollView(
                 child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-              const Heading("Pending"),
-              PendingBookings(
-                repo: repo,
-                onFocusBooking: (r) {},
-                orgID: orgID,
-              ),
-              const Heading("Confirmed"),
-              const Subheading("One-offs"),
-              ConfirmedOneOffBookings(
-                repo: repo,
-                onFocusBooking: (r) {},
-                orgID: orgID,
-              ),
-              const Subheading("Recurring"),
-              ConfirmedRepeatingBookings(
-                repo: repo,
-                onFocusBooking: (r) {},
-                orgID: orgID,
-              ),
-              const Heading("Denied"),
-              RejectedBookings(
-                repo: repo,
-                onFocusBooking: (r) {},
-                orgID: orgID,
-              ),
-            ]))));
+                  const Heading("Pending"),
+                  PendingBookings(
+                    repo: repo,
+                    onFocusBooking: (r) {},
+                    orgID: orgID,
+                  ),
+                  const Heading("Confirmed"),
+                  const Subheading("One-offs"),
+                  ConfirmedOneOffBookings(
+                    repo: repo,
+                    onFocusBooking: (r) {},
+                    orgID: orgID,
+                  ),
+                  const Subheading("Recurring"),
+                  ConfirmedRepeatingBookings(
+                    repo: repo,
+                    onFocusBooking: (r) {},
+                    orgID: orgID,
+                  ),
+                  const Heading("Denied"),
+                  RejectedBookings(
+                    repo: repo,
+                    onFocusBooking: (r) {},
+                    orgID: orgID,
+                  ),
+                ])));
+      },
+    );
   }
 }
 

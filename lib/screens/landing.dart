@@ -122,8 +122,10 @@ class OrgTile extends StatelessWidget {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _settingsButton(context),
                 _viewCalendarButton(context),
+                _reviewButton(context),
+                _scheduleButton(context),
+                _settingsButton(context),
               ],
             ),
           );
@@ -179,6 +181,30 @@ class OrgTile extends StatelessWidget {
         icon: const Icon(Icons.settings),
         onPressed: () {
           AutoRouter.of(context).push(OrgSettingsRoute(orgID: org.id!));
+        },
+      ),
+    );
+  }
+
+  Widget _scheduleButton(BuildContext context) {
+    return Tooltip(
+      message: "Schedule for this org",
+      child: IconButton(
+        icon: const Icon(Icons.view_agenda),
+        onPressed: () {
+          AutoRouter.of(context).push(ScheduleRoute(orgID: org.id!));
+        },
+      ),
+    );
+  }
+
+  Widget _reviewButton(BuildContext context) {
+    return Tooltip(
+      message: "Review requests for this org",
+      child: IconButton(
+        icon: const Icon(Icons.approval),
+        onPressed: () {
+          AutoRouter.of(context).push(ReviewBookingsRoute(orgID: org.id!));
         },
       ),
     );

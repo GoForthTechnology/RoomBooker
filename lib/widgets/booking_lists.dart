@@ -219,7 +219,7 @@ class BookingList extends StatelessWidget {
                 stream: repo.getRequestDetails(orgID, request.id!),
                 builder: (context, detailsSnapshot) {
                   if (!detailsSnapshot.hasData) {
-                    return const CircularProgressIndicator();
+                    return Container();
                   }
                   var details = detailsSnapshot.data!;
                   return BookingTile(
@@ -273,7 +273,7 @@ class BookingTile extends StatelessWidget {
             : null,*/
         child: ExpansionTile(
           title: Text("${details.eventName} for ${details.name}"),
-          subtitle: _subtitle(),
+          subtitle: _subtitle(context),
           leading: _leading(),
           trailing: _trailing(),
           expandedAlignment: Alignment.topLeft,
@@ -309,10 +309,14 @@ class BookingTile extends StatelessWidget {
     );
   }
 
-  Widget _subtitle() {
+  Widget _subtitle(BuildContext context) {
+    var startTimeStr =
+        TimeOfDay.fromDateTime(request.eventStartTime).format(context);
+    var endTimeStr =
+        TimeOfDay.fromDateTime(request.eventEndTime).format(context);
     var subtitle =
-        '${request.roomName} on ${formatDate(request.eventStartTime)} from ${formatTime(request.eventStartTime)} to ${formatTime(request.eventEndTime)}';
-    if (request.recurrancePattern != null) {
+        '${request.roomName} on ${formatDate(request.eventStartTime)} from $startTimeStr to $endTimeStr';
+    if (request.isRepeating()) {
       subtitle += ' (recurring ${request.recurrancePattern})';
     }
     return Text(subtitle);
@@ -353,12 +357,6 @@ String formatDate(DateTime dateTime) {
   return '${dateTime.month}/${dateTime.day}/${dateTime.year}';
 }
 
-String formatTime(DateTime dateTime) {
-  var hourStr = dateTime.hour.toString().padLeft(2, '0');
-  var minuteStr = dateTime.minute.toString().padLeft(2, '0');
-  return "$hourStr:$minuteStr";
-}
-
 class Calendar extends StatelessWidget {
   final String orgID;
   final Request request;
@@ -396,7 +394,7 @@ class Calendar extends StatelessWidget {
                 return const Placeholder();
               }
               if (!snapshot.hasData) {
-                return const CircularProgressIndicator();
+                return Container();
               }
               var calendarData = snapshot.data as CalendarData;
               var filteredRequests = calendarData.existingRequests
