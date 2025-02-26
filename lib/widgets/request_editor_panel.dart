@@ -43,6 +43,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
     _updateControllers(editorState);
 
     var orgState = Provider.of<OrgState>(context, listen: false);
+    var localizations = MaterialLocalizations.of(context);
     return Consumer4<RoomState, RequestEditorState, RequestPanelSate, OrgRepo>(
         builder: (context, roomState, state, panelState, repo, child) {
       var formContents = Column(
@@ -83,6 +84,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               readOnly: state.readOnly(),
               labelText: 'Start Time',
               initialValue: TimeOfDay.fromDateTime(state.startTime),
+              localizations: localizations,
               onChanged: (newTime) {
                 var eventDuration = state.endTime.difference(state.startTime);
                 var newStartTime = DateTime(
@@ -98,6 +100,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               readOnly: state.readOnly(),
               labelText: 'End Time',
               initialValue: TimeOfDay.fromDateTime(state.endTime),
+              localizations: localizations,
               onChanged: (newTime) {
                 var newEndTime = DateTime(
                     state.startTime.year,

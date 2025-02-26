@@ -8,6 +8,7 @@ class TimeField extends StatelessWidget {
   final String labelText;
   final String? validationMessage;
   final controller = TextEditingController();
+  final MaterialLocalizations localizations;
 
   TimeField(
       {super.key,
@@ -15,8 +16,9 @@ class TimeField extends StatelessWidget {
       required this.onChanged,
       required this.labelText,
       this.validationMessage,
-      required this.readOnly}) {
-    controller.text = formatTimeOfDay(initialValue);
+      required this.readOnly,
+      required this.localizations}) {
+    controller.text = localizations.formatTimeOfDay(initialValue);
   }
 
   @override
@@ -37,7 +39,7 @@ class TimeField extends StatelessWidget {
                 return;
               }
               var roundedTime = roundToNearest30Minutes(pickedTime);
-              controller.text = formatTimeOfDay(roundedTime);
+              controller.text = localizations.formatTimeOfDay(roundedTime);
               onChanged(roundedTime);
             },
     );
@@ -49,10 +51,4 @@ class TimeField extends StatelessWidget {
     final int roundedMinute = mod < 15 ? minute - mod : minute + (30 - mod);
     return TimeOfDay(hour: time.hour, minute: roundedMinute);
   }
-}
-
-String formatTimeOfDay(TimeOfDay time) {
-  var hourStr = time.hour.toString().padLeft(2, '0');
-  var minuteStr = time.minute.toString().padLeft(2, '0');
-  return "$hourStr:$minuteStr";
 }
