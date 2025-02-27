@@ -91,8 +91,6 @@ class ViewBookingsScreen extends StatelessWidget {
         Provider.of<RequestEditorState>(context, listen: false);
     var requestPanelState =
         Provider.of<RequestPanelSate>(context, listen: false);
-    var roomState = Provider.of<RoomState>(context, listen: false);
-    var orgState = Provider.of<OrgState>(context, listen: false);
     return CurrentBookingsCalendar(
       view: _getView(context),
       orgID: orgID,
@@ -101,17 +99,7 @@ class ViewBookingsScreen extends StatelessWidget {
         requestEditorState.createRequest(
             details.date!, details.date!.add(const Duration(hours: 1)));
         if (_isSmallView(context)) {
-          showDialog(
-              context: context,
-              builder: (context) => MultiProvider(
-                      providers: [
-                        ChangeNotifierProvider.value(value: requestEditorState),
-                        ChangeNotifierProvider.value(value: roomState),
-                        ChangeNotifierProvider.value(value: requestPanelState),
-                        ChangeNotifierProvider.value(value: orgState),
-                      ],
-                      child: Dialog.fullscreen(
-                          child: NewRequestPanel(orgID: orgID))));
+          _showPannelAsDialog(context);
         } else {
           requestPanelState.showPanel();
         }
@@ -129,16 +117,33 @@ class ViewBookingsScreen extends StatelessWidget {
         }
         requestEditorState.showRequest(request, details);
         if (isSmallView) {
-          showDialog(
-              context: context,
-              builder: (context) =>
-                  Dialog.fullscreen(child: NewRequestPanel(orgID: orgID)));
+          _showPannelAsDialog(context);
         } else {
           requestPanelState.showPanel();
         }
         FirebaseAnalytics.instance.logEvent(name: "Start creating request");
       },
     );
+  }
+
+  void _showPannelAsDialog(BuildContext context) {
+    var requestEditorState =
+        Provider.of<RequestEditorState>(context, listen: false);
+    var requestPanelState =
+        Provider.of<RequestPanelSate>(context, listen: false);
+    var roomState = Provider.of<RoomState>(context, listen: false);
+    var orgState = Provider.of<OrgState>(context, listen: false);
+    showDialog(
+        context: context,
+        builder: (context) => MultiProvider(
+                providers: [
+                  ChangeNotifierProvider.value(value: requestEditorState),
+                  ChangeNotifierProvider.value(value: roomState),
+                  ChangeNotifierProvider.value(value: requestPanelState),
+                  ChangeNotifierProvider.value(value: orgState),
+                ],
+                builder: (context, child) =>
+                    Dialog.fullscreen(child: NewRequestPanel(orgID: orgID))));
   }
 
   List<Widget> _actions(BuildContext context, OrgState orgState) {
