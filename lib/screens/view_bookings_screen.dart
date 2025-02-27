@@ -23,22 +23,25 @@ class ViewBookingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     FirebaseAnalytics.instance.logScreenView(
         screenName: "View Bookings", parameters: {"orgID": orgID});
+    Widget? leading = FirebaseAuth.instance.currentUser == null
+        ? null
+        : BackButton(
+            onPressed: () {
+              var router = AutoRouter.of(context);
+              if (router.canPop()) {
+                router.popForced();
+              } else {
+                router.replace(LandingRoute());
+              }
+            },
+          );
     return OrgStateProvider(
         orgID: orgID,
         child: Consumer<OrgState>(
           builder: (context, orgState, child) => Scaffold(
             appBar: AppBar(
               title: Text(orgState.org.name),
-              leading: BackButton(
-                onPressed: () {
-                  var router = AutoRouter.of(context);
-                  if (router.canPop()) {
-                    router.popForced();
-                  } else {
-                    router.replace(LandingRoute());
-                  }
-                },
-              ),
+              leading: leading,
               actions: _actions(context, orgState),
             ),
             body: CalendarStateProvider(
