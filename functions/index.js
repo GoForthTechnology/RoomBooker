@@ -196,7 +196,7 @@ async function notifyOwnerOfPendingBooking(orgID, bookingID) {
       await sendEmail(
           target,
           "Booking Request Received", `
-          A new booking request is ready for review.
+          A new booking request is ready for review at https://rooms.goforthtech.org/#/review/${orgID}
           `);
       logger.debug(`Sent email notification for ${bookingID} to org owner ${target}`);
     }
