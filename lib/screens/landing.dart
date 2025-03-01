@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
+import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:rxdart/rxdart.dart';
@@ -85,7 +86,8 @@ class CardState {
       repo.listRequests(
           orgID: orgID,
           startTime: DateTime.now(),
-          endTime: DateTime.now().add(Duration(days: 365))),
+          endTime: DateTime.now().add(Duration(days: 365)),
+          includeStatuses: {RequestStatus.pending}),
       repo.adminRequests(orgID),
       (pendingRequests, adminRequests) => CardState(
           numPendingBookings: pendingRequests.length,
@@ -110,7 +112,7 @@ class OrgTile extends StatelessWidget {
           String? subtitle;
           if (snapshot.hasData) {
             var state = snapshot.data!;
-            subtitle = "${state.numPendingAdminRequests} pending bookings";
+            subtitle = "${state.numPendingBookings} pending bookings";
             if (state.numPendingAdminRequests > 0) {
               subtitle += ", ${state.numPendingAdminRequests} admin requests";
             }
