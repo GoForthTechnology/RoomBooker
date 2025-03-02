@@ -36,6 +36,7 @@ class ScheduleScreen extends StatelessWidget {
             actions: [],
           ),
           body: CalendarStateProvider(
+            initialView: CalendarView.schedule,
             child: RequestStateProvider(
               enableAllRooms: true,
               orgID: orgID,
@@ -44,7 +45,7 @@ class ScheduleScreen extends StatelessWidget {
                   RoomCardSelector(),
                   Expanded(
                       child: CurrentBookingsCalendar(
-                    view: CalendarView.schedule,
+                    //view: CalendarView.schedule,
                     orgID: orgID,
                     onTap: (details) {},
                     onTapRequest: (r) {},

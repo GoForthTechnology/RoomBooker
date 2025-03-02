@@ -366,6 +366,7 @@ class Calendar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CalendarStateProvider(
+        initialView: CalendarView.day,
         focusDate: request.eventStartTime,
         child: Consumer2<OrgRepo, CalendarState>(
           builder: (context, repo, calendarState, child) => StreamBuilder(

@@ -6,14 +6,19 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CalendarStateProvider extends StatelessWidget {
   final DateTime? focusDate;
+  final CalendarView initialView;
   final Widget child;
 
-  const CalendarStateProvider({super.key, required this.child, this.focusDate});
+  const CalendarStateProvider(
+      {super.key,
+      required this.child,
+      this.focusDate,
+      required this.initialView});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
-      value: CalendarState(focusDate: focusDate),
+      value: CalendarState(initialView, focusDate: focusDate),
       child: child,
     );
   }
@@ -36,8 +41,9 @@ class CalendarState extends ChangeNotifier {
   DateTime _windowEndDate = getEndDate(DateTime.now());
   bool initialized = false;
 
-  CalendarState({DateTime? focusDate}) {
+  CalendarState(CalendarView initialView, {DateTime? focusDate}) {
     _controller.displayDate = focusDate;
+    _controller.view = initialView;
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       _controller.addPropertyChangedListener((property) {
         if (property == "displayDate") {
@@ -57,9 +63,29 @@ class CalendarState extends ChangeNotifier {
     });
   }
 
+  void focusDay(DateTime date) {
+    var displayDate = _controller.displayDate?.stripTime();
+    if (displayDate != date.stripTime()) {
+      _controller.displayDate = date;
+    }
+    _controller.view = CalendarView.day;
+    notifyListeners();
+  }
+
+  void setView(CalendarView view) {
+    _controller.view = view;
+    notifyListeners();
+  }
+
   get controller => _controller;
   get windowStartDate => _windowStartDate;
   get windowEndDate => _windowEndDate;
+}
+
+extension DateTimeExt on DateTime {
+  DateTime stripTime() {
+    return DateTime(year, month, day);
+  }
 }
 
 class StatefulCalendar extends StatelessWidget {
@@ -118,29 +144,34 @@ class StatefulCalendar extends StatelessWidget {
       showTodayButton: showTodayButton,
       showDatePickerButton: showDatePickerButton,
       allowAppointmentResize: allowAppointmentResize,
+      allowViewNavigation: false,
+      allowedViews: [
+        CalendarView.day,
+        CalendarView.week,
+        CalendarView.month,
+      ],
       minDate: nowRoundedUpToNearestHour(),
       onAppointmentResizeEnd: onResizeEnd,
       onTap: (details) {
-        if (!{
-          CalendarElement.appointment,
-          CalendarElement.calendarCell,
-        }.contains(details.targetElement)) {
-          return;
-        }
-        calendarState.controller.selectedDate = null; // Clear the selected date
-        var appointments = details.appointments ?? [];
-        if (appointments.isEmpty && onTap != null) {
-          onTap!(details);
-          return;
-        }
-        if (onTapBooking != null) {
-          for (var appointment in details.appointments ?? []) {
-            var request = this.appointments[appointment];
-            if (request == null) {
-              throw Exception("Appointment not found in state");
+        switch (details.targetElement) {
+          case CalendarElement.appointment:
+            if (onTapBooking != null) {
+              for (var appointment in details.appointments ?? []) {
+                var request = appointments[appointment];
+                if (request == null) {
+                  throw Exception("Appointment not found in state");
+                }
+                onTapBooking!(request);
+              }
             }
-            onTapBooking!(request);
-          }
+            break;
+          case CalendarElement.calendarCell:
+            if (onTap != null) {
+              onTap!(details);
+            }
+            break;
+          default:
+            break;
         }
       },
       specialRegions: specialRegions,

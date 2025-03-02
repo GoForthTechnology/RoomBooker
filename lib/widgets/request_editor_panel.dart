@@ -9,6 +9,7 @@ import 'package:room_booker/widgets/org_state_provider.dart';
 import 'package:room_booker/widgets/repeat_bookings_selector.dart';
 import 'package:room_booker/widgets/room_selector.dart';
 import 'package:room_booker/widgets/simple_text_form_field.dart';
+import 'package:room_booker/widgets/stateful_calendar.dart';
 import 'package:room_booker/widgets/time_field.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
@@ -19,6 +20,17 @@ class NewRequestPanel extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() => NewRequestPanelState();
+}
+
+void closePanel(BuildContext context) {
+  var panelState = Provider.of<RequestPanelSate>(context, listen: false);
+  panelState.hidePanel(context);
+
+  var requestState = Provider.of<RequestEditorState>(context, listen: false);
+  requestState.clearAppointment();
+
+  var calendarState = Provider.of<CalendarState>(context, listen: false);
+  calendarState.setView(CalendarView.month);
 }
 
 class NewRequestPanelState extends State<NewRequestPanel> {
@@ -55,14 +67,12 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             actions: [
               IconButton(
                 icon: const Icon(Icons.close),
-                onPressed: () {
-                  panelState.hidePanel(context);
-                  state.clearAppointment();
-                },
+                onPressed: () => closePanel(context),
               )
             ],
             automaticallyImplyLeading: false,
           ),
+          RoomDropdownSelector(),
           SimpleTextFormField(
               readOnly: state.readOnly(),
               controller: eventNameController,
@@ -268,8 +278,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               var request = state.getRequest(roomState)!;
               await repo.addBooking(
                   widget.orgID, request, state.getPrivateDetails());
-              state.clearAppointment();
-              panelState.hidePanel(context);
+              closePanel(context);
               FirebaseAnalytics.instance.logEvent(
                   name: "Booking Added", parameters: {"orgID": widget.orgID});
             }
@@ -283,8 +292,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             var request = state.getRequest(roomState)!;
             await repo.submitBookingRequest(
                 widget.orgID, request, state.getPrivateDetails());
-            state.clearAppointment();
-            panelState.hidePanel(context);
+            closePanel(context);
             FirebaseAnalytics.instance.logEvent(
                 name: "Request Submitted", parameters: {"orgID": widget.orgID});
           }

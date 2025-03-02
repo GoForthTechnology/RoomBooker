@@ -45,8 +45,9 @@ class ViewBookingsScreen extends StatelessWidget {
               actions: _actions(context, orgState),
             ),
             body: CalendarStateProvider(
+              initialView: CalendarView.month,
               child: RequestStateProvider(
-                enableAllRooms: false,
+                enableAllRooms: true,
                 orgID: orgID,
                 child: Consumer<RequestPanelSate>(
                   builder: (context, requestPanelState, child) => Row(
@@ -56,7 +57,7 @@ class ViewBookingsScreen extends StatelessWidget {
                         flex: 3,
                         child: Column(
                           children: [
-                            const RoomDropdownSelector(),
+                            RoomCardSelector(),
                             Expanded(child: _buildCalendar(context)),
                           ],
                         ),
@@ -78,13 +79,6 @@ class ViewBookingsScreen extends StatelessWidget {
         ));
   }
 
-  CalendarView _getView(BuildContext context) {
-    if (_isSmallView(context)) {
-      return CalendarView.day;
-    }
-    return CalendarView.week;
-  }
-
   bool _isSmallView(BuildContext context) {
     return MediaQuery.sizeOf(context).width < 600;
   }
@@ -94,17 +88,24 @@ class ViewBookingsScreen extends StatelessWidget {
         Provider.of<RequestEditorState>(context, listen: false);
     var requestPanelState =
         Provider.of<RequestPanelSate>(context, listen: false);
+    var calendarState = Provider.of<CalendarState>(context, listen: false);
     return CurrentBookingsCalendar(
-      view: _getView(context),
+      //view: _getView(context),
       orgID: orgID,
       onTap: (details) {
-        requestEditorState.clearAppointment();
-        requestEditorState.createRequest(
-            details.date!, details.date!.add(const Duration(hours: 1)));
-        if (_isSmallView(context)) {
-          _showPannelAsDialog(context);
+        var targetDate = details.date!;
+        var currentView = calendarState.controller.view;
+        if (currentView != CalendarView.day) {
+          calendarState.focusDay(targetDate);
         } else {
-          requestPanelState.showPanel();
+          requestEditorState.clearAppointment();
+          requestEditorState.createRequest(
+              details.date!, details.date!.add(const Duration(hours: 1)));
+          if (_isSmallView(context)) {
+            _showPannelAsDialog(context);
+          } else {
+            requestPanelState.showPanel();
+          }
         }
       },
       onTapRequest: (request) async {

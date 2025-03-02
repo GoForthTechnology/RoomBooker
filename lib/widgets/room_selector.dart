@@ -66,12 +66,11 @@ class RoomState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setActiveRoom(Room room) {
-    if (!_rooms.containsKey(room.id!)) {
-      throw ArgumentError("Room $room not found in ${_rooms.keys}");
-    }
+  void setActiveRoom(Room? room) {
     _activeIDs.clear();
-    _activeIDs.add(room.id!);
+    if (room != null) {
+      _activeIDs.add(room.id!);
+    }
     notifyListeners();
   }
 }
@@ -152,12 +151,9 @@ class RoomDropdownSelector extends StatelessWidget {
         },
       ),
     );
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints.tightFor(width: 400),
-        child: field,
-      ),
+    return ConstrainedBox(
+      constraints: const BoxConstraints.tightFor(width: 400),
+      child: field,
     );
   }
 }
