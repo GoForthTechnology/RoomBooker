@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -51,7 +53,7 @@ class OrgList extends StatelessWidget {
         stream: repo.getOrgsForCurrentUser(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            print(snapshot.error);
+            log(snapshot.error.toString(), error: snapshot.error);
             return const Text('Error loading organizations');
           }
           if (snapshot.connectionState == ConnectionState.waiting) {

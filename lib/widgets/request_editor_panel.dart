@@ -298,7 +298,11 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             var request = state.getRequest(roomState)!;
             await repo.submitBookingRequest(
                 widget.orgID, request, state.getPrivateDetails());
-            closePanel(context);
+            if (context.mounted) {
+              closePanel(context);
+            } else {
+              log("Context not mounted", error: Exception());
+            }
             FirebaseAnalytics.instance.logEvent(
                 name: "Request Submitted", parameters: {"orgID": widget.orgID});
           }

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -45,7 +47,8 @@ class CurrentBookingsCalendar extends StatelessWidget {
             RemoteState.createStream(repo, roomState, calendarState, orgState),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            print(snapshot.error);
+            log(snapshot.error.toString(), error: snapshot.error);
+
             WidgetsBinding.instance.addPostFrameCallback((_) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Error: ${snapshot.error}')),
@@ -92,12 +95,6 @@ class CurrentBookingsCalendar extends StatelessWidget {
                 for (var request in requests) {
                   appointments[request.toAppointment(roomState,
                       subject: "Another occurance")] = request;
-                }
-              }
-              if (kDebugMode) {
-                print("Num Appointments: ${appointments.length}");
-                for (var a in appointments.keys) {
-                  print("Appointment: ${a.subject}");
                 }
               }
               return StatefulCalendar(

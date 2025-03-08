@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +25,7 @@ class ReviewBookingsScreen extends StatelessWidget {
       stream: repo.getOrg(orgID),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          print(snapshot.error);
+          log(snapshot.error.toString(), error: snapshot.error);
           WidgetsBinding.instance.addPostFrameCallback((_) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Error: ${snapshot.error}')),

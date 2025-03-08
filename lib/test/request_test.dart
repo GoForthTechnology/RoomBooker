@@ -16,7 +16,6 @@ void main() {
 
       var instances = request.expand(
           eventStartTime, eventStartTime.add(Duration(days: 365)));
-      print(instances);
       expect(instances.length, 3);
       expect(instances[0].eventStartTime, eventStartTime);
       expect(

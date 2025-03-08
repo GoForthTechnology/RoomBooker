@@ -65,10 +65,10 @@ class NotificationWidget extends StatefulWidget {
   const NotificationWidget({super.key, required this.org, required this.repo});
 
   @override
-  _NotificationWidgetState createState() => _NotificationWidgetState();
+  NotificationWidgetState createState() => NotificationWidgetState();
 }
 
-class _NotificationWidgetState extends State<NotificationWidget> {
+class NotificationWidgetState extends State<NotificationWidget> {
   bool dirty = false;
   final _formKey = GlobalKey<FormState>();
   final controllers = <NotificationEvent, TextEditingController>{};

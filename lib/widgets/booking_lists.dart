@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/request.dart';
@@ -90,7 +92,7 @@ class ConfirmedRepeatingBookings extends StatelessWidget {
                 ),
               ],
             ));
-    if (!shouldEnd) {
+    if (!shouldEnd || !context.mounted) {
       return;
     }
     DateTime? endDate = await showDatePicker(
@@ -99,7 +101,6 @@ class ConfirmedRepeatingBookings extends StatelessWidget {
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
-    print(endDate);
     if (endDate == null) {
       return;
     }
@@ -197,7 +198,7 @@ class BookingList extends StatelessWidget {
                 requests.where(requestFilter ?? (r) => true).toList()),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            print(snapshot.error);
+            log(snapshot.error.toString(), error: snapshot.error);
             WidgetsBinding.instance.addPostFrameCallback((_) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Error: ${snapshot.error}')),
@@ -347,12 +348,6 @@ TableRow bookingField(String label, String value) {
   ]);
 }
 
-String bookingTitle(Request booking) {
-  // TODO: replace with private fields
-  // return '${booking.eventName} for ${booking.name}';
-  return "Some title";
-}
-
 String formatDate(DateTime dateTime) {
   return '${dateTime.month}/${dateTime.day}/${dateTime.year}';
 }
@@ -386,7 +381,7 @@ class Calendar extends StatelessWidget {
                     privateDetails: [requestDetails!])),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                print(snapshot.error);
+                log(snapshot.error.toString(), error: snapshot.error);
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error: ${snapshot.error}')),

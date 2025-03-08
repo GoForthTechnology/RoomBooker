@@ -18,7 +18,6 @@ void main() {
               RecurrancePattern.monthlyOnNth(1, Weekday.saturday));
       var instances =
           r.expand(eventStartTime, eventStartTime.add(Duration(days: 90)));
-      print("FOO");
       expect(instances.length, 4);
       expect(instances[0].eventStartTime, eventStartTime);
       expect(
