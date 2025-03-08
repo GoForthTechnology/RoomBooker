@@ -207,9 +207,10 @@ class OrgRepo extends ChangeNotifier {
     List<Query<Request>> queries = [];
     var hasConfirmed = includeStatuses == null ||
         includeStatuses.contains(RequestStatus.confirmed);
+    final frequencyPath = FieldPath(["recurrancePattern", "frequency"]);
     if (hasConfirmed) {
       queries.add(_confirmedRequestsRef(orgID)
-          .where("recurrancePattern", isNull: true));
+          .where(frequencyPath, isEqualTo: "never"));
     }
     if (includeStatuses == null ||
         includeStatuses.contains(RequestStatus.pending)) {
@@ -229,11 +230,12 @@ class OrgRepo extends ChangeNotifier {
         .toList();
     // Add this one after the queries that are bound to the current time window
     if (hasConfirmed) {
+      final endPath = FieldPath(["recurrancePattern", "end"]);
       queries.add(_confirmedRequestsRef(orgID)
-          .where("recurrancePattern", isNotEqualTo: null)
+          .where(frequencyPath, isNotEqualTo: "never")
           .where(Filter.or(
-            Filter("recurrancePattern.end", isNull: true),
-            Filter("recurrancePattern.end", isLessThan: endTime.toString()),
+            Filter(endPath, isNull: true),
+            Filter(endPath, isLessThan: endTime.toString()),
           )));
     }
     if (includeRoomIDs != null) {
