@@ -37,6 +37,7 @@ class ScheduleScreen extends StatelessWidget {
           ),
           body: CalendarStateProvider(
             initialView: CalendarView.schedule,
+            focusDate: DateTime.now(),
             child: RequestStateProvider(
               enableAllRooms: true,
               orgID: orgID,

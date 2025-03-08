@@ -5,7 +5,7 @@ import 'package:room_booker/entities/request.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CalendarStateProvider extends StatelessWidget {
-  final DateTime? focusDate;
+  final DateTime focusDate;
   final CalendarView initialView;
   final Widget? child;
   final Widget Function(BuildContext, Widget?)? builder;
@@ -13,7 +13,7 @@ class CalendarStateProvider extends StatelessWidget {
   const CalendarStateProvider(
       {super.key,
       this.child,
-      this.focusDate,
+      required this.focusDate,
       required this.initialView,
       this.builder});
 
@@ -48,8 +48,6 @@ class CalendarData {
 
 class CalendarState extends ChangeNotifier {
   final CalendarController _controller = CalendarController();
-  DateTime _windowStartDate = getStartDate(DateTime.now());
-  DateTime _windowEndDate = getEndDate(DateTime.now());
   bool initialized = false;
 
   CalendarState(CalendarView initialView, {DateTime? focusDate}) {
@@ -66,8 +64,6 @@ class CalendarState extends ChangeNotifier {
             initialized = true;
             return;
           }
-          _windowStartDate = getStartDate(controller.displayDate!);
-          _windowEndDate = getEndDate(controller.displayDate!);
           notifyListeners();
         }
       });
@@ -88,9 +84,64 @@ class CalendarState extends ChangeNotifier {
     notifyListeners();
   }
 
+  DateTime startOfView() {
+    var displayDate = _controller.displayDate!;
+    switch (_controller.view) {
+      case CalendarView.day:
+        return displayDate;
+      case CalendarView.week:
+        var date = displayDate;
+        while (getWeekday(date) != Weekday.sunday) {
+          date = date.subtract(Duration(days: 1));
+        }
+        return date;
+      case CalendarView.month:
+        var startOfMonth = DateTime(displayDate.year, displayDate.month, 1);
+        while (getWeekday(startOfMonth) != Weekday.sunday) {
+          startOfMonth = startOfMonth.subtract(Duration(days: 1));
+        }
+        return startOfMonth;
+      case CalendarView.timelineDay:
+      case CalendarView.timelineWeek:
+      case CalendarView.timelineWorkWeek:
+      case CalendarView.timelineMonth:
+      case CalendarView.schedule:
+      case CalendarView.workWeek:
+      case null:
+        throw UnimplementedError();
+    }
+  }
+
+  DateTime endOfView() {
+    var start = controller.displayDate!;
+    switch (_controller.view) {
+      case CalendarView.day:
+        return start;
+      case CalendarView.week:
+        var date = start;
+        while (getWeekday(date) != Weekday.saturday) {
+          date = date.add(Duration(days: 1));
+        }
+        return start.add(Duration(days: 7));
+      case CalendarView.month:
+        var date = DateTime(start.year, start.month + 1, 1)
+            .subtract(Duration(days: 1));
+        while (getWeekday(date) != Weekday.saturday) {
+          date = date.add(Duration(days: 1));
+        }
+        return date;
+      case CalendarView.timelineDay:
+      case CalendarView.timelineWeek:
+      case CalendarView.timelineWorkWeek:
+      case CalendarView.timelineMonth:
+      case CalendarView.schedule:
+      case CalendarView.workWeek:
+      case null:
+        throw UnimplementedError();
+    }
+  }
+
   get controller => _controller;
-  get windowStartDate => _windowStartDate;
-  get windowEndDate => _windowEndDate;
 }
 
 extension DateTimeExt on DateTime {

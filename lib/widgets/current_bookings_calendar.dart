@@ -78,7 +78,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
                     request.toAppointment(roomState, subject: subject);
                 appointments[appointment] = request;
                 for (var repeat in request.expand(
-                    calendarState.windowStartDate, calendarState.windowEndDate,
+                    calendarState.startOfView(), calendarState.endOfView(),
                     includeRequestDate: false)) {
                   appointment =
                       repeat.toAppointment(roomState, subject: subject);
@@ -89,7 +89,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
               if (request != null &&
                   request.status != RequestStatus.confirmed) {
                 var requests = request.expand(
-                    calendarState.windowStartDate, calendarState.windowEndDate,
+                    calendarState.startOfView(), calendarState.endOfView(),
                     includeRequestDate: false);
                 for (var request in requests) {
                   appointments[request.toAppointment(roomState,
@@ -137,11 +137,13 @@ class RemoteState {
 
   static Stream<RemoteState> createStream(OrgRepo repo, RoomState roomState,
       CalendarState calendarState, OrgState orgState) {
+    var startTime = calendarState.startOfView();
+    var endTime = calendarState.endOfView();
     var roomIDs = roomState.enabledValues().map((r) => r.id!).toSet();
     return repo.listRequests(
         orgID: orgState.org.id!,
-        startTime: calendarState.windowStartDate,
-        endTime: calendarState.windowEndDate,
+        startTime: startTime,
+        endTime: endTime,
         includeRoomIDs: roomIDs,
         includeStatuses: {
           RequestStatus.pending,

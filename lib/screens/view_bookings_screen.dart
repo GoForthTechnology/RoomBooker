@@ -51,7 +51,7 @@ class ViewBookingsScreen extends StatelessWidget {
           requestStartTime: createRequest ? targetDate : null,
           child: CalendarStateProvider(
             initialView: view,
-            focusDate: targetDate,
+            focusDate: targetDate ?? DateTime.now(),
             builder: (context, child) {
               var calendarState = Provider.of<CalendarState>(context);
               bool showFab = calendarState.controller.view != CalendarView.day;
