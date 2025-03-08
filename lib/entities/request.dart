@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:room_booker/screens/review_bookings_screen.dart';
 
 part 'request.g.dart';
 
@@ -172,6 +173,7 @@ class Request {
     // Ensure the start date is after the window start
     var effectiveStart =
         eventStartTime.isAfter(windowStart) ? eventStartTime : windowStart;
+    effectiveStart = stripTime(effectiveStart);
     if (effectiveEnd.isBefore(effectiveStart)) {
       // The series has not started yet
       return [];
