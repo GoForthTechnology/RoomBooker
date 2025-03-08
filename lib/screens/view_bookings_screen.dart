@@ -15,9 +15,16 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 @RoutePage()
 class ViewBookingsScreen extends StatelessWidget {
   final String orgID;
+  final CalendarView view;
+  final bool createRequest;
+  final DateTime? targetDate;
 
   const ViewBookingsScreen(
-      {super.key, @PathParam('orgID') required this.orgID});
+      {super.key,
+      @PathParam('orgID') required this.orgID,
+      this.view = CalendarView.month,
+      this.createRequest = false,
+      this.targetDate});
 
   @override
   Widget build(BuildContext context) {
@@ -41,8 +48,10 @@ class ViewBookingsScreen extends StatelessWidget {
         builder: (context, orgState, child) => RequestStateProvider(
           enableAllRooms: true,
           orgID: orgID,
+          requestStartTime: createRequest ? targetDate : null,
           child: CalendarStateProvider(
-            initialView: CalendarView.month,
+            initialView: view,
+            focusDate: targetDate,
             builder: (context, child) {
               var calendarState = Provider.of<CalendarState>(context);
               bool showFab = calendarState.controller.view != CalendarView.day;
@@ -91,11 +100,8 @@ class ViewBookingsScreen extends StatelessWidget {
   }
 
   void _onFabPressed(BuildContext context) async {
+    var router = AutoRouter.of(context);
     var calendarState = Provider.of<CalendarState>(context, listen: false);
-    var requestEditorState =
-        Provider.of<RequestEditorState>(context, listen: false);
-    var requestPanelState =
-        Provider.of<RequestPanelSate>(context, listen: false);
 
     var focusDate = calendarState.controller.displayDate;
     var firstDate = DateTime(focusDate!.year, focusDate.month);
@@ -108,7 +114,7 @@ class ViewBookingsScreen extends StatelessWidget {
       firstDate: firstDate,
       lastDate: lastDate,
     );
-    if (targetDate == null) {
+    if (targetDate == null || !context.mounted) {
       return;
     }
 
@@ -122,15 +128,11 @@ class ViewBookingsScreen extends StatelessWidget {
 
     var startTime = DateTime(targetDate.year, targetDate.month, targetDate.day,
         eventTime.hour, eventTime.minute);
-    calendarState.focusDay(startTime);
-    requestEditorState.clearAppointment();
-    requestEditorState.createRequest(
-        startTime, startTime.add(Duration(hours: 1)));
-    if (_isSmallView(context)) {
-      _showPannelAsDialog(context);
-    } else {
-      requestPanelState.showPanel();
-    }
+    router.push(ViewBookingsRoute(
+        orgID: orgID,
+        view: CalendarView.day,
+        targetDate: startTime,
+        createRequest: true));
   }
 
   bool _isSmallView(BuildContext context) {
@@ -150,16 +152,17 @@ class ViewBookingsScreen extends StatelessWidget {
         var targetDate = details.date!;
         var currentView = calendarState.controller.view;
         if (currentView != CalendarView.day) {
-          calendarState.focusDay(targetDate);
+          AutoRouter.of(context).push(ViewBookingsRoute(
+              orgID: orgID, view: CalendarView.day, targetDate: targetDate));
+          return;
+        }
+        requestEditorState.clearAppointment();
+        requestEditorState.createRequest(
+            details.date!, details.date!.add(const Duration(hours: 1)));
+        if (_isSmallView(context)) {
+          _showPannelAsDialog(context);
         } else {
-          requestEditorState.clearAppointment();
-          requestEditorState.createRequest(
-              details.date!, details.date!.add(const Duration(hours: 1)));
-          if (_isSmallView(context)) {
-            _showPannelAsDialog(context);
-          } else {
-            requestPanelState.showPanel();
-          }
+          requestPanelState.showPanel();
         }
       },
       onTapRequest: (request) async {
@@ -174,7 +177,7 @@ class ViewBookingsScreen extends StatelessWidget {
           return;
         }
         requestEditorState.showRequest(request, details);
-        if (isSmallView) {
+        if (isSmallView && context.mounted) {
           _showPannelAsDialog(context);
         } else {
           requestPanelState.showPanel();

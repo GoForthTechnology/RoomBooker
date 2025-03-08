@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/blackout_window.dart';
@@ -91,6 +92,12 @@ class CurrentBookingsCalendar extends StatelessWidget {
                 for (var request in requests) {
                   appointments[request.toAppointment(roomState,
                       subject: "Another occurance")] = request;
+                }
+              }
+              if (kDebugMode) {
+                print("Num Appointments: ${appointments.length}");
+                for (var a in appointments.keys) {
+                  print("Appointment: ${a.subject}");
                 }
               }
               return StatefulCalendar(

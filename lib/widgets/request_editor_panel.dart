@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -278,7 +280,11 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               var request = state.getRequest(roomState)!;
               await repo.addBooking(
                   widget.orgID, request, state.getPrivateDetails());
-              closePanel(context);
+              if (context.mounted) {
+                closePanel(context);
+              } else {
+                log("Context not mounted", error: Exception());
+              }
               FirebaseAnalytics.instance.logEvent(
                   name: "Booking Added", parameters: {"orgID": widget.orgID});
             }
@@ -307,12 +313,14 @@ class RequestStateProvider extends StatelessWidget {
   final String orgID;
   final Widget child;
   final bool enableAllRooms;
+  final DateTime? requestStartTime;
 
   const RequestStateProvider(
       {super.key,
       required this.child,
       required this.orgID,
-      required this.enableAllRooms});
+      required this.enableAllRooms,
+      this.requestStartTime});
 
   @override
   Widget build(BuildContext context) {
@@ -320,16 +328,18 @@ class RequestStateProvider extends StatelessWidget {
         orgID: orgID,
         enableAllRooms: enableAllRooms,
         builder: (context, roomState) => ChangeNotifierProvider.value(
-            value: RequestEditorState(),
+            value: RequestEditorState(requestStartTime),
             child: ChangeNotifierProvider.value(
-                value: RequestPanelSate(),
+                value: RequestPanelSate(requestStartTime != null),
                 child: ChangeNotifierProvider.value(
                     value: roomState, child: child))));
   }
 }
 
 class RequestPanelSate extends ChangeNotifier {
-  bool _active = false;
+  bool _active;
+
+  RequestPanelSate(this._active);
 
   bool get active => _active;
 
@@ -370,6 +380,13 @@ class RequestEditorState extends ChangeNotifier {
   DateTime get endTime => _endTime!;
   RecurrancePattern get recurrancePattern => _recurrancePattern;
   bool get isCustomRecurrencePattern => _customRecurrencePattern;
+
+  RequestEditorState(DateTime? startTime) {
+    if (startTime != null) {
+      _startTime = roundToNearest30Minutes(startTime);
+      _endTime = _startTime!.add(const Duration(hours: 1));
+    }
+  }
 
   void showRequest(Request request, PrivateRequestDetails details) {
     _existingRequest = request;
