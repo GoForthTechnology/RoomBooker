@@ -33,6 +33,9 @@ void closePanel(BuildContext context) {
 
   var calendarState = Provider.of<CalendarState>(context, listen: false);
   calendarState.setView(CalendarView.month);
+
+  var roomState = Provider.of<RoomState>(context, listen: false);
+  roomState.activateAll();
 }
 
 class NewRequestPanelState extends State<NewRequestPanel> {

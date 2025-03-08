@@ -80,6 +80,11 @@ class RoomState extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void activateAll() {
+    _activeIDs.addAll(_rooms.keys);
+    notifyListeners();
+  }
 }
 
 class RoomStateProvider extends StatelessWidget {
