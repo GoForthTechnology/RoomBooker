@@ -36,21 +36,30 @@ class ViewBookingsScreen extends StatelessWidget {
             },
           );
     return OrgStateProvider(
-        orgID: orgID,
-        child: Consumer<OrgState>(
-          builder: (context, orgState, child) => Scaffold(
-            appBar: AppBar(
-              title: Text(orgState.org.name),
-              leading: leading,
-              actions: _actions(context, orgState),
-            ),
-            body: CalendarStateProvider(
-              initialView: CalendarView.month,
-              child: RequestStateProvider(
-                enableAllRooms: true,
-                orgID: orgID,
-                child: Consumer<RequestPanelSate>(
-                  builder: (context, requestPanelState, child) => Row(
+      orgID: orgID,
+      child: Consumer<OrgState>(
+        builder: (context, orgState, child) => RequestStateProvider(
+          enableAllRooms: true,
+          orgID: orgID,
+          child: CalendarStateProvider(
+            initialView: CalendarView.month,
+            builder: (context, child) {
+              var calendarState = Provider.of<CalendarState>(context);
+              bool showFab = calendarState.controller.view != CalendarView.day;
+              return Consumer<RequestPanelSate>(
+                builder: (context, requestPanelState, child) => Scaffold(
+                  appBar: AppBar(
+                    title: Text(orgState.org.name),
+                    leading: leading,
+                    actions: _actions(context, orgState),
+                  ),
+                  floatingActionButton: showFab
+                      ? FloatingActionButton(
+                          onPressed: () => _onFabPressed(context),
+                          child: const Icon(Icons.add),
+                        )
+                      : null,
+                  body: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Flexible(
@@ -73,10 +82,55 @@ class ViewBookingsScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
-        ));
+        ),
+      ),
+    );
+  }
+
+  void _onFabPressed(BuildContext context) async {
+    var calendarState = Provider.of<CalendarState>(context, listen: false);
+    var requestEditorState =
+        Provider.of<RequestEditorState>(context, listen: false);
+    var requestPanelState =
+        Provider.of<RequestPanelSate>(context, listen: false);
+
+    var focusDate = calendarState.controller.displayDate;
+    var firstDate = DateTime(focusDate!.year, focusDate.month);
+    var lastDate = DateTime(focusDate.year, focusDate.month + 1)
+        .subtract(Duration(days: 1));
+
+    var targetDate = await showDatePicker(
+      context: context,
+      initialDate: focusDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+    );
+    if (targetDate == null) {
+      return;
+    }
+
+    var eventTime = await showTimePicker(
+        context: context,
+        helpText: "Select start time",
+        initialTime: TimeOfDay.fromDateTime(targetDate));
+    if (eventTime == null) {
+      return;
+    }
+
+    var startTime = DateTime(targetDate.year, targetDate.month, targetDate.day,
+        eventTime.hour, eventTime.minute);
+    calendarState.focusDay(startTime);
+    requestEditorState.clearAppointment();
+    requestEditorState.createRequest(
+        startTime, startTime.add(Duration(hours: 1)));
+    if (_isSmallView(context)) {
+      _showPannelAsDialog(context);
+    } else {
+      requestPanelState.showPanel();
+    }
   }
 
   bool _isSmallView(BuildContext context) {

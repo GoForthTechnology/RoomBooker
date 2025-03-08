@@ -189,7 +189,6 @@ class OrgRepo extends ChangeNotifier {
     await _confirmedRequestsRef(orgID).doc(requestID).update({
       "recurrancePattern.end": trimmedEnd.toString(),
     });
-    print("FOO");
   }
 
   Stream<PrivateRequestDetails?> getRequestDetails(

@@ -7,20 +7,31 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 class CalendarStateProvider extends StatelessWidget {
   final DateTime? focusDate;
   final CalendarView initialView;
-  final Widget child;
+  final Widget? child;
+  final Widget Function(BuildContext, Widget?)? builder;
 
   const CalendarStateProvider(
       {super.key,
-      required this.child,
+      this.child,
       this.focusDate,
-      required this.initialView});
+      required this.initialView,
+      this.builder});
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: CalendarState(initialView, focusDate: focusDate),
-      child: child,
-    );
+    if (builder != null) {
+      return ChangeNotifierProvider.value(
+        value: CalendarState(initialView, focusDate: focusDate),
+        builder: builder!,
+      );
+    }
+    if (child != null) {
+      return ChangeNotifierProvider.value(
+        value: CalendarState(initialView, focusDate: focusDate),
+        child: child,
+      );
+    }
+    throw Exception("Must provide either child or builder");
   }
 }
 
@@ -64,11 +75,11 @@ class CalendarState extends ChangeNotifier {
   }
 
   void focusDay(DateTime date) {
+    _controller.view = CalendarView.day;
     var displayDate = _controller.displayDate?.stripTime();
     if (displayDate != date.stripTime()) {
       _controller.displayDate = date;
     }
-    _controller.view = CalendarView.day;
     notifyListeners();
   }
 
