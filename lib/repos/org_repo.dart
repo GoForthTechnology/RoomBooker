@@ -191,6 +191,15 @@ class OrgRepo extends ChangeNotifier {
     });
   }
 
+  Future<void> deleteBooking(String orgID, String requestID) async {
+    await _db.runTransaction((t) async {
+      var requestRef = _confirmedRequestsRef(orgID).doc(requestID);
+      var privateDetailsRef = _privateRequestDetailsRef(orgID, requestID);
+      t.delete(requestRef);
+      t.delete(privateDetailsRef);
+    });
+  }
+
   Stream<PrivateRequestDetails?> getRequestDetails(
       String orgID, String requestID) {
     return _privateRequestDetailsRef(orgID, requestID)

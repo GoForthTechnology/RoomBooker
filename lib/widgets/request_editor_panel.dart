@@ -251,12 +251,29 @@ class NewRequestPanelState extends State<NewRequestPanel> {
         }
         var buttons = <Widget>[
           ElevatedButton(
+            onPressed: null, // TODO: implement edit
+            child: Tooltip(
+              message: "Edit the request",
+              child: const Text("Edit"),
+            ),
+          ),
+          ElevatedButton(
             onPressed: () async {
               var request = state.getRequest(roomState)!;
               await repo.revisitBookingRequest(widget.orgID, request);
               state.updateStatus(RequestStatus.pending);
             },
-            child: const Text("Revisit"),
+            child: Tooltip(
+              message: "Reset request to pending",
+              child: const Text("Revisit"),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _onDelete,
+            child: Tooltip(
+              message: "Delete the request",
+              child: const Text("Delete"),
+            ),
           )
         ];
         if (state.recurrancePattern.frequency != Frequency.never &&
@@ -274,7 +291,11 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             child: const Text("End Series"),
           ));
         }
-        return Row(children: buttons);
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.max,
+          children: buttons,
+        );
       }
       if (orgState.currentUserIsAdmin()) {
         return ElevatedButton(
@@ -313,6 +334,43 @@ class NewRequestPanelState extends State<NewRequestPanel> {
         child: const Text("Submit Request"),
       );
     });
+  }
+
+  void _onDelete() async {
+    var state = Provider.of<RequestEditorState>(context, listen: false);
+    var repo = Provider.of<OrgRepo>(context, listen: false);
+    var roomState = Provider.of<RoomState>(context, listen: false);
+
+    bool confirmDelete = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Confirm Delete"),
+          content: const Text("Are you sure you want to delete this request?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmDelete) {
+      var request = state.getRequest(roomState)!;
+      await repo.deleteBooking(widget.orgID, request.id!);
+      state.clearAppointment();
+      closePanel(context);
+    }
   }
 }
 
