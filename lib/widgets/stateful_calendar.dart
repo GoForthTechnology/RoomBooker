@@ -87,6 +87,7 @@ class CalendarState extends ChangeNotifier {
   DateTime startOfView() {
     var displayDate = _controller.displayDate!;
     switch (_controller.view) {
+      case CalendarView.schedule:
       case CalendarView.day:
         return displayDate;
       case CalendarView.week:
@@ -105,7 +106,6 @@ class CalendarState extends ChangeNotifier {
       case CalendarView.timelineWeek:
       case CalendarView.timelineWorkWeek:
       case CalendarView.timelineMonth:
-      case CalendarView.schedule:
       case CalendarView.workWeek:
       case null:
         throw UnimplementedError();
@@ -130,11 +130,12 @@ class CalendarState extends ChangeNotifier {
           date = date.add(Duration(days: 1));
         }
         return date;
+      case CalendarView.schedule:
+        return start.add(Duration(days: 90));
       case CalendarView.timelineDay:
       case CalendarView.timelineWeek:
       case CalendarView.timelineWorkWeek:
       case CalendarView.timelineMonth:
-      case CalendarView.schedule:
       case CalendarView.workWeek:
       case null:
         throw UnimplementedError();
