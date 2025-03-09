@@ -116,7 +116,7 @@ class CalendarState extends ChangeNotifier {
     var start = controller.displayDate!;
     switch (_controller.view) {
       case CalendarView.day:
-        return start;
+        return start.add(Duration(days: 1));
       case CalendarView.week:
         var date = start;
         while (getWeekday(date) != Weekday.saturday) {
