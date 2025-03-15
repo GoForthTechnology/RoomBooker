@@ -174,6 +174,27 @@ class OrgRepo extends ChangeNotifier {
     });
   }
 
+  Future<void> updateBooking(String orgID, Request request,
+      PrivateRequestDetails privateDetails, RequestStatus status) async {
+    await _db.runTransaction((t) async {
+      switch (status) {
+        case RequestStatus.confirmed:
+          var requestRef = _confirmedRequestsRef(orgID).doc(request.id);
+          t.set(requestRef, request);
+          break;
+        case RequestStatus.pending:
+          var requestRef = _pendingBookingsRef(orgID).doc(request.id);
+          t.set(requestRef, request);
+          break;
+        case RequestStatus.unknown:
+        case RequestStatus.denied:
+          throw UnimplementedError();
+      }
+      var privateDetailsRef = _privateRequestDetailsRef(orgID, request.id!);
+      t.set(privateDetailsRef, privateDetails);
+    });
+  }
+
   Future<void> addBooking(String orgID, Request request,
       PrivateRequestDetails privateDetails) async {
     await _db.runTransaction((t) async {

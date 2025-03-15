@@ -9,6 +9,7 @@ import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()
 class LandingScreen extends StatelessWidget {
@@ -169,8 +170,8 @@ class OrgTile extends StatelessWidget {
                     );
                     return;
                   }
-                  AutoRouter.of(context)
-                      .push(ViewBookingsRoute(orgID: org.id!));
+                  AutoRouter.of(context).push(ViewBookingsRoute(
+                      orgID: org.id!, view: CalendarView.month));
                 },
               ),
             );

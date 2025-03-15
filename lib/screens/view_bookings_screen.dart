@@ -31,9 +31,8 @@ class ViewBookingsScreen extends StatelessWidget {
       this.createRequest = false,
       this.targetDate,
       CalendarView? view})
-      : view = (view ?? targetDate) != null
-            ? CalendarView.day
-            : CalendarView.month;
+      : view = view ??
+            (targetDate != null ? CalendarView.day : CalendarView.month);
 
   @override
   Widget build(BuildContext context) {

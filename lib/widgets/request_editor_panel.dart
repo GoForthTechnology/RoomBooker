@@ -288,15 +288,33 @@ class NewRequestPanelState extends State<NewRequestPanel> {
   List<Widget> _buttonsForConfirmedRequest(RequestEditorState state,
       RequestPanelSate panelState, RoomState roomState, OrgRepo repo) {
     var buttons = <Widget>[
-      ElevatedButton(
-        onPressed: () {
-          state.enableEditing();
-        },
-        child: Tooltip(
-          message: "Edit the request",
-          child: const Text("Edit"),
-        ),
-      ),
+      state.editingEnabled
+          ? ElevatedButton(
+              onPressed: () async {
+                /*if (_formKey.currentState!.validate()) {
+                  log("Invalid form, cannot save");
+                  return;
+                }*/
+                var request = state.getRequest(roomState)!;
+                var details = state.getPrivateDetails();
+                await repo.updateBooking(
+                    widget.orgID, request, details, state.getStatus());
+                state.disableEditing();
+              },
+              child: Tooltip(
+                message: "Save changes",
+                child: const Text("Save"),
+              ),
+            )
+          : ElevatedButton(
+              onPressed: () {
+                state.enableEditing();
+              },
+              child: Tooltip(
+                message: "Edit the request",
+                child: const Text("Edit"),
+              ),
+            ),
       ElevatedButton(
         onPressed: () async {
           var request = state.getRequest(roomState)!;
@@ -516,6 +534,11 @@ class RequestEditorState extends ChangeNotifier {
       return;
     }
     _editingEnabled = true;
+    notifyListeners();
+  }
+
+  void disableEditing() {
+    _editingEnabled = false;
     notifyListeners();
   }
 
