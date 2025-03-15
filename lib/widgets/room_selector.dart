@@ -140,7 +140,9 @@ class RoomCardSelector extends StatelessWidget {
 }
 
 class RoomDropdownSelector extends StatelessWidget {
-  const RoomDropdownSelector({super.key});
+  final bool readOnly;
+
+  const RoomDropdownSelector({super.key, required this.readOnly});
 
   @override
   Widget build(BuildContext context) {
@@ -158,9 +160,11 @@ class RoomDropdownSelector extends StatelessWidget {
                   child: Text(r.name),
                 ))
             .toList(),
-        onChanged: (room) {
-          state.setActiveRoom(room!);
-        },
+        onChanged: readOnly
+            ? null
+            : (room) {
+                state.setActiveRoom(room!);
+              },
       ),
     );
     return ConstrainedBox(

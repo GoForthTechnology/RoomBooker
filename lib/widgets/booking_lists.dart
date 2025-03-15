@@ -1,9 +1,11 @@
 import 'dart:developer';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/router.dart';
 import 'package:room_booker/widgets/stateful_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -157,6 +159,14 @@ class PendingBookings extends StatelessWidget {
       emptyText: "No Pending Requests",
       actions: [
         RequestAction(
+          text: "View",
+          onClick: (request) => AutoRouter.of(context).push(ViewBookingsRoute(
+              orgID: orgID,
+              requestID: request.id!,
+              view: CalendarView.day,
+              targetDate: request.eventStartTime)),
+        ),
+        RequestAction(
             text: "Approve",
             onClick: (request) => repo.confirmRequest(orgID, request.id!)),
         RequestAction(
@@ -267,11 +277,6 @@ class BookingTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
         elevation: 1,
-        /*color: resolved
-            ? confirmed
-                ? const Color.fromRGBO(220, 233, 213, 1.0)
-                : const Color.fromRGBO(238, 205, 205, 1.0)
-            : null,*/
         child: ExpansionTile(
           title: Text("${details.eventName} for ${details.name}"),
           subtitle: _subtitle(context),
@@ -279,10 +284,6 @@ class BookingTile extends StatelessWidget {
           trailing: _trailing(),
           expandedAlignment: Alignment.topLeft,
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            detailTable(request, details),
-            Calendar(request: request, orgID: orgID)
-          ],
         ));
   }
 

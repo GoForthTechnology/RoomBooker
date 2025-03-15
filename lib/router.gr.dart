@@ -249,6 +249,7 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
   ViewBookingsRoute({
     Key? key,
     required String orgID,
+    String? requestID,
     CalendarView view = CalendarView.month,
     bool createRequest = false,
     DateTime? targetDate,
@@ -258,11 +259,12 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
          args: ViewBookingsRouteArgs(
            key: key,
            orgID: orgID,
+           requestID: requestID,
            view: view,
            createRequest: createRequest,
            targetDate: targetDate,
          ),
-         rawPathParams: {'orgID': orgID},
+         rawPathParams: {'orgID': orgID, 'requestID': requestID},
          initialChildren: children,
        );
 
@@ -274,11 +276,15 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
       final pathParams = data.inheritedPathParams;
       final args = data.argsAs<ViewBookingsRouteArgs>(
         orElse:
-            () => ViewBookingsRouteArgs(orgID: pathParams.getString('orgID')),
+            () => ViewBookingsRouteArgs(
+              orgID: pathParams.getString('orgID'),
+              requestID: pathParams.optString('requestID'),
+            ),
       );
       return ViewBookingsScreen(
         key: args.key,
         orgID: args.orgID,
+        requestID: args.requestID,
         view: args.view,
         createRequest: args.createRequest,
         targetDate: args.targetDate,
@@ -291,6 +297,7 @@ class ViewBookingsRouteArgs {
   const ViewBookingsRouteArgs({
     this.key,
     required this.orgID,
+    this.requestID,
     this.view = CalendarView.month,
     this.createRequest = false,
     this.targetDate,
@@ -300,6 +307,8 @@ class ViewBookingsRouteArgs {
 
   final String orgID;
 
+  final String? requestID;
+
   final CalendarView view;
 
   final bool createRequest;
@@ -308,6 +317,6 @@ class ViewBookingsRouteArgs {
 
   @override
   String toString() {
-    return 'ViewBookingsRouteArgs{key: $key, orgID: $orgID, view: $view, createRequest: $createRequest, targetDate: $targetDate}';
+    return 'ViewBookingsRouteArgs{key: $key, orgID: $orgID, requestID: $requestID, view: $view, createRequest: $createRequest, targetDate: $targetDate}';
   }
 }

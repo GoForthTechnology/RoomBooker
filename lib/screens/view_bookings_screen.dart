@@ -1,8 +1,11 @@
+import 'dart:developer';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/widgets/current_bookings_calendar.dart';
@@ -10,6 +13,7 @@ import 'package:room_booker/widgets/org_state_provider.dart';
 import 'package:room_booker/widgets/request_editor_panel.dart';
 import 'package:room_booker/widgets/room_selector.dart';
 import 'package:room_booker/widgets/stateful_calendar.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()
@@ -18,18 +22,51 @@ class ViewBookingsScreen extends StatelessWidget {
   final CalendarView view;
   final bool createRequest;
   final DateTime? targetDate;
+  final String? requestID;
 
   const ViewBookingsScreen(
       {super.key,
       @PathParam('orgID') required this.orgID,
-      this.view = CalendarView.month,
+      @PathParam('requestID') this.requestID,
       this.createRequest = false,
-      this.targetDate});
+      this.targetDate,
+      CalendarView? view})
+      : view = (view ?? targetDate) != null
+            ? CalendarView.day
+            : CalendarView.month;
 
   @override
   Widget build(BuildContext context) {
     FirebaseAnalytics.instance.logScreenView(
         screenName: "View Bookings", parameters: {"orgID": orgID});
+    var orgRepo = Provider.of<OrgRepo>(context, listen: false);
+    if (requestID == null) {
+      return _content(context, null, null);
+    }
+    return StreamBuilder(
+      stream: Rx.combineLatest2(
+        orgRepo.getRequestDetails(orgID, requestID!),
+        orgRepo.getRequest(orgID, requestID!),
+        (details, request) => (details, request),
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          log("Error fetching request details: ${snapshot.error}",
+              error: snapshot.error);
+          return const Placeholder();
+        }
+        if (!snapshot.hasData) {
+          log("No data for request ID: $requestID");
+          return const Placeholder();
+        }
+        var data = snapshot.data!;
+        return _content(context, data.$2, data.$1);
+      },
+    );
+  }
+
+  Widget _content(
+      BuildContext context, Request? request, PrivateRequestDetails? details) {
     Widget? leading = FirebaseAuth.instance.currentUser == null
         ? null
         : BackButton(
@@ -48,10 +85,12 @@ class ViewBookingsScreen extends StatelessWidget {
         builder: (context, orgState, child) => RequestStateProvider(
           enableAllRooms: true,
           orgID: orgID,
+          initialRequest: request,
+          initialDetails: details,
           requestStartTime: createRequest ? targetDate : null,
           child: CalendarStateProvider(
             initialView: view,
-            focusDate: targetDate ?? DateTime.now(),
+            focusDate: targetDate ?? request?.eventEndTime ?? DateTime.now(),
             builder: (context, child) {
               var calendarState = Provider.of<CalendarState>(context);
               bool showFab = calendarState.controller.view != CalendarView.day;
@@ -76,7 +115,7 @@ class ViewBookingsScreen extends StatelessWidget {
                         child: Column(
                           children: [
                             RoomCardSelector(),
-                            Expanded(child: _buildCalendar(context)),
+                            Expanded(child: _buildCalendar(context, request)),
                           ],
                         ),
                       ),
@@ -139,14 +178,13 @@ class ViewBookingsScreen extends StatelessWidget {
     return MediaQuery.sizeOf(context).width < 600;
   }
 
-  Widget _buildCalendar(BuildContext context) {
+  Widget _buildCalendar(BuildContext context, Request? existingRequest) {
     var requestEditorState =
         Provider.of<RequestEditorState>(context, listen: false);
     var requestPanelState =
         Provider.of<RequestPanelSate>(context, listen: false);
     var calendarState = Provider.of<CalendarState>(context, listen: false);
     return CurrentBookingsCalendar(
-      //view: _getView(context),
       orgID: orgID,
       onTap: (details) {
         var targetDate = details.date!;

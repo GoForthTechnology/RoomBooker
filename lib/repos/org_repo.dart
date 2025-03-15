@@ -200,6 +200,22 @@ class OrgRepo extends ChangeNotifier {
     });
   }
 
+  Stream<Request?> getRequest(String orgID, String requestID) {
+    return _confirmedRequestsRef(orgID)
+        .doc(requestID)
+        .snapshots()
+        .map((s) => s.data())
+        .flatMap((request) {
+      if (request != null) {
+        return Stream.value(request);
+      }
+      return _pendingBookingsRef(orgID)
+          .doc(requestID)
+          .snapshots()
+          .map((s) => s.data());
+    });
+  }
+
   Stream<PrivateRequestDetails?> getRequestDetails(
       String orgID, String requestID) {
     return _privateRequestDetailsRef(orgID, requestID)

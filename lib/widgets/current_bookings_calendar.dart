@@ -30,12 +30,14 @@ class CurrentBookingsCalendar extends StatelessWidget {
   final String orgID;
   final Function(CalendarTapDetails) onTap;
   final Function(Request) onTapRequest;
+  final Request? existingRequest;
 
   const CurrentBookingsCalendar(
       {super.key,
       required this.orgID,
       required this.onTap,
-      required this.onTapRequest});
+      required this.onTapRequest,
+      this.existingRequest});
 
   @override
   Widget build(BuildContext context) {

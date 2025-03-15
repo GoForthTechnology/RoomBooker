@@ -65,6 +65,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
     var localizations = MaterialLocalizations.of(context);
     return Consumer4<RoomState, RequestEditorState, RequestPanelSate, OrgRepo>(
         builder: (context, roomState, state, panelState, repo, child) {
+      var readOnly = state.readOnly();
       var formContents = Column(
         children: [
           AppBar(
@@ -77,15 +78,17 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             ],
             automaticallyImplyLeading: false,
           ),
-          RoomDropdownSelector(),
+          RoomDropdownSelector(
+            readOnly: readOnly,
+          ),
           SimpleTextFormField(
-              readOnly: state.readOnly(),
+              readOnly: readOnly,
               controller: eventNameController,
               labelText: "Event Name",
               validationMessage: "Please provide a name",
               onChanged: state.updateEventName),
           DateField(
-            readOnly: state.readOnly(),
+            readOnly: readOnly,
             labelText: 'Event Date',
             validationMessage: 'Please select a date',
             initialValue: state.startTime,
@@ -98,7 +101,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             },
           ),
           TimeField(
-              readOnly: state.readOnly(),
+              readOnly: readOnly,
               labelText: 'Start Time',
               initialValue: TimeOfDay.fromDateTime(state.startTime),
               localizations: localizations,
@@ -114,7 +117,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                 state.updateTimes(newStartTime, newEndTime);
               }),
           TimeField(
-              readOnly: state.readOnly(),
+              readOnly: readOnly,
               labelText: 'End Time',
               initialValue: TimeOfDay.fromDateTime(state.endTime),
               localizations: localizations,
@@ -128,7 +131,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                 state.updateTimes(state.startTime, newEndTime);
               }),
           RepeatBookingsSelector(
-            readOnly: state.readOnly(),
+            readOnly: readOnly,
             startTime: state.startTime,
             isCustom: state.isCustomRecurrencePattern,
             onIntervalChanged: state.updateInterval,
@@ -153,19 +156,19 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               initialValue: state.recurrancePattern.end,
               labelText: "End on or before",
               onChanged: (date) => state.updateEndDate(date),
-              readOnly: state.readOnly(),
+              readOnly: readOnly,
               clearable: true,
             ),
           const Divider(),
           SimpleTextFormField(
-            readOnly: state.readOnly(),
+            readOnly: readOnly,
             controller: contactNameController,
             labelText: "Your Name",
             validationMessage: "Please provide your name",
             onChanged: state.updateContactName,
           ),
           SimpleTextFormField(
-            readOnly: state.readOnly(),
+            readOnly: readOnly,
             controller: contactEmailController,
             labelText: "Your Email",
             validationMessage: "Please provide your email",
@@ -174,7 +177,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             onChanged: state.updateContactEmail,
           ),
           SimpleTextFormField(
-            readOnly: state.readOnly(),
+            readOnly: readOnly,
             controller: contactPhoneController,
             labelText: "Your Phone Number",
             validationMessage: "Please provide your phone number",
@@ -190,7 +193,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             ),
           const Divider(),
           SimpleTextFormField(
-            readOnly: state.readOnly(),
+            readOnly: readOnly,
             controller: messageController,
             labelText: "Additional Info",
             onChanged: state.updateMessage,
@@ -198,7 +201,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           if (state.showID())
             SimpleTextFormField(
               controller: idController,
-              readOnly: state.readOnly(),
+              readOnly: readOnly,
               labelText: "Request ID",
             ),
           _getButtons(state, panelState, roomState, repo),
@@ -334,7 +337,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
     return Consumer<OrgState>(builder: (context, orgState, child) {
       var status = state.getStatus();
       List<Widget> buttons = [];
-      if (!orgState.currentUserIsAdmin()) {
+      if (state.isNewRequest()) {
         buttons = _buttonsForNewRequest(state, roomState, repo, orgState);
       } else {
         if (status == RequestStatus.pending) {
@@ -396,23 +399,33 @@ class RequestStateProvider extends StatelessWidget {
   final Widget child;
   final bool enableAllRooms;
   final DateTime? requestStartTime;
+  final Request? initialRequest;
+  final PrivateRequestDetails? initialDetails;
 
   const RequestStateProvider(
       {super.key,
       required this.child,
       required this.orgID,
       required this.enableAllRooms,
+      this.initialRequest,
+      this.initialDetails,
       this.requestStartTime});
 
   @override
   Widget build(BuildContext context) {
+    bool panelActive =
+        (requestStartTime ?? initialRequest?.eventStartTime) != null;
     return RoomStateProvider(
         orgID: orgID,
         enableAllRooms: enableAllRooms,
         builder: (context, roomState) => ChangeNotifierProvider.value(
-            value: RequestEditorState(requestStartTime),
+            value: RequestEditorState(
+              startTime: requestStartTime,
+              initialRequest: initialRequest,
+              initialDetails: initialDetails,
+            ),
             child: ChangeNotifierProvider.value(
-                value: RequestPanelSate(requestStartTime != null),
+                value: RequestPanelSate(panelActive),
                 child: ChangeNotifierProvider.value(
                     value: roomState, child: child))));
   }
@@ -465,14 +478,26 @@ class RequestEditorState extends ChangeNotifier {
   bool get isCustomRecurrencePattern => _customRecurrencePattern;
   bool get editingEnabled => _editingEnabled;
 
-  RequestEditorState(DateTime? startTime) {
+  RequestEditorState({
+    DateTime? startTime,
+    Request? initialRequest,
+    PrivateRequestDetails? initialDetails,
+  }) {
     if (startTime != null) {
       _startTime = roundToNearest30Minutes(startTime);
       _endTime = _startTime!.add(const Duration(hours: 1));
     }
+    if (initialRequest != null && initialDetails != null) {
+      showRequest(initialRequest, initialDetails, updateListeners: false);
+    }
   }
 
-  void showRequest(Request request, PrivateRequestDetails details) {
+  bool isNewRequest() {
+    return _existingRequest == null;
+  }
+
+  void showRequest(Request request, PrivateRequestDetails details,
+      {bool updateListeners = true}) {
     _existingRequest = request;
     _startTime = request.eventStartTime;
     _endTime = request.eventEndTime;
@@ -482,7 +507,7 @@ class RequestEditorState extends ChangeNotifier {
     _contactPhone = details.phone;
     _eventName = details.eventName;
     _message = details.message;
-    notifyListeners();
+    if (updateListeners) notifyListeners();
   }
 
   void enableEditing() {
@@ -549,7 +574,7 @@ class RequestEditorState extends ChangeNotifier {
   }
 
   bool readOnly() {
-    return _existingRequest != null && _editingEnabled;
+    return _existingRequest != null && !_editingEnabled;
   }
 
   void createRequest(DateTime startTime, DateTime endTime) {
