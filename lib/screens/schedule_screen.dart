@@ -49,7 +49,12 @@ class ScheduleScreen extends StatelessWidget {
                     //view: CalendarView.schedule,
                     orgID: orgID,
                     onTap: (details) {},
-                    onTapRequest: (r) {},
+                    onTapRequest: (r) {
+                      AutoRouter.of(context).push(ViewBookingsRoute(
+                          orgID: orgID,
+                          requestID: r.id,
+                          view: CalendarView.day));
+                    },
                   ))
                 ],
               ),
