@@ -145,8 +145,7 @@ class ViewBookingsScreen extends StatelessWidget {
 
     var focusDate = calendarState.controller.displayDate;
     var firstDate = DateTime(focusDate!.year, focusDate.month);
-    var lastDate =
-        DateTime(focusDate.year + 1, focusDate).subtract(Duration(days: 1));
+    var lastDate = firstDate.add(Duration(days: 365));
 
     var targetDate = await showDatePicker(
       context: context,
