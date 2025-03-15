@@ -4,6 +4,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
@@ -31,8 +32,9 @@ class ViewBookingsScreen extends StatelessWidget {
       this.createRequest = false,
       this.targetDate,
       CalendarView? view})
-      : view = view ??
-            (targetDate != null ? CalendarView.day : CalendarView.month);
+      : view = (targetDate != null || requestID != null
+            ? CalendarView.day
+            : view ?? CalendarView.month);
 
   @override
   Widget build(BuildContext context) {
@@ -219,6 +221,8 @@ class ViewBookingsScreen extends StatelessWidget {
         } else {
           requestPanelState.showPanel();
         }
+        SystemNavigator.routeInformationUpdated(
+            uri: Uri(path: "/view/$orgID/${request.id}"));
         FirebaseAnalytics.instance.logEvent(name: "Start creating request");
       },
     );
