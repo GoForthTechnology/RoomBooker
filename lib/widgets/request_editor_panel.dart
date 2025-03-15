@@ -201,7 +201,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               readOnly: state.readOnly(),
               labelText: "Request ID",
             ),
-          _getButton(state, panelState, roomState, repo),
+          _getButtons(state, panelState, roomState, repo),
         ],
       );
       return SingleChildScrollView(
@@ -212,93 +212,11 @@ class NewRequestPanelState extends State<NewRequestPanel> {
     });
   }
 
-  Widget _getButton(RequestEditorState state, RequestPanelSate panelState,
-      RoomState roomState, OrgRepo repo) {
-    return Consumer<OrgState>(builder: (context, orgState, child) {
-      var status = state.getStatus();
-      if (state.readOnly()) {
-        if (!orgState.currentUserIsAdmin()) {
-          return Container();
-        }
-        if (status == RequestStatus.pending) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: () async {
-                  var request = state.getRequest(roomState)!;
-                  await repo.denyRequest(widget.orgID, request.id!);
-                  state.updateStatus(RequestStatus.denied);
-                  FirebaseAnalytics.instance.logEvent(
-                      name: "Booking Rejected",
-                      parameters: {"orgID": widget.orgID});
-                },
-                child: const Text("Deny"),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  await repo.confirmRequest(
-                      widget.orgID, state.getRequest(roomState)!.id!);
-                  state.updateStatus(RequestStatus.confirmed);
-                  FirebaseAnalytics.instance.logEvent(
-                      name: "Booking Approved",
-                      parameters: {"orgID": widget.orgID});
-                },
-                child: const Text("Approve"),
-              ),
-            ],
-          );
-        }
-        var buttons = <Widget>[
-          ElevatedButton(
-            onPressed: null, // TODO: implement edit
-            child: Tooltip(
-              message: "Edit the request",
-              child: const Text("Edit"),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              var request = state.getRequest(roomState)!;
-              await repo.revisitBookingRequest(widget.orgID, request);
-              state.updateStatus(RequestStatus.pending);
-            },
-            child: Tooltip(
-              message: "Reset request to pending",
-              child: const Text("Revisit"),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: _onDelete,
-            child: Tooltip(
-              message: "Delete the request",
-              child: const Text("Delete"),
-            ),
-          )
-        ];
-        if (state.recurrancePattern.frequency != Frequency.never &&
-            state.recurrancePattern.end == null) {
-          buttons.add(ElevatedButton(
-            onPressed: () async {
-              var request = state.getRequest(roomState);
-              await repo.endBooking(
-                  widget.orgID, request!.id!, state.startTime);
-              state.updateEndDate(state.startTime);
-              FirebaseAnalytics.instance.logEvent(
-                  name: "Series Cancelled",
-                  parameters: {"orgID": widget.orgID});
-            },
-            child: const Text("End Series"),
-          ));
-        }
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.max,
-          children: buttons,
-        );
-      }
-      if (orgState.currentUserIsAdmin()) {
-        return ElevatedButton(
+  List<Widget> _buttonsForNewRequest(RequestEditorState state,
+      RoomState roomState, OrgRepo repo, OrgState orgState) {
+    if (orgState.currentUserIsAdmin()) {
+      return [
+        ElevatedButton(
           onPressed: () async {
             if (_formKey.currentState!.validate()) {
               var request = state.getRequest(roomState)!;
@@ -314,9 +232,11 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             }
           },
           child: const Text("Add Booking"),
-        );
-      }
-      return ElevatedButton(
+        )
+      ];
+    }
+    return [
+      ElevatedButton(
         onPressed: () async {
           if (_formKey.currentState!.validate()) {
             var request = state.getRequest(roomState)!;
@@ -332,6 +252,103 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           }
         },
         child: const Text("Submit Request"),
+      )
+    ];
+  }
+
+  List<Widget> _buttonsForPendingRequest(RequestEditorState state,
+      RequestPanelSate panelState, RoomState roomState, OrgRepo repo) {
+    return [
+      ElevatedButton(
+        onPressed: () async {
+          var request = state.getRequest(roomState)!;
+          await repo.denyRequest(widget.orgID, request.id!);
+          state.updateStatus(RequestStatus.denied);
+          FirebaseAnalytics.instance.logEvent(
+              name: "Booking Rejected", parameters: {"orgID": widget.orgID});
+        },
+        child: const Text("Deny"),
+      ),
+      ElevatedButton(
+        onPressed: () async {
+          await repo.confirmRequest(
+              widget.orgID, state.getRequest(roomState)!.id!);
+          state.updateStatus(RequestStatus.confirmed);
+          FirebaseAnalytics.instance.logEvent(
+              name: "Booking Approved", parameters: {"orgID": widget.orgID});
+        },
+        child: const Text("Approve"),
+      ),
+    ];
+  }
+
+  List<Widget> _buttonsForConfirmedRequest(RequestEditorState state,
+      RequestPanelSate panelState, RoomState roomState, OrgRepo repo) {
+    var buttons = <Widget>[
+      ElevatedButton(
+        onPressed: () {
+          state.enableEditing();
+        },
+        child: Tooltip(
+          message: "Edit the request",
+          child: const Text("Edit"),
+        ),
+      ),
+      ElevatedButton(
+        onPressed: () async {
+          var request = state.getRequest(roomState)!;
+          await repo.revisitBookingRequest(widget.orgID, request);
+          state.updateStatus(RequestStatus.pending);
+        },
+        child: Tooltip(
+          message: "Reset request to pending",
+          child: const Text("Revisit"),
+        ),
+      ),
+      ElevatedButton(
+        onPressed: _onDelete,
+        child: Tooltip(
+          message: "Delete the request",
+          child: const Text("Delete"),
+        ),
+      )
+    ];
+    if (state.recurrancePattern.frequency != Frequency.never &&
+        state.recurrancePattern.end == null) {
+      buttons.add(ElevatedButton(
+        onPressed: () async {
+          var request = state.getRequest(roomState);
+          await repo.endBooking(widget.orgID, request!.id!, state.startTime);
+          state.updateEndDate(state.startTime);
+          FirebaseAnalytics.instance.logEvent(
+              name: "Series Cancelled", parameters: {"orgID": widget.orgID});
+        },
+        child: const Text("End Series"),
+      ));
+    }
+    return buttons;
+  }
+
+  Widget _getButtons(RequestEditorState state, RequestPanelSate panelState,
+      RoomState roomState, OrgRepo repo) {
+    return Consumer<OrgState>(builder: (context, orgState, child) {
+      var status = state.getStatus();
+      List<Widget> buttons = [];
+      if (!orgState.currentUserIsAdmin()) {
+        buttons = _buttonsForNewRequest(state, roomState, repo, orgState);
+      } else {
+        if (status == RequestStatus.pending) {
+          buttons =
+              _buttonsForPendingRequest(state, panelState, roomState, repo);
+        } else {
+          buttons =
+              _buttonsForConfirmedRequest(state, panelState, roomState, repo);
+        }
+      }
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
+        children: buttons,
       );
     });
   }
@@ -425,6 +442,7 @@ class RequestPanelSate extends ChangeNotifier {
 
 class RequestEditorState extends ChangeNotifier {
   Request? _existingRequest;
+  bool _editingEnabled = false;
 
   String _message = "";
   String? _eventName;
@@ -445,6 +463,7 @@ class RequestEditorState extends ChangeNotifier {
   DateTime get endTime => _endTime!;
   RecurrancePattern get recurrancePattern => _recurrancePattern;
   bool get isCustomRecurrencePattern => _customRecurrencePattern;
+  bool get editingEnabled => _editingEnabled;
 
   RequestEditorState(DateTime? startTime) {
     if (startTime != null) {
@@ -463,6 +482,15 @@ class RequestEditorState extends ChangeNotifier {
     _contactPhone = details.phone;
     _eventName = details.eventName;
     _message = details.message;
+    notifyListeners();
+  }
+
+  void enableEditing() {
+    if (_existingRequest == null) {
+      log("Cannot enable editing for a new request");
+      return;
+    }
+    _editingEnabled = true;
     notifyListeners();
   }
 
@@ -521,7 +549,7 @@ class RequestEditorState extends ChangeNotifier {
   }
 
   bool readOnly() {
-    return _existingRequest != null;
+    return _existingRequest != null && _editingEnabled;
   }
 
   void createRequest(DateTime startTime, DateTime endTime) {
