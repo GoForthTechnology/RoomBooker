@@ -64,6 +64,7 @@ class CalendarState extends ChangeNotifier {
             initialized = true;
             return;
           }
+          // TODO: Figure out why this is necessary
           notifyListeners();
         }
       });

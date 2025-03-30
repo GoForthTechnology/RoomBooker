@@ -3,15 +3,16 @@ import 'dart:developer';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/date_field.dart';
 import 'package:room_booker/widgets/org_state_provider.dart';
 import 'package:room_booker/widgets/repeat_bookings_selector.dart';
+import 'package:room_booker/widgets/room_dropdown_selector.dart';
 import 'package:room_booker/widgets/room_selector.dart';
 import 'package:room_booker/widgets/simple_text_form_field.dart';
-import 'package:room_booker/widgets/stateful_calendar.dart';
 import 'package:room_booker/widgets/time_field.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
@@ -30,9 +31,6 @@ void closePanel(BuildContext context) {
 
   var requestState = Provider.of<RequestEditorState>(context, listen: false);
   requestState.clearAppointment();
-
-  var calendarState = Provider.of<CalendarState>(context, listen: false);
-  calendarState.setView(CalendarView.month);
 
   var roomState = Provider.of<RoomState>(context, listen: false);
   roomState.activateAll();
@@ -80,6 +78,13 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           ),
           RoomDropdownSelector(
             readOnly: readOnly,
+            orgID: widget.orgID,
+            onChanged: (room) {
+              if (room != null) {
+                state.updateRoomID(room.id!);
+              }
+            },
+            initialRoomID: state._existingRequest?.roomID,
           ),
           SimpleTextFormField(
               readOnly: readOnly,
@@ -443,16 +448,17 @@ class RequestStateProvider extends StatelessWidget {
               initialDetails: initialDetails,
             ),
             child: ChangeNotifierProvider.value(
-                value: RequestPanelSate(panelActive),
+                value: RequestPanelSate(panelActive, orgID),
                 child: ChangeNotifierProvider.value(
                     value: roomState, child: child))));
   }
 }
 
 class RequestPanelSate extends ChangeNotifier {
+  String _orgID;
   bool _active;
 
-  RequestPanelSate(this._active);
+  RequestPanelSate(this._active, this._orgID);
 
   bool get active => _active;
 
@@ -468,6 +474,8 @@ class RequestPanelSate extends ChangeNotifier {
     } else {
       Navigator.of(context).pop();
     }
+
+    SystemNavigator.routeInformationUpdated(uri: Uri(path: "/view/$_orgID"));
   }
 }
 
@@ -484,6 +492,7 @@ class RequestEditorState extends ChangeNotifier {
   DateTime? _endTime;
   RecurrancePattern _recurrancePattern = RecurrancePattern.never();
   bool _customRecurrencePattern = false;
+  String _roomID = "";
 
   String? get eventname => _eventName;
   String? get contactName => _contactName;
@@ -525,6 +534,8 @@ class RequestEditorState extends ChangeNotifier {
     _contactPhone = details.phone;
     _eventName = details.eventName;
     _message = details.message;
+    _roomID = request.roomID;
+
     if (updateListeners) notifyListeners();
   }
 
@@ -548,6 +559,11 @@ class RequestEditorState extends ChangeNotifier {
 
   String? requestID() {
     return _existingRequest?.id;
+  }
+
+  void updateRoomID(String roomID) {
+    _roomID = roomID;
+    notifyListeners();
   }
 
   void updateFrequency(Frequency frequency, bool isCustom) {
@@ -659,7 +675,7 @@ class RequestEditorState extends ChangeNotifier {
   }
 
   Request? getRequest(RoomState roomState) {
-    var room = roomState.enabledValue();
+    var room = roomState.getRoom(_roomID);
     if (_startTime == null || _endTime == null || room == null) {
       return null;
     }

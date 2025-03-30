@@ -139,41 +139,6 @@ class RoomCardSelector extends StatelessWidget {
   }
 }
 
-class RoomDropdownSelector extends StatelessWidget {
-  final bool readOnly;
-
-  const RoomDropdownSelector({super.key, required this.readOnly});
-
-  @override
-  Widget build(BuildContext context) {
-    var field = Consumer<RoomState>(
-      builder: (context, state, child) => DropdownButtonFormField<Room>(
-        value: state.enabledValue(),
-        decoration: const InputDecoration(
-          labelText: 'Room',
-          border: OutlineInputBorder(),
-        ),
-        items: state
-            .allRooms()
-            .map((r) => DropdownMenuItem(
-                  value: r,
-                  child: Text(r.name),
-                ))
-            .toList(),
-        onChanged: readOnly
-            ? null
-            : (room) {
-                state.setActiveRoom(room!);
-              },
-      ),
-    );
-    return ConstrainedBox(
-      constraints: const BoxConstraints.tightFor(width: 400),
-      child: field,
-    );
-  }
-}
-
 class RoomCard extends StatelessWidget {
   final Color color;
   final Room room;
