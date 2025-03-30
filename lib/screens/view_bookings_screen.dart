@@ -184,6 +184,7 @@ class ViewBookingsScreen extends StatelessWidget {
     var requestPanelState =
         Provider.of<RequestPanelSate>(context, listen: false);
     var calendarState = Provider.of<CalendarState>(context, listen: false);
+    var roomState = Provider.of<RoomState>(context, listen: false);
     return CurrentBookingsCalendar(
       orgID: orgID,
       onTap: (details) {
@@ -196,7 +197,9 @@ class ViewBookingsScreen extends StatelessWidget {
         }
         requestEditorState.clearAppointment();
         requestEditorState.createRequest(
-            details.date!, details.date!.add(const Duration(hours: 1)));
+            details.date!,
+            details.date!.add(const Duration(hours: 1)),
+            roomState.enabledValue()!);
         if (_isSmallView(context)) {
           _showPannelAsDialog(context);
         } else {

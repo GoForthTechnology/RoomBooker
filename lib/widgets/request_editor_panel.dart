@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/date_field.dart';
@@ -84,7 +85,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                 state.updateRoomID(room.id!);
               }
             },
-            initialRoomID: state._existingRequest?.roomID,
+            initialRoomID: state._existingRequest?.roomID ?? state._roomID,
           ),
           SimpleTextFormField(
               readOnly: readOnly,
@@ -616,9 +617,10 @@ class RequestEditorState extends ChangeNotifier {
     return _existingRequest != null && !_editingEnabled;
   }
 
-  void createRequest(DateTime startTime, DateTime endTime) {
+  void createRequest(DateTime startTime, DateTime endTime, Room room) {
     _startTime = startTime;
     _endTime = endTime;
+    _roomID = room.id!;
     notifyListeners();
   }
 
