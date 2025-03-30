@@ -64,6 +64,9 @@ class CurrentBookingsCalendar extends StatelessWidget {
           return Consumer<RequestEditorState>(
             builder: (context, requestEditorState, child) {
               var enabledRoom = roomState.enabledValue();
+              if (requestEditorState.roomID != "") {
+                enabledRoom = roomState.getRoom(requestEditorState.roomID!);
+              }
               var newApointmentColor = enabledRoom == null
                   ? Colors.blue
                   : roomState.color(enabledRoom.id!);

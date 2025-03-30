@@ -495,6 +495,7 @@ class RequestEditorState extends ChangeNotifier {
   bool _customRecurrencePattern = false;
   String _roomID = "";
 
+  String? get roomID => _roomID;
   String? get eventname => _eventName;
   String? get contactName => _contactName;
   String? get contactEmail => _contactEmail;
