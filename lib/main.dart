@@ -12,12 +12,14 @@ import 'package:room_booker/router.dart';
 import 'package:room_booker/auth.dart';
 import 'firebase_options.dart';
 
+bool useEmulator = false;
+
 void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  if (kDebugMode) {
+  if (useEmulator && kDebugMode) {
     try {
       FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8081);
       await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);

@@ -46,7 +46,7 @@ class ScheduleScreen extends StatelessWidget {
                   RoomCardSelector(),
                   Expanded(
                       child: CurrentBookingsCalendar(
-                    //view: CalendarView.schedule,
+                    showDatePickerButton: false,
                     orgID: orgID,
                     onTap: (details) {},
                     onTapRequest: (r) {

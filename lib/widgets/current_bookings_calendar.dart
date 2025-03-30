@@ -31,12 +31,14 @@ class CurrentBookingsCalendar extends StatelessWidget {
   final Function(CalendarTapDetails) onTap;
   final Function(Request) onTapRequest;
   final Request? existingRequest;
+  final bool showDatePickerButton;
 
   const CurrentBookingsCalendar(
       {super.key,
       required this.orgID,
       required this.onTap,
       required this.onTapRequest,
+      required this.showDatePickerButton,
       this.existingRequest});
 
   @override
@@ -82,9 +84,10 @@ class CurrentBookingsCalendar extends StatelessWidget {
                 var appointment =
                     request.toAppointment(roomState, subject: subject);
                 appointments[appointment] = request;
-                for (var repeat in request.expand(
-                    calendarState.startOfView(), calendarState.endOfView(),
-                    includeRequestDate: false)) {
+                var start = calendarState.startOfView();
+                var end = calendarState.endOfView();
+                for (var repeat
+                    in request.expand(start, end, includeRequestDate: false)) {
                   appointment =
                       repeat.toAppointment(roomState, subject: subject);
                   appointments[appointment] = repeat;
@@ -104,7 +107,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
               return StatefulCalendar(
                 view: calendarState.controller.view,
                 showNavigationArrow: true,
-                showDatePickerButton: true,
+                showDatePickerButton: showDatePickerButton,
                 showTodayButton: true,
                 onTap: onTap,
                 allowAppointmentResize: true,

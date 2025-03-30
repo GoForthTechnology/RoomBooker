@@ -53,6 +53,26 @@ class CalendarState extends ChangeNotifier {
   CalendarState(CalendarView initialView, {DateTime? focusDate}) {
     _controller.displayDate = focusDate;
     _controller.view = initialView;
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      _controller.addPropertyChangedListener((property) {
+        if (property == "displayDate") {
+          // This is a GROSS hack to prevent calling notifyListeners() during
+          // initialization.
+          if (!initialized &&
+              stripTime(_controller.displayDate!) ==
+                  stripTime(DateTime.now())) {
+            initialized = true;
+            return;
+          }
+          if (_controller.view == CalendarView.schedule) {
+            // This prevents the schedule view from glitching out.
+            return;
+          }
+          // TODO: Figure out why this is necessary
+          notifyListeners();
+        }
+      });
+    });
   }
 
   void focusDay(DateTime date) {

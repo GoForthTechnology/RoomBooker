@@ -227,6 +227,7 @@ class ViewBookingsScreen extends StatelessWidget {
             uri: Uri(path: "/view/$orgID/${request.id}"));
         FirebaseAnalytics.instance.logEvent(name: "Start creating request");
       },
+      showDatePickerButton: true,
     );
   }
 
