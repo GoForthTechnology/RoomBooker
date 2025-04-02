@@ -190,7 +190,7 @@ class ViewBookingsScreen extends StatelessWidget {
       onTap: (details) {
         var targetDate = details.date!;
         var currentView = calendarState.controller.view;
-        if (currentView != CalendarView.day) {
+        if (currentView == CalendarView.month) {
           AutoRouter.of(context).push(ViewBookingsRoute(
               orgID: orgID, view: CalendarView.day, targetDate: targetDate));
           return;
