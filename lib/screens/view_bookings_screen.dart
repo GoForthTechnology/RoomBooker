@@ -28,7 +28,7 @@ class ViewBookingsScreen extends StatelessWidget {
   const ViewBookingsScreen(
       {super.key,
       @PathParam('orgID') required this.orgID,
-      @PathParam('requestID') this.requestID,
+      @QueryParam('requestID') this.requestID,
       this.createRequest = false,
       this.targetDate,
       CalendarView? view})
@@ -224,7 +224,7 @@ class ViewBookingsScreen extends StatelessWidget {
           requestPanelState.showPanel();
         }
         SystemNavigator.routeInformationUpdated(
-            uri: Uri(path: "/view/$orgID/${request.id}"));
+            uri: Uri(path: "/view/$orgID?requestID=${request.id}"));
         FirebaseAnalytics.instance.logEvent(name: "Start creating request");
       },
       showDatePickerButton: true,

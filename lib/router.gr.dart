@@ -264,7 +264,8 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
            targetDate: targetDate,
            view: view,
          ),
-         rawPathParams: {'orgID': orgID, 'requestID': requestID},
+         rawPathParams: {'orgID': orgID},
+         rawQueryParams: {'requestID': requestID},
          initialChildren: children,
        );
 
@@ -274,11 +275,12 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
     name,
     builder: (data) {
       final pathParams = data.inheritedPathParams;
+      final queryParams = data.queryParams;
       final args = data.argsAs<ViewBookingsRouteArgs>(
         orElse:
             () => ViewBookingsRouteArgs(
               orgID: pathParams.getString('orgID'),
-              requestID: pathParams.optString('requestID'),
+              requestID: queryParams.optString('requestID'),
             ),
       );
       return ViewBookingsScreen(
