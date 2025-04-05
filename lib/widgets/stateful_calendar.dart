@@ -70,6 +70,11 @@ class CalendarState extends ChangeNotifier {
           }
           // TODO: Figure out why this is necessary
           notifyListeners();
+          return;
+        }
+        if (property == "calendarView") {
+          notifyListeners();
+          return;
         }
       });
     });
