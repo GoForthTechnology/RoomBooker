@@ -13,8 +13,9 @@ import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 extension on Request {
-  Appointment toAppointment(RoomState roomState, {String? subject}) {
-    var alphaLevel = status == RequestStatus.pending ? 128 : 255;
+  Appointment toAppointment(RoomState roomState,
+      {String? subject, bool diminish = false}) {
+    var alphaLevel = diminish || status == RequestStatus.pending ? 128 : 255;
     var color = roomState.color(roomID).withAlpha(alphaLevel);
     return Appointment(
       subject: subject ??
@@ -74,6 +75,12 @@ class CurrentBookingsCalendar extends StatelessWidget {
                   : roomState.color(enabledRoom.id!);
               var newAppointment =
                   requestEditorState.getAppointment(newApointmentColor);
+              if (newAppointment == null) {
+                var request = requestEditorState.getRequest(roomState);
+                var details = requestEditorState.getPrivateDetails();
+                newAppointment = request?.toAppointment(roomState,
+                    subject: details.eventName);
+              }
               Map<Appointment, Request> appointments = {};
               for (var request in remoteState.existingRequests) {
                 String? subject;
@@ -81,15 +88,20 @@ class CurrentBookingsCalendar extends StatelessWidget {
                 if (details != null) {
                   subject = details.eventName;
                 }
-                var appointment =
+                /*var appointment =
                     request.toAppointment(roomState, subject: subject);
-                appointments[appointment] = request;
+                appointments[appointment] = request;*/
                 var start = calendarState.startOfView();
                 var end = calendarState.endOfView();
                 for (var repeat
-                    in request.expand(start, end, includeRequestDate: false)) {
-                  appointment =
-                      repeat.toAppointment(roomState, subject: subject);
+                    in request.expand(start, end, includeRequestDate: true)) {
+                  if (_isSameRequest(
+                      requestEditorState.existingRequest, repeat)) {
+                    // Skip the current request
+                    continue;
+                  }
+                  var appointment = repeat.toAppointment(roomState,
+                      subject: subject, diminish: newAppointment != null);
                   appointments[appointment] = repeat;
                 }
               }
@@ -124,6 +136,26 @@ class CurrentBookingsCalendar extends StatelessWidget {
       ),
     );
   }
+}
+
+bool _isSameRequest(Request? request, Request repeat) {
+  if (request == null) {
+    return false;
+  }
+  if (request.id != repeat.id) {
+    return false;
+  }
+  var requestDate = DateTime(
+    request.eventStartTime.year,
+    request.eventStartTime.month,
+    request.eventStartTime.day,
+  );
+  var repeatDate = DateTime(
+    repeat.eventStartTime.year,
+    repeat.eventStartTime.month,
+    repeat.eventStartTime.day,
+  );
+  return requestDate == repeatDate;
 }
 
 class RemoteState {

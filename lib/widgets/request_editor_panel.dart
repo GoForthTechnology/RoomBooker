@@ -507,6 +507,8 @@ class RequestEditorState extends ChangeNotifier {
   bool get isCustomRecurrencePattern => _customRecurrencePattern;
   bool get editingEnabled => _editingEnabled;
 
+  Request? get existingRequest => _existingRequest;
+
   RequestEditorState({
     DateTime? startTime,
     Request? initialRequest,
@@ -699,10 +701,10 @@ class RequestEditorState extends ChangeNotifier {
 
   PrivateRequestDetails getPrivateDetails() {
     return PrivateRequestDetails(
-      name: _contactName!,
-      email: _contactEmail!,
-      phone: _contactPhone!,
-      eventName: _eventName!,
+      name: _contactName ?? "",
+      email: _contactEmail ?? "",
+      phone: _contactPhone ?? "",
+      eventName: _eventName ?? "",
       message: _message,
     );
   }
