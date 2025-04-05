@@ -8,6 +8,15 @@ import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/user_repo.dart';
 import 'package:rxdart/rxdart.dart';
 
+enum RecurringBookingEditChoice {
+  thisInstance,
+  allFuture,
+  all,
+}
+
+typedef RecurringBookingEditChoiceProvider = Future<RecurringBookingEditChoice?>
+    Function();
+
 class OrgRepo extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final UserRepo _userRepo;
@@ -174,17 +183,72 @@ class OrgRepo extends ChangeNotifier {
     });
   }
 
-  Future<void> updateBooking(String orgID, Request request,
-      PrivateRequestDetails privateDetails, RequestStatus status) async {
+  Future<void> _updateConfirmedBooking(
+      Transaction t,
+      Request request,
+      PrivateRequestDetails privateDetails,
+      String orgID,
+      RecurringBookingEditChoiceProvider choiceProvider) async {
+    var recurrenceFrequency =
+        request.recurrancePattern?.frequency ?? Frequency.never;
+    if (recurrenceFrequency == Frequency.never) {
+      var requestRef = _confirmedRequestsRef(orgID).doc(request.id);
+      t.set(requestRef, request);
+      return;
+    }
+    var choice = await choiceProvider();
+    if (choice == null) {
+      return;
+    }
+    var originalRequestRef = _confirmedRequestsRef(orgID).doc(request.id);
+    var snapshot = await t.get(originalRequestRef);
+    if (!snapshot.exists) {
+      return;
+    }
+    var originalBooking = snapshot.data()!;
+    switch (choice) {
+      case RecurringBookingEditChoice.thisInstance:
+        var updatedRequest = _overrideRecurrance(originalBooking, request);
+        t.set(originalRequestRef, updatedRequest);
+        break;
+      case RecurringBookingEditChoice.allFuture:
+        // End the orginal booking starting with the request start time
+        var updatedPattern = originalBooking.recurrancePattern!.copyWith(
+            end: _stripTime(request.eventEndTime).subtract(Duration(days: 1)));
+        var updatedOrignalRequest =
+            originalBooking.copyWith(recurrancePattern: updatedPattern);
+        t.set(originalRequestRef, updatedOrignalRequest);
+
+        // Start a new Recurring booking with the new request
+        var newRequest = request.copyWith(id: null);
+        _addBooking(orgID, newRequest, privateDetails, t);
+        break;
+      case RecurringBookingEditChoice.all:
+        var newBooking = request.copyWith(
+          eventStartTime: originalBooking.eventEndTime,
+          eventEndTime: originalBooking.eventEndTime,
+        );
+        t.set(originalRequestRef, newBooking);
+        break;
+    }
+  }
+
+  Future<void> updateBooking(
+    String orgID,
+    Request request,
+    PrivateRequestDetails privateDetails,
+    RequestStatus status,
+    RecurringBookingEditChoiceProvider choiceProvider,
+  ) async {
     await _db.runTransaction((t) async {
       switch (status) {
-        case RequestStatus.confirmed:
-          var requestRef = _confirmedRequestsRef(orgID).doc(request.id);
-          t.set(requestRef, request);
-          break;
         case RequestStatus.pending:
           var requestRef = _pendingBookingsRef(orgID).doc(request.id);
           t.set(requestRef, request);
+          break;
+        case RequestStatus.confirmed:
+          await _updateConfirmedBooking(
+              t, request, privateDetails, orgID, choiceProvider);
           break;
         case RequestStatus.unknown:
         case RequestStatus.denied:
@@ -198,11 +262,16 @@ class OrgRepo extends ChangeNotifier {
   Future<void> addBooking(String orgID, Request request,
       PrivateRequestDetails privateDetails) async {
     await _db.runTransaction((t) async {
-      var requestRef = _confirmedRequestsRef(orgID).doc();
-      t.set(requestRef, request);
-      var privateDetailsRef = _privateRequestDetailsRef(orgID, requestRef.id);
-      t.set(privateDetailsRef, privateDetails);
+      _addBooking(orgID, request, privateDetails, t);
     });
+  }
+
+  void _addBooking(String orgID, Request request,
+      PrivateRequestDetails privateDetails, Transaction t) {
+    var requestRef = _confirmedRequestsRef(orgID).doc();
+    t.set(requestRef, request);
+    var privateDetailsRef = _privateRequestDetailsRef(orgID, requestRef.id);
+    t.set(privateDetailsRef, privateDetails);
   }
 
   Future<void> endBooking(String orgID, String requestID, DateTime end) async {
@@ -212,13 +281,43 @@ class OrgRepo extends ChangeNotifier {
     });
   }
 
-  Future<void> deleteBooking(String orgID, String requestID) async {
-    await _db.runTransaction((t) async {
-      var requestRef = _confirmedRequestsRef(orgID).doc(requestID);
-      var privateDetailsRef = _privateRequestDetailsRef(orgID, requestID);
-      t.delete(requestRef);
-      t.delete(privateDetailsRef);
-    });
+  Future<void> deleteBooking(
+    String orgID,
+    Request request,
+    RecurringBookingEditChoiceProvider choiceProvider,
+  ) async {
+    var recurrenceFrequency =
+        request.recurrancePattern?.frequency ?? Frequency.never;
+    if (recurrenceFrequency == Frequency.never) {
+      return _db.runTransaction((t) async {
+        _deleteBooking(orgID, request.id!, t);
+      });
+    }
+    var choice = await choiceProvider();
+    switch (choice) {
+      case RecurringBookingEditChoice.all:
+        return _db.runTransaction((t) async {
+          _deleteBooking(orgID, request.id!, t);
+        });
+      case RecurringBookingEditChoice.allFuture:
+        return endBooking(orgID, request.id!, request.eventStartTime);
+      case RecurringBookingEditChoice.thisInstance:
+        var originalRequestRef = _confirmedRequestsRef(orgID).doc(request.id!);
+        var snapshot = await originalRequestRef.get();
+        var originalBooking = snapshot.data();
+        var udpatedBooking =
+            _deleteRecurrance(originalBooking!, request.eventEndTime);
+        return originalRequestRef.set(udpatedBooking);
+      case null:
+        throw UnimplementedError();
+    }
+  }
+
+  void _deleteBooking(String orgID, String requestID, Transaction t) {
+    var requestRef = _confirmedRequestsRef(orgID).doc(requestID);
+    var privateDetailsRef = _privateRequestDetailsRef(orgID, requestID);
+    t.delete(requestRef);
+    t.delete(privateDetailsRef);
   }
 
   Stream<Request?> getRequest(String orgID, String requestID) {
@@ -445,4 +544,20 @@ class OrgRepo extends ChangeNotifier {
           toFirestore: (request, _) => request.toJson(),
         );
   }
+}
+
+DateTime _stripTime(DateTime dt) {
+  return DateTime(dt.year, dt.month, dt.day);
+}
+
+Request _deleteRecurrance(Request request, DateTime day) {
+  var overrides = request.recurranceOverrides ?? {};
+  overrides[_stripTime(day)] = null;
+  return request.copyWith(recurranceOverrides: overrides);
+}
+
+Request _overrideRecurrance(Request request, Request override) {
+  var overrides = request.recurranceOverrides ?? {};
+  overrides[_stripTime(override.eventStartTime)] = override;
+  return request.copyWith(recurranceOverrides: overrides);
 }

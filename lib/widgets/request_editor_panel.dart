@@ -9,6 +9,7 @@ import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/date_field.dart';
+import 'package:room_booker/widgets/edit_recurring_booking_dialog.dart';
 import 'package:room_booker/widgets/org_state_provider.dart';
 import 'package:room_booker/widgets/repeat_bookings_selector.dart';
 import 'package:room_booker/widgets/room_dropdown_selector.dart';
@@ -301,11 +302,17 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                   log("Invalid form, cannot save");
                   return;
                 }*/
-                var request = state.getRequest(roomState)!;
-                var details = state.getPrivateDetails();
                 await repo.updateBooking(
-                    widget.orgID, request, details, state.getStatus());
+                    widget.orgID,
+                    state.getRequest(roomState)!,
+                    state.getPrivateDetails(),
+                    state.getStatus(),
+                    () async => showDialog<RecurringBookingEditChoice>(
+                          context: context,
+                          builder: (context) => EditRecurringBookingDialog(),
+                        ));
                 state.disableEditing();
+                closePanel(context);
               },
               child: Tooltip(
                 message: "Save changes",
@@ -411,7 +418,13 @@ class NewRequestPanelState extends State<NewRequestPanel> {
 
     if (confirmDelete) {
       var request = state.getRequest(roomState)!;
-      await repo.deleteBooking(widget.orgID, request.id!);
+      await repo.deleteBooking(
+          widget.orgID,
+          request,
+          () async => showDialog<RecurringBookingEditChoice>(
+                context: context,
+                builder: (context) => EditRecurringBookingDialog(),
+              ));
       state.clearAppointment();
       closePanel(context);
     }
