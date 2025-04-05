@@ -86,7 +86,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                 state.updateRoomID(room.id!);
               }
             },
-            initialRoomID: state._existingRequest?.roomID ?? state._roomID,
+            initialRoomID: state._roomID,
           ),
           SimpleTextFormField(
               readOnly: readOnly,

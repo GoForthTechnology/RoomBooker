@@ -18,6 +18,7 @@ class RoomDropdownSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print("Building room dropdown selector: $initialRoomID");
     return Consumer<OrgRepo>(
       builder: (context, orgRepo, child) => StreamBuilder(
         stream: orgRepo.listRooms(orgID),
@@ -37,7 +38,7 @@ class RoomDropdownSelector extends StatelessWidget {
   }
 }
 
-class _RoomField extends StatefulWidget {
+class _RoomField extends StatelessWidget {
   final bool readOnly;
   final List<Room> rooms;
   final String? initialRoomID;
@@ -51,46 +52,25 @@ class _RoomField extends StatefulWidget {
   });
 
   @override
-  State<_RoomField> createState() => _RoomFieldState();
-}
-
-class _RoomFieldState extends State<_RoomField> {
-  Room? selectedRoom;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.initialRoomID != null) {
-      for (var room in widget.rooms) {
-        if (room.id == widget.initialRoomID) {
-          selectedRoom = room;
-          break;
-        }
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    var selectedRoom = rooms.firstWhere((room) => room.id == initialRoomID,
+        orElse: () => rooms.first);
     var field = DropdownButtonFormField<Room>(
       value: selectedRoom,
       decoration: const InputDecoration(
         labelText: 'Room',
         border: OutlineInputBorder(),
       ),
-      items: widget.rooms
+      items: rooms
           .map((room) => DropdownMenuItem(
                 value: room,
                 child: Text(room.name),
               ))
           .toList(),
-      onChanged: widget.readOnly
+      onChanged: readOnly
           ? null
           : (room) {
-              setState(() {
-                selectedRoom = room;
-                widget.onChanged(room);
-              });
+              onChanged(room);
             },
     );
     return ConstrainedBox(
