@@ -12,7 +12,7 @@ import 'package:room_booker/router.dart';
 import 'package:room_booker/auth.dart';
 import 'firebase_options.dart';
 
-bool useEmulator = false;
+bool useEmulator = true;
 
 void main() async {
   await Firebase.initializeApp(

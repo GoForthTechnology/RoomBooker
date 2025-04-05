@@ -146,9 +146,9 @@ class Request {
   List<Request> expand(DateTime windowStart, DateTime windowEnd,
       {bool includeRequestDate = true}) {
     var dates = _generateDates(windowStart, windowEnd);
-    return dates
-        .where((d) => includeRequestDate || d != eventStartTime)
-        .map((date) {
+    var eventDate =
+        DateTime(eventStartTime.year, eventStartTime.month, eventStartTime.day);
+    return dates.where((d) => includeRequestDate || d != eventDate).map((date) {
       return copyWith(
         eventStartTime: DateTime(date.year, date.month, date.day,
             eventStartTime.hour, eventStartTime.minute),
