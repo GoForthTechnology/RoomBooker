@@ -250,9 +250,9 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
     Key? key,
     required String orgID,
     String? requestID,
-    CalendarView view = CalendarView.month,
     bool createRequest = false,
     DateTime? targetDate,
+    CalendarView? view,
     List<PageRouteInfo>? children,
   }) : super(
          ViewBookingsRoute.name,
@@ -260,9 +260,9 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
            key: key,
            orgID: orgID,
            requestID: requestID,
-           view: view,
            createRequest: createRequest,
            targetDate: targetDate,
+           view: view,
          ),
          rawPathParams: {'orgID': orgID, 'requestID': requestID},
          initialChildren: children,
@@ -285,9 +285,9 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
         key: args.key,
         orgID: args.orgID,
         requestID: args.requestID,
-        view: args.view,
         createRequest: args.createRequest,
         targetDate: args.targetDate,
+        view: args.view,
       );
     },
   );
@@ -298,9 +298,9 @@ class ViewBookingsRouteArgs {
     this.key,
     required this.orgID,
     this.requestID,
-    this.view = CalendarView.month,
     this.createRequest = false,
     this.targetDate,
+    this.view,
   });
 
   final Key? key;
@@ -309,14 +309,14 @@ class ViewBookingsRouteArgs {
 
   final String? requestID;
 
-  final CalendarView view;
-
   final bool createRequest;
 
   final DateTime? targetDate;
 
+  final CalendarView? view;
+
   @override
   String toString() {
-    return 'ViewBookingsRouteArgs{key: $key, orgID: $orgID, requestID: $requestID, view: $view, createRequest: $createRequest, targetDate: $targetDate}';
+    return 'ViewBookingsRouteArgs{key: $key, orgID: $orgID, requestID: $requestID, createRequest: $createRequest, targetDate: $targetDate, view: $view}';
   }
 }
