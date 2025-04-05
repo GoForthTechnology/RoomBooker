@@ -161,7 +161,7 @@ class Request {
             if (override == null) {
               return null;
             }
-            return override;
+            return override.copyWith(id: id);
           }
           return copyWith(
             eventStartTime: DateTime(date.year, date.month, date.day,

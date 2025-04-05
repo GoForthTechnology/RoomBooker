@@ -6,6 +6,7 @@ void main() {
     test('Test recurrence overrides', () {
       var eventStartTime = DateTime(2025, 3, 6, 10);
       var request = Request(
+        id: "asdf7asd9f87as0d9f87as",
         eventStartTime: eventStartTime,
         eventEndTime: eventStartTime.add(Duration(hours: 1)),
         roomID: 'roomID',
@@ -27,6 +28,10 @@ void main() {
       expect(instances[1].eventStartTime, DateTime(2025, 3, 7, 10));
       expect(instances[2].eventStartTime, DateTime(2025, 3, 9, 12));
       expect(instances[3].eventStartTime, DateTime(2025, 3, 10, 10));
+
+      for (int i = 0; i < instances.length; i++) {
+        expect(instances[i].id, request.id);
+      }
     });
   });
 }

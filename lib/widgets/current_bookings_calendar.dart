@@ -105,7 +105,8 @@ class CurrentBookingsCalendar extends StatelessWidget {
                   appointments[appointment] = repeat;
                 }
               }
-              var request = requestEditorState.getRequest(roomState);
+              // TODO: reenable this at some point
+              /*var request = requestEditorState.getRequest(roomState);
               if (request != null &&
                   request.status != RequestStatus.confirmed) {
                 var requests = request.expand(
@@ -115,7 +116,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
                   appointments[request.toAppointment(roomState,
                       subject: "Another occurance")] = request;
                 }
-              }
+              }*/
               return StatefulCalendar(
                 view: calendarState.controller.view,
                 showNavigationArrow: true,
