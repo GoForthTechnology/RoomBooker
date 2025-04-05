@@ -63,6 +63,7 @@ class Request {
   @JsonKey(includeFromJson: false, includeToJson: false)
   final RequestStatus? status;
   final RecurrancePattern? recurrancePattern;
+  final Map<DateTime, Request?>? recurranceOverrides;
 
   Request({
     this.recurrancePattern,
@@ -72,6 +73,7 @@ class Request {
     required this.roomName,
     this.status,
     this.id,
+    this.recurranceOverrides,
   }) {
     assert(eventStartTime.isBefore(eventEndTime));
   }
@@ -93,6 +95,7 @@ class Request {
     String? roomName,
     RequestStatus? status,
     RecurrancePattern? recurrancePattern,
+    Map<DateTime, Request?>? recurranceOverrides,
   }) {
     return Request(
       eventStartTime: eventStartTime ?? this.eventStartTime,
@@ -102,6 +105,7 @@ class Request {
       status: status ?? this.status,
       id: id ?? this.id,
       recurrancePattern: recurrancePattern ?? this.recurrancePattern,
+      recurranceOverrides: recurranceOverrides ?? this.recurranceOverrides,
     );
   }
 
@@ -148,14 +152,27 @@ class Request {
     var dates = _generateDates(windowStart, windowEnd);
     var eventDate =
         DateTime(eventStartTime.year, eventStartTime.month, eventStartTime.day);
-    return dates.where((d) => includeRequestDate || d != eventDate).map((date) {
-      return copyWith(
-        eventStartTime: DateTime(date.year, date.month, date.day,
-            eventStartTime.hour, eventStartTime.minute),
-        eventEndTime: DateTime(date.year, date.month, date.day,
-            eventEndTime.hour, eventEndTime.minute),
-      );
-    }).toList();
+    return dates
+        .where((d) => includeRequestDate || d != eventDate)
+        .map((date) {
+          if (recurranceOverrides != null &&
+              recurranceOverrides!.containsKey(date)) {
+            var override = recurranceOverrides![date];
+            if (override == null) {
+              return null;
+            }
+            return override;
+          }
+          return copyWith(
+            eventStartTime: DateTime(date.year, date.month, date.day,
+                eventStartTime.hour, eventStartTime.minute),
+            eventEndTime: DateTime(date.year, date.month, date.day,
+                eventEndTime.hour, eventEndTime.minute),
+          );
+        })
+        .where((d) => d != null)
+        .map((d) => d!)
+        .toList();
   }
 
   List<DateTime> _generateDates(DateTime windowStart, DateTime windowEnd) {
@@ -203,13 +220,14 @@ class Request {
     }
     var dates = <DateTime>[];
     var current = windowStart;
-    var periodInDays = pattern.period;
+    var periodInHours = pattern.period * 24;
     if (pattern.frequency == Frequency.weekly) {
-      periodInDays = periodInDays * 7;
+      periodInHours = periodInHours * 7;
     }
+    periodInHours -= 1; // Because daylignt savings time is evil!
     while (current.isBefore(windowEnd)) {
       if (dates.isEmpty ||
-          current.difference(dates.last).inDays >= periodInDays) {
+          current.difference(dates.last).inHours >= periodInHours) {
         dates.add(current);
       }
       current = advanceOneDay(current);
