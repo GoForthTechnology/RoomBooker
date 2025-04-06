@@ -469,7 +469,7 @@ class RequestStateProvider extends StatelessWidget {
 }
 
 class RequestPanelSate extends ChangeNotifier {
-  String _orgID;
+  final String _orgID;
   bool _active;
 
   RequestPanelSate(this._active, this._orgID);

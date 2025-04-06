@@ -68,12 +68,15 @@ class CalendarState extends ChangeNotifier {
             // This prevents the schedule view from glitching out.
             return;
           }
-          // TODO: Figure out why this is necessary
-          notifyListeners();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            notifyListeners();
+          });
           return;
         }
         if (property == "calendarView") {
-          notifyListeners();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            notifyListeners();
+          });
           return;
         }
       });

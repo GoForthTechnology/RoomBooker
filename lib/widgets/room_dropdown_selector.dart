@@ -18,7 +18,6 @@ class RoomDropdownSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("Building room dropdown selector: $initialRoomID");
     return Consumer<OrgRepo>(
       builder: (context, orgRepo, child) => StreamBuilder(
         stream: orgRepo.listRooms(orgID),
