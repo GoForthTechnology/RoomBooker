@@ -10,7 +10,7 @@ import 'package:rxdart/rxdart.dart';
 
 enum RecurringBookingEditChoice {
   thisInstance,
-  allFuture,
+  thisAndFuture,
   all,
 }
 
@@ -211,7 +211,7 @@ class OrgRepo extends ChangeNotifier {
         var updatedRequest = _overrideRecurrance(originalBooking, request);
         t.set(originalRequestRef, updatedRequest);
         break;
-      case RecurringBookingEditChoice.allFuture:
+      case RecurringBookingEditChoice.thisAndFuture:
         // End the orginal booking starting with the request start time
         var updatedPattern = originalBooking.recurrancePattern!.copyWith(
             end: _stripTime(request.eventEndTime).subtract(Duration(days: 1)));
@@ -299,7 +299,7 @@ class OrgRepo extends ChangeNotifier {
         return _db.runTransaction((t) async {
           _deleteBooking(orgID, request.id!, t);
         });
-      case RecurringBookingEditChoice.allFuture:
+      case RecurringBookingEditChoice.thisAndFuture:
         return endBooking(orgID, request.id!, request.eventStartTime);
       case RecurringBookingEditChoice.thisInstance:
         var originalRequestRef = _confirmedRequestsRef(orgID).doc(request.id!);

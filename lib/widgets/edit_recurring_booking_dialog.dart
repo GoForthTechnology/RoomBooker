@@ -31,8 +31,8 @@ class _EditRecurringBookingDialogState
             },
           ),
           RadioListTile<RecurringBookingEditChoice>(
-            title: const Text('All future instances'),
-            value: RecurringBookingEditChoice.allFuture,
+            title: const Text('This and future instances'),
+            value: RecurringBookingEditChoice.thisAndFuture,
             groupValue: choice,
             onChanged: (value) {
               setState(() {
