@@ -44,8 +44,9 @@ class CurrentBookingsCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer4<OrgRepo, OrgState, RoomState, CalendarState>(
-      builder: (context, repo, orgState, roomState, calendarState, _) =>
+    var repo = Provider.of<OrgRepo>(context, listen: false);
+    return Consumer3<OrgState, RoomState, CalendarState>(
+      builder: (context, orgState, roomState, calendarState, _) =>
           StreamBuilder(
         stream:
             RemoteState.createStream(repo, roomState, calendarState, orgState),
@@ -189,10 +190,10 @@ class RemoteState {
         includeStatuses: {
           RequestStatus.pending,
           RequestStatus.confirmed
-        }).startWith([]).switchMap((requests) {
+        }).switchMap((requests) {
       return Rx.combineLatest2(
-          _privateDetailsStream(orgState, repo, requests).startWith([]),
-          repo.listBlackoutWindows(orgState.org.id!).startWith([]),
+          _privateDetailsStream(orgState, repo, requests),
+          repo.listBlackoutWindows(orgState.org.id!),
           (privateRequestDetails, blackoutWindows) => RemoteState(
               existingRequests: requests,
               privateRequestDetails: privateRequestDetails,
