@@ -216,7 +216,7 @@ class StatefulCalendar extends StatelessWidget {
       showNavigationArrow: showNavigationArrow,
       showTodayButton: showTodayButton,
       showDatePickerButton: showDatePickerButton,
-      allowAppointmentResize: allowAppointmentResize,
+      allowAppointmentResize: allowAppointmentResize && newAppointment != null,
       allowViewNavigation: false,
       cellEndPadding: 20,
       allowedViews: [
