@@ -23,6 +23,7 @@ extension on Request {
       color: color,
       startTime: eventStartTime,
       endTime: eventEndTime,
+      resourceIds: [id!],
     );
   }
 }
@@ -127,6 +128,17 @@ class CurrentBookingsCalendar extends StatelessWidget {
                 allowAppointmentResize: true,
                 onAppointmentResizeEnd: (details) => requestEditorState
                     .updateTimes(details.startTime, details.endTime),
+                allowDragAndDrop: true,
+                onAppointmentDragEnd: (details) {
+                  log("Drag and drop request ${details.request.id}");
+                  if (requestEditorState.requestID() != details.request.id) {
+                    log("Not the active request!");
+                    return;
+                  }
+                  var start = details.dropTime;
+                  var end = start.add(details.request.eventDuration());
+                  requestEditorState.updateTimes(start, end);
+                },
                 onTapBooking: onTapRequest,
                 newAppointment: newAppointment,
                 blackoutWindows: remoteState.blackoutWindows,

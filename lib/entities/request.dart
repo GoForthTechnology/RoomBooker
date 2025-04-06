@@ -122,6 +122,10 @@ class Request {
     }""";
   }
 
+  Duration eventDuration() {
+    return eventEndTime.difference(eventStartTime);
+  }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;

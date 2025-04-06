@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/blackout_window.dart';
@@ -177,11 +179,15 @@ class StatefulCalendar extends StatelessWidget {
   final bool allowAppointmentResize;
   final Function(ResizeDetails)? onAppointmentResizeEnd;
 
+  final bool allowDragAndDrop;
+  final Function(DragDetails)? onAppointmentDragEnd;
+
   final Appointment? newAppointment;
   final Map<Appointment, Request> appointments;
   final List<BlackoutWindow> blackoutWindows;
+  final Map<String, Request> requestIndex;
 
-  const StatefulCalendar({
+  StatefulCalendar({
     super.key,
     required this.view,
     required this.showNavigationArrow,
@@ -196,7 +202,10 @@ class StatefulCalendar extends StatelessWidget {
     this.onAppointmentResizeEnd,
     this.allowAppointmentResize = false,
     this.newAppointment,
-  });
+    this.allowDragAndDrop = false,
+    this.onAppointmentDragEnd,
+  }) : requestIndex =
+            appointments.map((key, value) => MapEntry(value.id!, value));
 
   @override
   Widget build(BuildContext context) {
@@ -209,6 +218,29 @@ class StatefulCalendar extends StatelessWidget {
             endTime: details.endTime!));
       };
     }
+    Function(AppointmentDragEndDetails)? onDragEnd;
+    if (onAppointmentDragEnd != null) {
+      onDragEnd = (details) {
+        if (details.appointment == null || details.droppingTime == null) {
+          return;
+        }
+        var appointment = details.appointment as Appointment?;
+        Request? request;
+        for (var id in appointment?.resourceIds ?? []) {
+          request = requestIndex[id];
+          if (request != null) {
+            break;
+          }
+        }
+        if (request == null) {
+          log("Appointment not found in state, cannot call onAppointmentDragEnd");
+          return;
+        }
+        onAppointmentDragEnd!(
+            DragDetails(request: request, dropTime: details.droppingTime!));
+      };
+    }
+
     var dataSource = _DataSource(appointments.keys.toList() +
         [if (newAppointment != null) newAppointment!]);
     var specialRegions = blackoutWindows.map((w) => w.toTimeRegion()).toList();
@@ -229,6 +261,8 @@ class StatefulCalendar extends StatelessWidget {
       ],
       minDate: nowRoundedUpToNearestHour(),
       onAppointmentResizeEnd: onResizeEnd,
+      allowDragAndDrop: allowDragAndDrop && newAppointment != null,
+      onDragEnd: onDragEnd,
       onTap: (details) {
         switch (details.targetElement) {
           case CalendarElement.appointment:
@@ -255,6 +289,13 @@ class StatefulCalendar extends StatelessWidget {
       dataSource: dataSource,
     );
   }
+}
+
+class DragDetails {
+  final Request request;
+  final DateTime dropTime;
+
+  DragDetails({required this.request, required this.dropTime});
 }
 
 class ResizeDetails {
