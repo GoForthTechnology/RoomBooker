@@ -94,6 +94,11 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               labelText: "Event Name",
               validationMessage: "Please provide a name",
               onChanged: state.updateEventName),
+          SwitchListTile(
+            title: Text("Show name on parish calendar"),
+            value: state.isPublicEvent,
+            onChanged: state.updatePublicEvent,
+          ),
           DateField(
             readOnly: readOnly,
             labelText: 'Event Date',
@@ -507,6 +512,7 @@ class RequestEditorState extends ChangeNotifier {
   RecurrancePattern _recurrancePattern = RecurrancePattern.never();
   bool _customRecurrencePattern = false;
   String _roomID = "";
+  bool _publicEvent = false;
 
   String? get roomID => _roomID;
   String? get eventname => _eventName;
@@ -519,6 +525,7 @@ class RequestEditorState extends ChangeNotifier {
   RecurrancePattern get recurrancePattern => _recurrancePattern;
   bool get isCustomRecurrencePattern => _customRecurrencePattern;
   bool get editingEnabled => _editingEnabled;
+  bool get isPublicEvent => _publicEvent;
 
   Request? get existingRequest => _existingRequest;
 
@@ -540,8 +547,14 @@ class RequestEditorState extends ChangeNotifier {
     return _existingRequest == null;
   }
 
+  void updatePublicEvent(bool value) {
+    _publicEvent = value;
+    notifyListeners();
+  }
+
   void showRequest(Request request, PrivateRequestDetails details,
       {bool updateListeners = true}) {
+    _publicEvent = (request.publicName ?? "") != "";
     _existingRequest = request;
     _startTime = request.eventStartTime;
     _endTime = request.eventEndTime;
@@ -699,6 +712,7 @@ class RequestEditorState extends ChangeNotifier {
     }
     return Request(
       id: _existingRequest?.id,
+      publicName: _publicEvent ? _eventName : null,
       eventStartTime: _startTime!,
       eventEndTime: _endTime!,
       roomID: room.id!,

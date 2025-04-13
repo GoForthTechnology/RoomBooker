@@ -56,6 +56,7 @@ class PrivateRequestDetails {
 class Request {
   @JsonKey(includeFromJson: false, includeToJson: false)
   final String? id;
+  final String? publicName;
   final DateTime eventStartTime;
   final DateTime eventEndTime;
   final String roomID;
@@ -71,6 +72,7 @@ class Request {
     required this.eventEndTime,
     required this.roomID,
     required this.roomName,
+    this.publicName,
     this.status,
     this.id,
     this.recurranceOverrides,
@@ -93,6 +95,7 @@ class Request {
     DateTime? eventEndTime,
     String? roomID,
     String? roomName,
+    String? publicName,
     RequestStatus? status,
     RecurrancePattern? recurrancePattern,
     Map<DateTime, Request?>? recurranceOverrides,
@@ -102,6 +105,7 @@ class Request {
       eventEndTime: eventEndTime ?? this.eventEndTime,
       roomID: roomID ?? this.roomID,
       roomName: roomName ?? this.roomName,
+      publicName: publicName ?? this.publicName,
       status: status ?? this.status,
       id: id ?? this.id,
       recurrancePattern: recurrancePattern ?? this.recurrancePattern,
@@ -136,6 +140,7 @@ class Request {
         other.eventEndTime == eventEndTime &&
         other.roomID == roomID &&
         other.roomName == roomName &&
+        other.publicName == publicName &&
         other.recurrancePattern == recurrancePattern &&
         other.status == status;
   }
@@ -148,6 +153,7 @@ class Request {
         roomID.hashCode ^
         roomName.hashCode ^
         recurrancePattern.hashCode ^
+        publicName.hashCode ^
         status.hashCode;
   }
 
@@ -181,8 +187,8 @@ class Request {
 
   List<DateTime> _generateDates(DateTime windowStart, DateTime windowEnd) {
     var pattern = recurrancePattern;
-    if (pattern == null) {
-      return [];
+    if (pattern == null || pattern.frequency == Frequency.never) {
+      return [eventStartTime];
     }
     // Cap the end date if it is before the window end
     var effectiveEnd = windowEnd.isBefore(pattern.end ?? windowEnd)

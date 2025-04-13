@@ -35,6 +35,7 @@ Request _$RequestFromJson(Map<String, dynamic> json) => Request(
       eventEndTime: DateTime.parse(json['eventEndTime'] as String),
       roomID: json['roomID'] as String,
       roomName: json['roomName'] as String,
+      publicName: json['publicName'] as String?,
       recurranceOverrides:
           (json['recurranceOverrides'] as Map<String, dynamic>?)?.map(
         (k, e) => MapEntry(DateTime.parse(k),
@@ -43,6 +44,7 @@ Request _$RequestFromJson(Map<String, dynamic> json) => Request(
     );
 
 Map<String, dynamic> _$RequestToJson(Request instance) => <String, dynamic>{
+      'publicName': instance.publicName,
       'eventStartTime': instance.eventStartTime.toIso8601String(),
       'eventEndTime': instance.eventEndTime.toIso8601String(),
       'roomID': instance.roomID,

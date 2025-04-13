@@ -85,7 +85,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
               }
               Map<Appointment, Request> appointments = {};
               for (var request in remoteState.existingRequests) {
-                String? subject;
+                String? subject = request.publicName;
                 var details = remoteState.privateRequestDetails(request.id!);
                 if (details != null) {
                   subject = details.eventName;
