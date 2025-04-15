@@ -7,7 +7,6 @@ import 'package:room_booker/screens/landing.dart';
 import 'package:room_booker/screens/org_settings_screen.dart';
 import 'package:room_booker/screens/join_org_screen.dart';
 import 'package:room_booker/screens/schedule_screen.dart';
-import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 part 'router.gr.dart';
 
