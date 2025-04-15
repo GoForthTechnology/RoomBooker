@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:room_booker/entities/blackout_window.dart';
@@ -18,6 +19,7 @@ typedef RecurringBookingEditChoiceProvider = Future<RecurringBookingEditChoice?>
     Function();
 
 class OrgRepo extends ChangeNotifier {
+  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final UserRepo _userRepo;
 
@@ -40,14 +42,20 @@ class OrgRepo extends ChangeNotifier {
       _userRepo.addOrg(t, user.uid, orgRef.id);
       return orgRef.id;
     });
+    _analytics.logEvent(name: "AddOrg", parameters: {
+      "orgID": orgID,
+    });
     return orgID;
   }
 
   Future<void> updateNotificationSettings(
       String orgID, NotificationSettings settings) async {
-    return _db.collection("orgs").doc(orgID).update({
+    await _db.collection("orgs").doc(orgID).update({
       "notificationSettings": settings.toJson(),
     });
+    _analytics.logEvent(
+        name: "UpdateNotificationSettings",
+        parameters: {"orgID": orgID, "settings": settings.toJson()});
   }
 
   Future<void> addAdminRequestForCurrentUser(String orgID) async {
@@ -59,9 +67,13 @@ class OrgRepo extends ChangeNotifier {
       return Future.error("User does not have an email address");
     }
     var entry = AdminEntry(email: user.email!, lastUpdated: DateTime.now());
-    return _db.runTransaction((t) async {
+    await _db.runTransaction((t) async {
       _userRepo.addOrg(t, user.uid, orgID);
       t.set(_adminRequestRef(orgID, user.uid), entry);
+    });
+    _analytics.logEvent(name: "AddAdminRequest", parameters: {
+      "orgID": orgID,
+      "userID": user.uid,
     });
   }
 
@@ -71,12 +83,16 @@ class OrgRepo extends ChangeNotifier {
         .map((s) => s.docs.map((d) => d.data()).toList());
   }
 
-  Future<void> denyAdminRequest(String orgID, String userID) {
-    return _adminRequestRef(orgID, userID).delete();
+  Future<void> denyAdminRequest(String orgID, String userID) async {
+    await _adminRequestRef(orgID, userID).delete();
+    _analytics.logEvent(name: "DenyAdminRequest", parameters: {
+      "orgID": orgID,
+      "userID": userID,
+    });
   }
 
-  Future<void> approveAdminRequest(String orgID, String userID) {
-    return _db.runTransaction((t) async {
+  Future<void> approveAdminRequest(String orgID, String userID) async {
+    await _db.runTransaction((t) async {
       var requestRef = _adminRequestRef(orgID, userID);
       var requestData = await t.get(requestRef);
       if (!requestData.exists) {
@@ -86,13 +102,21 @@ class OrgRepo extends ChangeNotifier {
       t.delete(requestRef);
       t.set(_activeAdminRef(orgID, userID), request!);
     });
+    _analytics.logEvent(name: "ApproveAdminRequest", parameters: {
+      "orgID": orgID,
+      "userID": userID,
+    });
   }
 
-  Future<void> removeAdmin(String orgID, String userID) {
-    return _db.runTransaction((t) async {
+  Future<void> removeAdmin(String orgID, String userID) async {
+    await _db.runTransaction((t) async {
       var adminRef = _activeAdminRef(orgID, userID);
       t.delete(adminRef);
       //_userRepo.removeOrg(t, userID, orgID);
+    });
+    _analytics.logEvent(name: "RemoveAdmin", parameters: {
+      "orgID": orgID,
+      "userID": userID,
     });
   }
 
@@ -133,7 +157,7 @@ class OrgRepo extends ChangeNotifier {
     if (user == null) {
       return Future.error("User not logged in!");
     }
-    return _db.runTransaction((t) async {
+    await _db.runTransaction((t) async {
       var orgRef = _db.collection("orgs").doc(orgID);
       var org = await orgRef.get();
       if (!org.exists) {
@@ -141,6 +165,9 @@ class OrgRepo extends ChangeNotifier {
       }
       await orgRef.delete();
       _userRepo.removeOrg(t, user.uid, orgID);
+    });
+    _analytics.logEvent(name: "RemoveOrg", parameters: {
+      "orgID": orgID,
     });
   }
 
@@ -180,6 +207,10 @@ class OrgRepo extends ChangeNotifier {
       t.set(requestRef, request);
       var privateDetailsRef = _privateRequestDetailsRef(orgID, requestRef.id);
       t.set(privateDetailsRef, privateDetails);
+    });
+    _analytics.logEvent(name: "SubmitBookingRequest", parameters: {
+      "orgID": orgID,
+      "requestID": request.id ?? "",
     });
   }
 
@@ -257,12 +288,20 @@ class OrgRepo extends ChangeNotifier {
       var privateDetailsRef = _privateRequestDetailsRef(orgID, request.id!);
       t.set(privateDetailsRef, privateDetails);
     });
+    _analytics.logEvent(name: "UpdateBooking", parameters: {
+      "orgID": orgID,
+      "requestID": request.id ?? "",
+    });
   }
 
   Future<void> addBooking(String orgID, Request request,
       PrivateRequestDetails privateDetails) async {
     await _db.runTransaction((t) async {
       _addBooking(orgID, request, privateDetails, t);
+    });
+    _analytics.logEvent(name: "AddBooking", parameters: {
+      "orgID": orgID,
+      "requestID": request.id ?? "",
     });
   }
 
@@ -408,7 +447,10 @@ class OrgRepo extends ChangeNotifier {
       }
       t.set(confirmedRef, data);
       t.delete(requestRef);
-    });
+    }).then((value) => _analytics.logEvent(name: "ConfirmRequest", parameters: {
+          "orgID": orgID,
+          "requestID": requestID,
+        }));
   }
 
   Future<void> denyRequest(String orgID, String requestID) {
@@ -422,7 +464,10 @@ class OrgRepo extends ChangeNotifier {
       }
       t.set(deniedRef, data);
       t.delete(requestRef);
-    });
+    }).then((value) => _analytics.logEvent(name: "DenyRequest", parameters: {
+          "orgID": orgID,
+          "requestID": requestID,
+        }));
   }
 
   Future<void> revisitBookingRequest(String orgID, Request request) async {
@@ -438,7 +483,9 @@ class OrgRepo extends ChangeNotifier {
       }
       t.set(requestRef, data);
       t.delete(oldRef);
-    });
+    }).then((value) => _analytics.logEvent(
+        name: "RevisitRequest",
+        parameters: {"orgID": orgID, "requestID": request.id ?? ""}));
   }
 
   Stream<List<BlackoutWindow>> listBlackoutWindows(String orgID) =>
