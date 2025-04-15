@@ -215,6 +215,10 @@ async function notifyOwnerOfPendingBooking(orgID, bookingID) {
 async function notifyRequesterOfPeningBooking(orgID, bookingID) {
   try {
     const details = await getRequestDetails(orgID, bookingID);
+    if (isFromAdmin(details)) {
+      // We don't want to spam the admins for actions they took themselves.
+      return;
+    }
     await sendEmail(
         details.email,
         "Booking Request Received", `
