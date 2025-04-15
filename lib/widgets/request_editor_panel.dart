@@ -97,7 +97,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           SwitchListTile(
             title: Text("Show name on parish calendar"),
             value: state.isPublicEvent,
-            onChanged: state.updatePublicEvent,
+            onChanged: readOnly ? null : state.updatePublicEvent,
           ),
           DateField(
             readOnly: readOnly,
