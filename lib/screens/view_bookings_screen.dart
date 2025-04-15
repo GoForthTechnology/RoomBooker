@@ -22,6 +22,7 @@ class ViewBookingsScreen extends StatelessWidget {
   final String orgID;
   final String view;
   final bool createRequest;
+  final bool readOnlyMode;
   final DateTime? targetDate;
   final String? requestID;
   final bool showPrivateBookings;
@@ -31,6 +32,7 @@ class ViewBookingsScreen extends StatelessWidget {
       @PathParam('orgID') required this.orgID,
       @QueryParam('rid') this.requestID,
       @QueryParam('spb') this.showPrivateBookings = true,
+      @QueryParam('ro') this.readOnlyMode = false,
       this.createRequest = false,
       this.targetDate,
       @QueryParam('v') String? view})
@@ -191,49 +193,54 @@ class ViewBookingsScreen extends StatelessWidget {
     return CurrentBookingsCalendar(
       includePrivateBookings: showPrivateBookings,
       orgID: orgID,
-      onTap: (details) {
-        var targetDate = details.date!;
-        var currentView = calendarState.controller.view;
-        if (currentView == CalendarView.month) {
-          AutoRouter.of(context).push(ViewBookingsRoute(
-            orgID: orgID,
-            view: CalendarView.day.name,
-            targetDate: targetDate,
-          ));
-          return;
-        }
-        requestEditorState.clearAppointment();
-        requestEditorState.createRequest(
-            details.date!,
-            details.date!.add(const Duration(hours: 1)),
-            roomState.enabledValue()!);
-        if (_isSmallView(context)) {
-          _showPannelAsDialog(context);
-        } else {
-          requestPanelState.showPanel();
-        }
-      },
-      onTapRequest: (request) async {
-        if (FirebaseAuth.instance.currentUser == null) {
-          return;
-        }
-        var isSmallView = _isSmallView(context);
-        var details = await Provider.of<OrgRepo>(context, listen: false)
-            .getRequestDetails(orgID, request.id!)
-            .first;
-        if (details == null) {
-          return;
-        }
-        requestEditorState.showRequest(request, details);
-        if (isSmallView && context.mounted) {
-          _showPannelAsDialog(context);
-        } else {
-          requestPanelState.showPanel();
-        }
-        SystemNavigator.routeInformationUpdated(
-            uri: Uri(path: "/view/$orgID?requestID=${request.id}"));
-        FirebaseAnalytics.instance.logEvent(name: "Start creating request");
-      },
+      onTap: readOnlyMode
+          ? null
+          : (details) {
+              var targetDate = details.date!;
+              var currentView = calendarState.controller.view;
+              if (currentView == CalendarView.month) {
+                AutoRouter.of(context).push(ViewBookingsRoute(
+                  orgID: orgID,
+                  view: CalendarView.day.name,
+                  targetDate: targetDate,
+                ));
+                return;
+              }
+              requestEditorState.clearAppointment();
+              requestEditorState.createRequest(
+                  details.date!,
+                  details.date!.add(const Duration(hours: 1)),
+                  roomState.enabledValue()!);
+              if (_isSmallView(context)) {
+                _showPannelAsDialog(context);
+              } else {
+                requestPanelState.showPanel();
+              }
+            },
+      onTapRequest: readOnlyMode
+          ? null
+          : (request) async {
+              if (FirebaseAuth.instance.currentUser == null) {
+                return;
+              }
+              var isSmallView = _isSmallView(context);
+              var details = await Provider.of<OrgRepo>(context, listen: false)
+                  .getRequestDetails(orgID, request.id!)
+                  .first;
+              if (details == null) {
+                return;
+              }
+              requestEditorState.showRequest(request, details);
+              if (isSmallView && context.mounted) {
+                _showPannelAsDialog(context);
+              } else {
+                requestPanelState.showPanel();
+              }
+              SystemNavigator.routeInformationUpdated(
+                  uri: Uri(path: "/view/$orgID?requestID=${request.id}"));
+              FirebaseAnalytics.instance
+                  .logEvent(name: "Start creating request");
+            },
       showDatePickerButton: true,
     );
   }

@@ -30,8 +30,8 @@ extension on Request {
 
 class CurrentBookingsCalendar extends StatelessWidget {
   final String orgID;
-  final Function(CalendarTapDetails) onTap;
-  final Function(Request) onTapRequest;
+  final Function(CalendarTapDetails)? onTap;
+  final Function(Request)? onTapRequest;
   final Request? existingRequest;
   final bool showDatePickerButton;
   final bool includePrivateBookings;
