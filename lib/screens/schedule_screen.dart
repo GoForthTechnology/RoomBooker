@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/router.dart';
@@ -17,6 +18,8 @@ class ScheduleScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    FirebaseAnalytics.instance
+        .logScreenView(screenName: "Schedule", parameters: {"orgID": orgID});
     return OrgStateProvider(
       orgID: orgID,
       child: Consumer<OrgState>(

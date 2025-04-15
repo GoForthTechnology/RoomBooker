@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
@@ -15,6 +16,8 @@ class OrgSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    FirebaseAnalytics.instance.logScreenView(
+        screenName: "Org Settings", parameters: {"orgID": orgID});
     return Scaffold(
         appBar: AppBar(
           title: const Text("Organization Settings"),
