@@ -61,4 +61,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'roombooker-5e947.firebasestorage.app',
     measurementId: 'G-MBM4WWN4VJ',
   );
+
 }
