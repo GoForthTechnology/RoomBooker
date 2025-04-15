@@ -163,7 +163,7 @@ class PendingBookings extends StatelessWidget {
           onClick: (request) => AutoRouter.of(context).push(ViewBookingsRoute(
               orgID: orgID,
               requestID: request.id!,
-              view: CalendarView.day,
+              view: CalendarView.day.name,
               targetDate: request.eventStartTime)),
         ),
         RequestAction(

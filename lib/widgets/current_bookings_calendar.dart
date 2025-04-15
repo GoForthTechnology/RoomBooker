@@ -34,6 +34,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
   final Function(Request) onTapRequest;
   final Request? existingRequest;
   final bool showDatePickerButton;
+  final bool includePrivateBookings;
 
   const CurrentBookingsCalendar(
       {super.key,
@@ -41,6 +42,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
       required this.onTap,
       required this.onTapRequest,
       required this.showDatePickerButton,
+      this.includePrivateBookings = true,
       this.existingRequest});
 
   @override
@@ -89,6 +91,10 @@ class CurrentBookingsCalendar extends StatelessWidget {
                 var details = remoteState.privateRequestDetails(request.id!);
                 if (details != null) {
                   subject = details.eventName;
+                }
+                var isPrivateBooking = (subject ?? "") == "";
+                if (isPrivateBooking && !includePrivateBookings) {
+                  continue;
                 }
                 /*var appointment =
                     request.toAppointment(roomState, subject: subject);

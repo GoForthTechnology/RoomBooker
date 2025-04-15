@@ -250,9 +250,10 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
     Key? key,
     required String orgID,
     String? requestID,
+    bool showPrivateBookings = true,
     bool createRequest = false,
     DateTime? targetDate,
-    CalendarView? view,
+    String? view,
     List<PageRouteInfo>? children,
   }) : super(
          ViewBookingsRoute.name,
@@ -260,12 +261,17 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
            key: key,
            orgID: orgID,
            requestID: requestID,
+           showPrivateBookings: showPrivateBookings,
            createRequest: createRequest,
            targetDate: targetDate,
            view: view,
          ),
          rawPathParams: {'orgID': orgID},
-         rawQueryParams: {'requestID': requestID},
+         rawQueryParams: {
+           'rid': requestID,
+           'spb': showPrivateBookings,
+           'v': view,
+         },
          initialChildren: children,
        );
 
@@ -280,13 +286,16 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
         orElse:
             () => ViewBookingsRouteArgs(
               orgID: pathParams.getString('orgID'),
-              requestID: queryParams.optString('requestID'),
+              requestID: queryParams.optString('rid'),
+              showPrivateBookings: queryParams.getBool('spb', true),
+              view: queryParams.optString('v'),
             ),
       );
       return ViewBookingsScreen(
         key: args.key,
         orgID: args.orgID,
         requestID: args.requestID,
+        showPrivateBookings: args.showPrivateBookings,
         createRequest: args.createRequest,
         targetDate: args.targetDate,
         view: args.view,
@@ -300,6 +309,7 @@ class ViewBookingsRouteArgs {
     this.key,
     required this.orgID,
     this.requestID,
+    this.showPrivateBookings = true,
     this.createRequest = false,
     this.targetDate,
     this.view,
@@ -311,14 +321,16 @@ class ViewBookingsRouteArgs {
 
   final String? requestID;
 
+  final bool showPrivateBookings;
+
   final bool createRequest;
 
   final DateTime? targetDate;
 
-  final CalendarView? view;
+  final String? view;
 
   @override
   String toString() {
-    return 'ViewBookingsRouteArgs{key: $key, orgID: $orgID, requestID: $requestID, createRequest: $createRequest, targetDate: $targetDate, view: $view}';
+    return 'ViewBookingsRouteArgs{key: $key, orgID: $orgID, requestID: $requestID, showPrivateBookings: $showPrivateBookings, createRequest: $createRequest, targetDate: $targetDate, view: $view}';
   }
 }

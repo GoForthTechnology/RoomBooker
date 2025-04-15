@@ -53,7 +53,7 @@ class ScheduleScreen extends StatelessWidget {
                       AutoRouter.of(context).push(ViewBookingsRoute(
                           orgID: orgID,
                           requestID: r.id,
-                          view: CalendarView.day));
+                          view: CalendarView.day.name));
                     },
                   ))
                 ],

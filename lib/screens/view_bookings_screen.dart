@@ -20,21 +20,23 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 @RoutePage()
 class ViewBookingsScreen extends StatelessWidget {
   final String orgID;
-  final CalendarView view;
+  final String view;
   final bool createRequest;
   final DateTime? targetDate;
   final String? requestID;
+  final bool showPrivateBookings;
 
-  const ViewBookingsScreen(
+  ViewBookingsScreen(
       {super.key,
       @PathParam('orgID') required this.orgID,
-      @QueryParam('requestID') this.requestID,
+      @QueryParam('rid') this.requestID,
+      @QueryParam('spb') this.showPrivateBookings = true,
       this.createRequest = false,
       this.targetDate,
-      CalendarView? view})
+      @QueryParam('v') String? view})
       : view = (targetDate != null || requestID != null
-            ? CalendarView.day
-            : view ?? CalendarView.month);
+            ? CalendarView.day.name
+            : view ?? CalendarView.month.name);
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +92,8 @@ class ViewBookingsScreen extends StatelessWidget {
           initialDetails: details,
           requestStartTime: createRequest ? targetDate : null,
           child: CalendarStateProvider(
-            initialView: view,
+            initialView: CalendarView.values
+                .firstWhere((element) => element.name == view),
             focusDate: targetDate ?? request?.eventEndTime ?? DateTime.now(),
             builder: (context, child) {
               var calendarState = Provider.of<CalendarState>(context);
@@ -169,7 +172,7 @@ class ViewBookingsScreen extends StatelessWidget {
         eventTime.hour, eventTime.minute);
     router.push(ViewBookingsRoute(
         orgID: orgID,
-        view: CalendarView.day,
+        view: CalendarView.day.name,
         targetDate: startTime,
         createRequest: true));
   }
@@ -186,13 +189,17 @@ class ViewBookingsScreen extends StatelessWidget {
     var calendarState = Provider.of<CalendarState>(context, listen: false);
     var roomState = Provider.of<RoomState>(context, listen: false);
     return CurrentBookingsCalendar(
+      includePrivateBookings: showPrivateBookings,
       orgID: orgID,
       onTap: (details) {
         var targetDate = details.date!;
         var currentView = calendarState.controller.view;
         if (currentView == CalendarView.month) {
           AutoRouter.of(context).push(ViewBookingsRoute(
-              orgID: orgID, view: CalendarView.day, targetDate: targetDate));
+            orgID: orgID,
+            view: CalendarView.day.name,
+            targetDate: targetDate,
+          ));
           return;
         }
         requestEditorState.clearAppointment();

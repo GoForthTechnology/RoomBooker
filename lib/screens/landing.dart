@@ -171,7 +171,7 @@ class OrgTile extends StatelessWidget {
                     return;
                   }
                   AutoRouter.of(context).push(ViewBookingsRoute(
-                      orgID: org.id!, view: CalendarView.month));
+                      orgID: org.id!, view: CalendarView.month.name));
                 },
               ),
             );
