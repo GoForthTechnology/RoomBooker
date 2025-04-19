@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/request.dart';
-import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/repos/booking_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/widgets/current_bookings_calendar.dart';
 import 'package:room_booker/widgets/org_state_provider.dart';
@@ -44,14 +44,14 @@ class ViewBookingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     FirebaseAnalytics.instance.logScreenView(
         screenName: "View Bookings", parameters: {"orgID": orgID});
-    var orgRepo = Provider.of<OrgRepo>(context, listen: false);
+    var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
     if (requestID == null) {
       return _content(context, null, null);
     }
     return StreamBuilder(
       stream: Rx.combineLatest2(
-        orgRepo.getRequestDetails(orgID, requestID!),
-        orgRepo.getRequest(orgID, requestID!),
+        bookingRepo.getRequestDetails(orgID, requestID!),
+        bookingRepo.getRequest(orgID, requestID!),
         (details, request) => (details, request),
       ),
       builder: (context, snapshot) {
@@ -224,9 +224,10 @@ class ViewBookingsScreen extends StatelessWidget {
                 return;
               }
               var isSmallView = _isSmallView(context);
-              var details = await Provider.of<OrgRepo>(context, listen: false)
-                  .getRequestDetails(orgID, request.id!)
-                  .first;
+              var details =
+                  await Provider.of<BookingRepo>(context, listen: false)
+                      .getRequestDetails(orgID, request.id!)
+                      .first;
               if (details == null) {
                 return;
               }

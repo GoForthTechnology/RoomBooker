@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/blackout_window.dart';
 import 'package:room_booker/entities/request.dart';
-import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/repos/booking_repo.dart';
 import 'package:room_booker/widgets/org_state_provider.dart';
 import 'package:room_booker/widgets/request_editor_panel.dart';
 import 'package:room_booker/widgets/room_selector.dart';
@@ -47,7 +47,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var repo = Provider.of<OrgRepo>(context, listen: false);
+    var repo = Provider.of<BookingRepo>(context, listen: false);
     return Consumer3<OrgState, RoomState, CalendarState>(
       builder: (context, orgState, roomState, calendarState, _) =>
           StreamBuilder(
@@ -195,7 +195,7 @@ class RemoteState {
     return _privateRequestDetails[requestID];
   }
 
-  static Stream<RemoteState> createStream(OrgRepo repo, RoomState roomState,
+  static Stream<RemoteState> createStream(BookingRepo repo, RoomState roomState,
       CalendarState calendarState, OrgState orgState) {
     var startTime = calendarState.startOfView();
     var endTime = calendarState.endOfView();
@@ -220,7 +220,7 @@ class RemoteState {
   }
 
   static Stream<List<PrivateRequestDetails>> _privateDetailsStream(
-      OrgState orgState, OrgRepo repo, List<Request> requests) {
+      OrgState orgState, BookingRepo repo, List<Request> requests) {
     if (!orgState.currentUserIsAdmin()) {
       return Stream.value([]);
     }

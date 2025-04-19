@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
+import 'package:room_booker/repos/booking_repo.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/widgets/date_field.dart';
 import 'package:room_booker/widgets/edit_recurring_booking_dialog.dart';
@@ -63,8 +64,9 @@ class NewRequestPanelState extends State<NewRequestPanel> {
 
     var orgState = Provider.of<OrgState>(context, listen: false);
     var localizations = MaterialLocalizations.of(context);
-    return Consumer4<RoomState, RequestEditorState, RequestPanelSate, OrgRepo>(
-        builder: (context, roomState, state, panelState, repo, child) {
+    var repo = Provider.of<BookingRepo>(context, listen: false);
+    return Consumer3<RoomState, RequestEditorState, RequestPanelSate>(
+        builder: (context, roomState, state, panelState, child) {
       var readOnly = state.readOnly();
       var formContents = Column(
         children: [
@@ -228,7 +230,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
   }
 
   List<Widget> _buttonsForNewRequest(RequestEditorState state,
-      RoomState roomState, OrgRepo repo, OrgState orgState) {
+      RoomState roomState, BookingRepo repo, OrgState orgState) {
     if (orgState.currentUserIsAdmin()) {
       return [
         ElevatedButton(
@@ -272,7 +274,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
   }
 
   List<Widget> _buttonsForPendingRequest(RequestEditorState state,
-      RequestPanelSate panelState, RoomState roomState, OrgRepo repo) {
+      RequestPanelSate panelState, RoomState roomState, BookingRepo repo) {
     return [
       ElevatedButton(
         onPressed: () async {
@@ -298,7 +300,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
   }
 
   List<Widget> _buttonsForConfirmedRequest(RequestEditorState state,
-      RequestPanelSate panelState, RoomState roomState, OrgRepo repo) {
+      RequestPanelSate panelState, RoomState roomState, BookingRepo repo) {
     var buttons = <Widget>[
       state.editingEnabled
           ? ElevatedButton(
@@ -369,7 +371,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
   }
 
   Widget _getButtons(RequestEditorState state, RequestPanelSate panelState,
-      RoomState roomState, OrgRepo repo) {
+      RoomState roomState, BookingRepo repo) {
     return Consumer<OrgState>(builder: (context, orgState, child) {
       var status = state.getStatus();
       List<Widget> buttons = [];
@@ -394,7 +396,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
 
   void _onDelete() async {
     var state = Provider.of<RequestEditorState>(context, listen: false);
-    var repo = Provider.of<OrgRepo>(context, listen: false);
+    var repo = Provider.of<BookingRepo>(context, listen: false);
     var roomState = Provider.of<RoomState>(context, listen: false);
 
     bool confirmDelete = await showDialog(

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
+import 'package:room_booker/repos/booking_repo.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/repos/room_repo.dart';
 import 'package:room_booker/router.dart';
@@ -87,14 +88,15 @@ class CardState {
       {required this.numPendingBookings,
       required this.numPendingAdminRequests});
 
-  static Stream<CardState> stream(OrgRepo repo, String orgID) {
+  static Stream<CardState> stream(
+      BookingRepo bookingRepo, OrgRepo orgRepo, String orgID) {
     return Rx.combineLatest2(
-      repo.listRequests(
+      bookingRepo.listRequests(
           orgID: orgID,
           startTime: DateTime.now(),
           endTime: DateTime.now().add(Duration(days: 365)),
           includeStatuses: {RequestStatus.pending}),
-      repo.adminRequests(orgID),
+      orgRepo.adminRequests(orgID),
       (pendingRequests, adminRequests) => CardState(
           numPendingBookings: pendingRequests.length,
           numPendingAdminRequests: adminRequests.length),
@@ -110,10 +112,11 @@ class OrgTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var orgRepo = Provider.of<OrgRepo>(context, listen: false);
+    var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
     return Card(
       elevation: 1,
       child: StreamBuilder(
-        stream: CardState.stream(orgRepo, org.id!),
+        stream: CardState.stream(bookingRepo, orgRepo, org.id!),
         builder: (context, snapshot) {
           String? subtitle;
           if (snapshot.hasData) {

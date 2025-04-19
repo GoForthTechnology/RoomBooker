@@ -4,6 +4,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/repos/booking_repo.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/widgets/heading.dart';
@@ -20,9 +21,10 @@ class ReviewBookingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     FirebaseAnalytics.instance.logScreenView(
         screenName: "Review Bookings", parameters: {"orgID": orgID});
-    var repo = Provider.of<OrgRepo>(context, listen: false);
+    var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
+    var orgRepo = Provider.of<OrgRepo>(context, listen: false);
     return StreamBuilder(
-      stream: repo.getOrg(orgID),
+      stream: orgRepo.getOrg(orgID),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           log(snapshot.error.toString(), error: snapshot.error);
@@ -57,26 +59,26 @@ class ReviewBookingsScreen extends StatelessWidget {
                     children: [
                   const Heading("Pending"),
                   PendingBookings(
-                    repo: repo,
+                    repo: bookingRepo,
                     onFocusBooking: (r) {},
                     orgID: orgID,
                   ),
                   const Heading("Confirmed"),
                   const Subheading("One-offs"),
                   ConfirmedOneOffBookings(
-                    repo: repo,
+                    repo: bookingRepo,
                     onFocusBooking: (r) {},
                     orgID: orgID,
                   ),
                   const Subheading("Recurring"),
                   ConfirmedRepeatingBookings(
-                    repo: repo,
+                    repo: bookingRepo,
                     onFocusBooking: (r) {},
                     orgID: orgID,
                   ),
                   const Heading("Denied"),
                   RejectedBookings(
-                    repo: repo,
+                    repo: bookingRepo,
                     onFocusBooking: (r) {},
                     orgID: orgID,
                   ),

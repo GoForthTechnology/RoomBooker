@@ -4,14 +4,14 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/request.dart';
-import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/repos/booking_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/widgets/stateful_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class ConfirmedOneOffBookings extends StatelessWidget {
-  final OrgRepo repo;
+  final BookingRepo repo;
   final String orgID;
   final Function(Request) onFocusBooking;
 
@@ -41,7 +41,7 @@ class ConfirmedOneOffBookings extends StatelessWidget {
 }
 
 class ConfirmedRepeatingBookings extends StatelessWidget {
-  final OrgRepo repo;
+  final BookingRepo repo;
   final String orgID;
   final Function(Request) onFocusBooking;
 
@@ -111,7 +111,7 @@ class ConfirmedRepeatingBookings extends StatelessWidget {
 }
 
 class RejectedBookings extends StatelessWidget {
-  final OrgRepo repo;
+  final BookingRepo repo;
   final String orgID;
   final Function(Request) onFocusBooking;
 
@@ -140,7 +140,7 @@ class RejectedBookings extends StatelessWidget {
 }
 
 class PendingBookings extends StatelessWidget {
-  final OrgRepo repo;
+  final BookingRepo repo;
   final String orgID;
   final Function(Request) onFocusBooking;
 
@@ -196,56 +196,55 @@ class BookingList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<OrgRepo>(
-      builder: (context, repo, child) => StreamBuilder(
-        stream: repo
-            .listRequests(
-                orgID: orgID,
-                startTime: DateTime.now(),
-                endTime: DateTime.now().add(const Duration(days: 365)),
-                includeStatuses: Set.from(statusList))
-            .map((requests) =>
-                requests.where(requestFilter ?? (r) => true).toList()),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            log(snapshot.error.toString(), error: snapshot.error);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: ${snapshot.error}')),
-              );
-            });
-            return const Placeholder();
-          }
-          List<Request> requests = snapshot.data ?? [];
-          if (requests.isEmpty) {
-            return Text(emptyText);
-          }
-          requests.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
-          return ListView.builder(
-            shrinkWrap: true,
-            itemCount: requests.length,
-            itemBuilder: (context, index) {
-              var request = requests[index];
-              return StreamBuilder(
-                stream: repo.getRequestDetails(orgID, request.id!),
-                builder: (context, detailsSnapshot) {
-                  if (!detailsSnapshot.hasData) {
-                    return Container();
-                  }
-                  var details = detailsSnapshot.data!;
-                  return BookingTile(
-                    orgID: orgID,
-                    request: request,
-                    details: details,
-                    onFocusBooking: onFocusBooking,
-                    actions: actions,
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
+    var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
+    return StreamBuilder(
+      stream: bookingRepo
+          .listRequests(
+              orgID: orgID,
+              startTime: DateTime.now(),
+              endTime: DateTime.now().add(const Duration(days: 365)),
+              includeStatuses: Set.from(statusList))
+          .map((requests) =>
+              requests.where(requestFilter ?? (r) => true).toList()),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          log(snapshot.error.toString(), error: snapshot.error);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: ${snapshot.error}')),
+            );
+          });
+          return const Placeholder();
+        }
+        List<Request> requests = snapshot.data ?? [];
+        if (requests.isEmpty) {
+          return Text(emptyText);
+        }
+        requests.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
+        return ListView.builder(
+          shrinkWrap: true,
+          itemCount: requests.length,
+          itemBuilder: (context, index) {
+            var request = requests[index];
+            return StreamBuilder(
+              stream: bookingRepo.getRequestDetails(orgID, request.id!),
+              builder: (context, detailsSnapshot) {
+                if (!detailsSnapshot.hasData) {
+                  return Container();
+                }
+                var details = detailsSnapshot.data!;
+                return BookingTile(
+                  orgID: orgID,
+                  request: request,
+                  details: details,
+                  onFocusBooking: onFocusBooking,
+                  actions: actions,
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -361,21 +360,22 @@ class Calendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
     return CalendarStateProvider(
         initialView: CalendarView.day,
         focusDate: request.eventStartTime,
-        child: Consumer2<OrgRepo, CalendarState>(
-          builder: (context, repo, calendarState, child) => StreamBuilder(
+        child: Consumer<CalendarState>(
+          builder: (context, calendarState, child) => StreamBuilder(
             stream: Rx.combineLatest3(
-                repo.listRequests(
+                bookingRepo.listRequests(
                     orgID: orgID,
                     startTime: stripTime(request.eventStartTime),
                     endTime: stripTime(request.eventStartTime)
                         .add(const Duration(days: 1)),
                     includeRoomIDs: {request.roomID},
                     includeStatuses: {RequestStatus.confirmed}),
-                repo.getRequestDetails(orgID, request.id!),
-                repo.listBlackoutWindows(orgID),
+                bookingRepo.getRequestDetails(orgID, request.id!),
+                bookingRepo.listBlackoutWindows(orgID),
                 (requests, requestDetails, blackoutWindows) => CalendarData(
                     existingRequests: requests,
                     blackoutWindows: blackoutWindows,

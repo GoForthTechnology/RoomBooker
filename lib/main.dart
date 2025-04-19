@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/repos/booking_repo.dart';
 import 'package:room_booker/repos/org_repo.dart';
 import 'package:room_booker/repos/room_repo.dart';
 import 'package:room_booker/repos/user_repo.dart';
@@ -41,11 +42,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     FirebaseAnalytics.instance.logAppOpen();
     FirebaseUIAuth.configureProviders(providers);
+    var bookingRepo = BookingRepo();
     var roomRepo = RoomRepo();
     var userRepo = UserRepo();
     var orgRepo = OrgRepo(userRepo: userRepo);
     return MultiProvider(
         providers: [
+          ChangeNotifierProvider(create: (_) => bookingRepo),
           ChangeNotifierProvider(create: (_) => userRepo),
           ChangeNotifierProvider(create: (_) => orgRepo),
           ChangeNotifierProvider(create: (_) => roomRepo),
