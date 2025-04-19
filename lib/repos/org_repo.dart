@@ -138,20 +138,6 @@ class OrgRepo extends ChangeNotifier {
     });
   }
 
-  Stream<List<Room>> listRooms(String orgID) {
-    return _roomsRef(orgID)
-        .snapshots()
-        .map((s) => s.docs.map((d) => d.data()).toList());
-  }
-
-  Future<void> addRoom(String orgID, Room room) async {
-    await _roomsRef(orgID).add(room);
-  }
-
-  Future<void> removeRoom(String orgID, String roomID) async {
-    await _roomRef(orgID, roomID).delete();
-  }
-
   Future<void> removeOrg(String orgID) async {
     var user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -576,18 +562,6 @@ class OrgRepo extends ChangeNotifier {
           fromFirestore: (snapshot, _) => Request.fromJson(snapshot.data()!)
               .copyWith(id: snapshot.id)
               .copyWith(status: status),
-          toFirestore: (request, _) => request.toJson(),
-        );
-  }
-
-  DocumentReference<Room> _roomRef(String orgID, String bookingID) {
-    return _roomsRef(orgID).doc(bookingID);
-  }
-
-  CollectionReference<Room> _roomsRef(String orgID) {
-    return _db.collection("orgs").doc(orgID).collection("rooms").withConverter(
-          fromFirestore: (snapshot, _) =>
-              Room.fromJson(snapshot.data()!).copyWith(id: snapshot.id),
           toFirestore: (request, _) => request.toJson(),
         );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
-import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/repos/room_repo.dart';
 
 class RoomDropdownSelector extends StatelessWidget {
   final String orgID;
@@ -18,21 +18,20 @@ class RoomDropdownSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<OrgRepo>(
-      builder: (context, orgRepo, child) => StreamBuilder(
-        stream: orgRepo.listRooms(orgID),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const CircularProgressIndicator();
-          }
-          var allRooms = snapshot.data as List<Room>;
-          return _RoomField(
-              rooms: allRooms,
-              readOnly: readOnly,
-              onChanged: onChanged,
-              initialRoomID: initialRoomID);
-        },
-      ),
+    var roomRepo = Provider.of<RoomRepo>(context, listen: false);
+    return StreamBuilder(
+      stream: roomRepo.listRooms(orgID),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const CircularProgressIndicator();
+        }
+        var allRooms = snapshot.data as List<Room>;
+        return _RoomField(
+            rooms: allRooms,
+            readOnly: readOnly,
+            onChanged: onChanged,
+            initialRoomID: initialRoomID);
+      },
     );
   }
 }

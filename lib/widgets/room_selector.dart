@@ -2,7 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
-import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/repos/room_repo.dart';
 
 List<Color> lightColors = [];
 
@@ -100,18 +100,18 @@ class RoomStateProvider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<OrgRepo>(
-        builder: (context, repo, child) => FutureBuilder(
-            future: repo.listRooms(orgID).first,
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const CircularProgressIndicator();
-              }
-              var rooms = snapshot.data!;
-              var activeRooms = enableAllRooms ? rooms.toSet() : {rooms.first};
-              var roomState = RoomState(rooms, activeRooms);
-              return builder(context, roomState);
-            }));
+    var roomRepo = Provider.of<RoomRepo>(context, listen: false);
+    return FutureBuilder(
+        future: roomRepo.listRooms(orgID).first,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const CircularProgressIndicator();
+          }
+          var rooms = snapshot.data!;
+          var activeRooms = enableAllRooms ? rooms.toSet() : {rooms.first};
+          var roomState = RoomState(rooms, activeRooms);
+          return builder(context, roomState);
+        });
   }
 }
 

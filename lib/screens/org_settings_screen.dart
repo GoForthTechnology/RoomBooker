@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/repos/room_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/widgets/heading.dart';
 import 'package:room_booker/widgets/simple_text_form_field.dart';
@@ -18,6 +19,7 @@ class OrgSettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     FirebaseAnalytics.instance.logScreenView(
         screenName: "Org Settings", parameters: {"orgID": orgID});
+    var roomRepo = Provider.of<RoomRepo>(context, listen: false);
     return Scaffold(
         appBar: AppBar(
           title: const Text("Organization Settings"),
@@ -45,7 +47,7 @@ class OrgSettingsScreen extends StatelessWidget {
                   children: [
                     OrgDetails(orgID: orgID),
                     const Divider(),
-                    RoomListWidget(org: snapshot.data!, repo: repo),
+                    RoomListWidget(org: snapshot.data!, repo: roomRepo),
                     const Divider(),
                     NotificationWidget(org: snapshot.data!, repo: repo),
                     const Divider(),
@@ -275,7 +277,7 @@ class AdminWidget extends StatelessWidget {
 
 class RoomListWidget extends StatelessWidget {
   final Organization org;
-  final OrgRepo repo;
+  final RoomRepo repo;
 
   const RoomListWidget({super.key, required this.org, required this.repo});
 
@@ -324,7 +326,6 @@ class RoomListWidget extends StatelessWidget {
           isDangerous: false,
           text: 'Add Room',
           onPressed: () async {
-            var repo = Provider.of<OrgRepo>(context, listen: false);
             var roomName = await promptForRoomName(context);
             if (roomName != null) {
               await repo.addRoom(org.id!, Room(name: roomName));

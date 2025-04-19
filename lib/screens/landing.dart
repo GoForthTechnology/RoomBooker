@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/entities/organization.dart';
 import 'package:room_booker/entities/request.dart';
 import 'package:room_booker/repos/org_repo.dart';
+import 'package:room_booker/repos/room_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -142,9 +143,10 @@ class OrgTile extends StatelessWidget {
   }
 
   Widget _viewCalendarButton(BuildContext context) {
+    var roomRepo = Provider.of<RoomRepo>(context, listen: false);
     return Consumer<OrgRepo>(
       builder: (context, repo, child) => StreamBuilder(
-          stream: repo.listRooms(org.id!),
+          stream: roomRepo.listRooms(org.id!),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               return Container();
