@@ -121,7 +121,9 @@ class RoomCardSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<RoomState>(
-        builder: (context, state, child) => Row(
+        builder: (context, state, child) => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.max,
               children: [
@@ -135,7 +137,7 @@ class RoomCardSelector extends StatelessWidget {
                       },
                     )),
               ],
-            ));
+            )));
   }
 }
 
