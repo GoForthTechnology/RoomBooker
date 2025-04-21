@@ -1,12 +1,12 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:room_booker/auth.dart';
-import 'package:room_booker/screens/view_bookings_screen.dart';
-import 'package:room_booker/screens/review_bookings_screen.dart';
-import 'package:room_booker/screens/landing.dart';
-import 'package:room_booker/screens/org_settings_screen.dart';
-import 'package:room_booker/screens/join_org_screen.dart';
-import 'package:room_booker/screens/schedule_screen.dart';
+import 'package:room_booker/ui/view_bookings/view_bookings_screen.dart';
+import 'package:room_booker/ui/review_bookings/review_bookings_screen.dart';
+import 'package:room_booker/ui/landing/landing.dart';
+import 'package:room_booker/ui/org_settings/org_settings_screen.dart';
+import 'package:room_booker/ui/join_org/join_org_screen.dart';
+import 'package:room_booker/ui/schedule/schedule_screen.dart';
 
 part 'router.gr.dart';
 

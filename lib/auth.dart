@@ -6,7 +6,7 @@ import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/router.dart';
-import 'package:room_booker/repos/user_repo.dart';
+import 'package:room_booker/data/repos/user_repo.dart';
 
 const googleClientId =
     '610453083826-vpbosjaqm1i70nujnrq76inrtt9lbvhh.apps.googleusercontent.com';

@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:room_booker/entities/request.dart';
+import 'package:room_booker/data/entities/request.dart';
 
 void main() {
   group('Test Request Expansion', () {
