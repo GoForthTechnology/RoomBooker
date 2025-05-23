@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -40,21 +42,26 @@ class BookingRepo extends ChangeNotifier {
     RecurringBookingEditChoiceProvider choiceProvider,
   ) async {
     await _db.runTransaction((t) async {
-      switch (status) {
-        case RequestStatus.pending:
-          var requestRef = _pendingBookingsRef(orgID).doc(request.id);
-          t.set(requestRef, request);
-          break;
-        case RequestStatus.confirmed:
-          await _updateConfirmedBooking(
-              t, request, privateDetails, orgID, choiceProvider);
-          break;
-        case RequestStatus.unknown:
-        case RequestStatus.denied:
-          throw UnimplementedError();
+      try {
+        switch (status) {
+          case RequestStatus.pending:
+            var requestRef = _pendingBookingsRef(orgID).doc(request.id);
+            t.set(requestRef, request);
+            break;
+          case RequestStatus.confirmed:
+            await _updateConfirmedBooking(
+                t, request, privateDetails, orgID, choiceProvider);
+            break;
+          case RequestStatus.unknown:
+          case RequestStatus.denied:
+            throw UnimplementedError();
+        }
+        var privateDetailsRef = _privateRequestDetailsRef(orgID, request.id!);
+        t.set(privateDetailsRef, privateDetails);
+      } catch (e, s) {
+        log("Error updating booking", error: e, stackTrace: s);
+        rethrow;
       }
-      var privateDetailsRef = _privateRequestDetailsRef(orgID, request.id!);
-      t.set(privateDetailsRef, privateDetails);
     });
     _analytics.logEvent(name: "UpdateBooking", parameters: {
       "orgID": orgID,
@@ -314,7 +321,7 @@ class BookingRepo extends ChangeNotifier {
         break;
       case RecurringBookingEditChoice.all:
         var newBooking = request.copyWith(
-          eventStartTime: originalBooking.eventEndTime,
+          eventStartTime: originalBooking.eventStartTime,
           eventEndTime: originalBooking.eventEndTime,
         );
         t.set(originalRequestRef, newBooking);

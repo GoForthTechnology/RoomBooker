@@ -305,21 +305,32 @@ class NewRequestPanelState extends State<NewRequestPanel> {
       state.editingEnabled
           ? ElevatedButton(
               onPressed: () async {
+                var messenger = ScaffoldMessenger.of(context);
                 /*if (_formKey.currentState!.validate()) {
                   log("Invalid form, cannot save");
                   return;
                 }*/
-                await repo.updateBooking(
-                    widget.orgID,
-                    state.getRequest(roomState)!,
-                    state.getPrivateDetails(),
-                    state.getStatus(),
-                    () async => showDialog<RecurringBookingEditChoice>(
-                          context: context,
-                          builder: (context) => EditRecurringBookingDialog(),
-                        ));
-                state.disableEditing();
-                closePanel(context);
+                try {
+                  await repo.updateBooking(
+                      widget.orgID,
+                      state.getRequest(roomState)!,
+                      state.getPrivateDetails(),
+                      state.getStatus(),
+                      () async => showDialog<RecurringBookingEditChoice>(
+                            context: context,
+                            builder: (context) => EditRecurringBookingDialog(),
+                          ));
+                  state.disableEditing();
+                } catch (e) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                } finally {
+                  closePanel(context);
+                }
               },
               child: Tooltip(
                 message: "Save changes",
