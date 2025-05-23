@@ -65,7 +65,9 @@ class CurrentBookingsCalendar extends StatelessWidget {
             return const Placeholder();
           }
           if (!snapshot.hasData) {
-            return Container();
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
           }
           var remoteState = snapshot.data as RemoteState;
           return Consumer<RequestEditorState>(
@@ -221,7 +223,7 @@ class RemoteState {
 
   static Stream<List<PrivateRequestDetails>> _privateDetailsStream(
       OrgState orgState, BookingRepo repo, List<Request> requests) {
-    if (!orgState.currentUserIsAdmin()) {
+    if (!orgState.currentUserIsAdmin() || requests.isEmpty) {
       return Stream.value([]);
     }
     var orgID = orgState.org.id!;
