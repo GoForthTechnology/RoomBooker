@@ -27,4 +27,18 @@ class LogRepo extends ChangeNotifier {
       throw Exception("Failed to add log entry: $error");
     });
   }
+
+  Stream<List<RequestLogEntry>> getLogEntries(String orgID) {
+    return db
+        .collection("orgs")
+        .doc(orgID)
+        .collection("request-logs")
+        .orderBy("timestamp", descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => RequestLogEntry.fromJson(doc.data()))
+          .toList();
+    });
+  }
 }
