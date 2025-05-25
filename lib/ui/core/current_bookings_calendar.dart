@@ -91,8 +91,8 @@ class CurrentBookingsCalendar extends StatelessWidget {
               for (var request in remoteState.existingRequests) {
                 String? subject = request.publicName;
                 var details = remoteState.privateRequestDetails(request.id!);
-                if (details != null) {
-                  subject = details.eventName;
+                if (subject == null && details != null) {
+                  subject = "${details.eventName} (Private)";
                 }
                 var isPrivateBooking = (subject ?? "") == "";
                 if (isPrivateBooking && !includePrivateBookings) {
