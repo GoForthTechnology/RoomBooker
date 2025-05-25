@@ -1,11 +1,11 @@
 {
-    "name": "room_booker",
-    "short_name": "room_booker",
+    "name": "Room Booker",
+    "short_name": "Room Booker",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "An app for managing room bookings.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
