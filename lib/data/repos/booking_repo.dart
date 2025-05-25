@@ -3,9 +3,11 @@ import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Action;
 import 'package:room_booker/data/entities/blackout_window.dart';
+import 'package:room_booker/data/entities/log_entry.dart';
 import 'package:room_booker/data/entities/request.dart';
+import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -13,12 +15,33 @@ typedef RecurringBookingEditChoiceProvider = Future<RecurringBookingEditChoice?>
     Function();
 
 class BookingRepo extends ChangeNotifier {
-  BookingRepo({FirebaseFirestore? db})
+  BookingRepo({required this.logRepo, FirebaseFirestore? db})
       : _db = db ?? FirebaseFirestore.instance,
         _analytics = FirebaseAnalytics.instance;
 
   final FirebaseFirestore _db;
   final FirebaseAnalytics _analytics;
+  final LogRepo logRepo;
+
+  Future<void> _log(
+      String orgID, String requestID, String eventName, Action action) async {
+    try {
+      await logRepo.addLogEntry(
+        orgID: orgID,
+        requestID: requestID,
+        timestamp: DateTime.now(),
+        action: action,
+      );
+      _analytics.logEvent(name: eventName, parameters: {
+        "orgID": orgID,
+        "requestID": requestID,
+      });
+    } catch (e, s) {
+      log("Error logging event $eventName for orgID: $orgID, requestID: $requestID",
+          error: e, stackTrace: s);
+      rethrow;
+    }
+  }
 
   Future<void> submitBookingRequest(String orgID, Request request,
       PrivateRequestDetails privateDetails) async {
@@ -28,10 +51,7 @@ class BookingRepo extends ChangeNotifier {
       var privateDetailsRef = _privateRequestDetailsRef(orgID, requestRef.id);
       t.set(privateDetailsRef, privateDetails);
     });
-    _analytics.logEvent(name: "SubmitBookingRequest", parameters: {
-      "orgID": orgID,
-      "requestID": request.id ?? "",
-    });
+    await _log(orgID, request.id ?? "", "SubmitBookingRequest", Action.create);
   }
 
   Future<void> updateBooking(
@@ -63,29 +83,24 @@ class BookingRepo extends ChangeNotifier {
         rethrow;
       }
     });
-    _analytics.logEvent(name: "UpdateBooking", parameters: {
-      "orgID": orgID,
-      "requestID": request.id ?? "",
-    });
+    await _log(orgID, request.id!, "UpdateBooking", Action.update);
   }
 
   Future<void> addBooking(String orgID, Request request,
       PrivateRequestDetails privateDetails) async {
-    await _db.runTransaction((t) async {
-      _addBooking(orgID, request, privateDetails, t);
+    var id = await _db.runTransaction((t) async {
+      return _addBooking(orgID, request, privateDetails, t);
     });
-    _analytics.logEvent(name: "AddBooking", parameters: {
-      "orgID": orgID,
-      "requestID": request.id ?? "",
-    });
+    await _log(orgID, id, "AddBooking", Action.create);
   }
 
-  void _addBooking(String orgID, Request request,
+  String _addBooking(String orgID, Request request,
       PrivateRequestDetails privateDetails, Transaction t) {
     var requestRef = _confirmedRequestsRef(orgID).doc();
     t.set(requestRef, request);
     var privateDetailsRef = _privateRequestDetailsRef(orgID, requestRef.id);
     t.set(privateDetailsRef, privateDetails);
+    return requestRef.id;
   }
 
   Future<void> endBooking(String orgID, String requestID, DateTime end) async {
@@ -93,6 +108,7 @@ class BookingRepo extends ChangeNotifier {
     await _confirmedRequestsRef(orgID).doc(requestID).update({
       "recurrancePattern.end": trimmedEnd.toString(),
     });
+    await _log(orgID, requestID, "EndRecurring", Action.endRecurring);
   }
 
   Future<void> deleteBooking(
@@ -108,22 +124,27 @@ class BookingRepo extends ChangeNotifier {
       });
     }
     var choice = await choiceProvider();
-    switch (choice) {
-      case RecurringBookingEditChoice.all:
-        return _db.runTransaction((t) async {
-          _deleteBooking(orgID, request.id!, t);
-        });
-      case RecurringBookingEditChoice.thisAndFuture:
-        return endBooking(orgID, request.id!, request.eventStartTime);
-      case RecurringBookingEditChoice.thisInstance:
-        var originalRequestRef = _confirmedRequestsRef(orgID).doc(request.id!);
-        var snapshot = await originalRequestRef.get();
-        var originalBooking = snapshot.data();
-        var udpatedBooking =
-            _deleteRecurrance(originalBooking!, request.eventEndTime);
-        return originalRequestRef.set(udpatedBooking);
-      case null:
-        throw UnimplementedError();
+    try {
+      switch (choice) {
+        case RecurringBookingEditChoice.all:
+          return _db.runTransaction((t) async {
+            _deleteBooking(orgID, request.id!, t);
+          });
+        case RecurringBookingEditChoice.thisAndFuture:
+          return endBooking(orgID, request.id!, request.eventStartTime);
+        case RecurringBookingEditChoice.thisInstance:
+          var originalRequestRef =
+              _confirmedRequestsRef(orgID).doc(request.id!);
+          var snapshot = await originalRequestRef.get();
+          var originalBooking = snapshot.data();
+          var udpatedBooking =
+              _deleteRecurrance(originalBooking!, request.eventEndTime);
+          return originalRequestRef.set(udpatedBooking);
+        case null:
+          throw UnimplementedError();
+      }
+    } finally {
+      await _log(orgID, request.id!, "DeleteBooking", Action.delete);
     }
   }
 
@@ -244,10 +265,10 @@ class BookingRepo extends ChangeNotifier {
         }));
   }
 
-  Future<void> denyRequest(String orgID, String requestID) {
+  Future<void> denyRequest(String orgID, String requestID) async {
     var requestRef = _pendingBookingsRef(orgID).doc(requestID);
     var deniedRef = _deniedRequestsRef(orgID).doc(requestID);
-    return _db.runTransaction((t) async {
+    await _db.runTransaction((t) async {
       var request = await t.get(requestRef);
       var data = request.data();
       if (data == null) {
@@ -255,10 +276,8 @@ class BookingRepo extends ChangeNotifier {
       }
       t.set(deniedRef, data);
       t.delete(requestRef);
-    }).then((value) => _analytics.logEvent(name: "DenyRequest", parameters: {
-          "orgID": orgID,
-          "requestID": requestID,
-        }));
+    });
+    await _log(orgID, requestID, "DenyRequest", Action.reject);
   }
 
   Future<void> revisitBookingRequest(String orgID, Request request) async {
@@ -266,7 +285,7 @@ class BookingRepo extends ChangeNotifier {
     var oldRef = request.status == RequestStatus.confirmed
         ? _confirmedRequestsRef(orgID).doc(request.id)
         : _deniedRequestsRef(orgID).doc(request.id);
-    return _db.runTransaction((t) async {
+    await _db.runTransaction((t) async {
       var request = await t.get(oldRef);
       var data = request.data();
       if (data == null) {
@@ -274,9 +293,8 @@ class BookingRepo extends ChangeNotifier {
       }
       t.set(requestRef, data);
       t.delete(oldRef);
-    }).then((value) => _analytics.logEvent(
-        name: "RevisitRequest",
-        parameters: {"orgID": orgID, "requestID": request.id ?? ""}));
+    });
+    await _log(orgID, request.id!, "RevisitRequest", Action.revisit);
   }
 
   Future<void> _updateConfirmedBooking(

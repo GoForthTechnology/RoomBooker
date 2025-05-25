@@ -139,8 +139,8 @@ class OrgSettingsRoute extends PageRouteInfo<OrgSettingsRouteArgs> {
     builder: (data) {
       final pathParams = data.inheritedPathParams;
       final args = data.argsAs<OrgSettingsRouteArgs>(
-        orElse:
-            () => OrgSettingsRouteArgs(orgID: pathParams.getString('orgID')),
+        orElse: () =>
+            OrgSettingsRouteArgs(orgID: pathParams.getString('orgID')),
       );
       return OrgSettingsScreen(key: args.key, orgID: args.orgID);
     },
@@ -181,8 +181,8 @@ class ReviewBookingsRoute extends PageRouteInfo<ReviewBookingsRouteArgs> {
     builder: (data) {
       final pathParams = data.inheritedPathParams;
       final args = data.argsAs<ReviewBookingsRouteArgs>(
-        orElse:
-            () => ReviewBookingsRouteArgs(orgID: pathParams.getString('orgID')),
+        orElse: () =>
+            ReviewBookingsRouteArgs(orgID: pathParams.getString('orgID')),
       );
       return ReviewBookingsScreen(key: args.key, orgID: args.orgID);
     },
@@ -286,14 +286,13 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
       final pathParams = data.inheritedPathParams;
       final queryParams = data.queryParams;
       final args = data.argsAs<ViewBookingsRouteArgs>(
-        orElse:
-            () => ViewBookingsRouteArgs(
-              orgID: pathParams.getString('orgID'),
-              requestID: queryParams.optString('rid'),
-              showPrivateBookings: queryParams.getBool('spb', true),
-              readOnlyMode: queryParams.getBool('ro', false),
-              view: queryParams.optString('v'),
-            ),
+        orElse: () => ViewBookingsRouteArgs(
+          orgID: pathParams.getString('orgID'),
+          requestID: queryParams.optString('rid'),
+          showPrivateBookings: queryParams.getBool('spb', true),
+          readOnlyMode: queryParams.getBool('ro', false),
+          view: queryParams.optString('v'),
+        ),
       );
       return ViewBookingsScreen(
         key: args.key,
