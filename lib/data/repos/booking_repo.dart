@@ -111,6 +111,24 @@ class BookingRepo extends ChangeNotifier {
     await _log(orgID, requestID, "EndRecurring", Action.endRecurring);
   }
 
+  Stream<List<DecoratedLogEntry>> decorateLogs(
+      String orgID, Stream<List<RequestLogEntry>> logStream) {
+    return logStream.asyncMap((logEntries) async {
+      var requests = await Future.wait(logEntries.map((e) async {
+        var request = await getRequest(orgID, e.requestID).first;
+        if (request == null) {
+          return null;
+        }
+        var details = await getRequestDetails(orgID, e.requestID).first;
+        if (details == null) {
+          return null;
+        }
+        return DecoratedLogEntry(details, entry: e, request: request);
+      }));
+      return requests.nonNulls.toList();
+    });
+  }
+
   Future<void> deleteBooking(
     String orgID,
     Request request,

@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:room_booker/data/entities/request.dart';
 
 part 'log_entry.g.dart';
 
@@ -30,4 +31,12 @@ enum Action {
   endRecurring,
   update,
   delete,
+}
+
+class DecoratedLogEntry {
+  final RequestLogEntry entry;
+  final Request request;
+  final PrivateRequestDetails details;
+
+  DecoratedLogEntry(this.details, {required this.entry, required this.request});
 }

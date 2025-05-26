@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
+import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/core/heading.dart';
 
@@ -11,9 +12,10 @@ class RequestLogsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var repo = Provider.of<LogRepo>(context, listen: false);
+    var logRepo = Provider.of<LogRepo>(context, listen: false);
+    var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
     var entries = StreamBuilder(
-      stream: repo.getLogEntries(org.id!),
+      stream: bookingRepo.decorateLogs(org.id!, logRepo.getLogEntries(org.id!)),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const Text('Error loading request logs');
@@ -31,9 +33,9 @@ class RequestLogsWidget extends StatelessWidget {
           itemBuilder: (context, index) {
             var log = logs[index];
             return ListTile(
-              title: Text("${log.adminEmail} - ${log.action.name}"),
-              subtitle:
-                  Text("${log.requestID} @ ${log.timestamp.toIso8601String()}"),
+              title: Text("${log.details.email} - ${log.entry.action.name}"),
+              subtitle: Text(
+                  "${log.details.eventName} @ ${log.entry.timestamp.toIso8601String()}"),
             );
           },
         );
