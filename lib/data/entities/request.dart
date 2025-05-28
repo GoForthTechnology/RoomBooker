@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:json_annotation/json_annotation.dart';
 import 'package:room_booker/ui/review_bookings/review_bookings_screen.dart';
 
@@ -77,7 +79,11 @@ class Request {
     this.id,
     this.recurranceOverrides,
   }) {
-    assert(eventStartTime.isBefore(eventEndTime));
+    if (!eventStartTime.isBefore(eventEndTime)) {
+      log("Event start time is not before end time",
+          name: id ?? "ID MISSING",
+          error: "Start time: $eventStartTime, End time: $eventEndTime");
+    }
   }
 
   bool isRepeating() {

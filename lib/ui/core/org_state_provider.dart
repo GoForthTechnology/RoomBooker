@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -45,6 +47,7 @@ class OrgStateProvider extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
+          log('Error loading organization state', error: snapshot.error);
           return const Center(child: Text('Error loading organization'));
         }
         if (!snapshot.hasData || snapshot.data == null) {
