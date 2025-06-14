@@ -233,7 +233,7 @@ class BookingRepo extends ChangeNotifier {
           .where(frequencyPath, isNotEqualTo: "never")
           .where(Filter.or(
             Filter(endPath, isNull: true),
-            Filter(endPath, isLessThan: endTime.toString()),
+            Filter(endPath, isGreaterThanOrEqualTo: endTime.toString()),
           )));
     }
     if (includeRoomIDs != null) {

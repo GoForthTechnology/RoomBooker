@@ -32,11 +32,14 @@ class RequestLogsWidget extends StatelessWidget {
           itemCount: logs.length,
           itemBuilder: (context, index) {
             var log = logs[index];
-            return ListTile(
-              title: Text("${log.details.email} - ${log.entry.action.name}"),
-              subtitle: Text(
-                  "${log.details.eventName} @ ${log.entry.timestamp.toIso8601String()}"),
-            );
+            return Tooltip(
+                message: log.entry.requestID,
+                child: ListTile(
+                  title:
+                      Text("${log.details.email} - ${log.entry.action.name}"),
+                  subtitle: Text(
+                      "${log.details.eventName} @ ${log.entry.timestamp.toIso8601String()}"),
+                ));
           },
         );
       },
