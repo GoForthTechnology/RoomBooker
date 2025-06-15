@@ -30,6 +30,7 @@ class Organization {
   final String? id;
   final String name;
   final String ownerID;
+  final String? globalRoomID;
   final bool acceptingAdminRequests;
   final NotificationSettings? notificationSettings;
 
@@ -37,6 +38,7 @@ class Organization {
     required this.name,
     required this.ownerID,
     required this.acceptingAdminRequests,
+    this.globalRoomID,
     this.id,
     this.notificationSettings,
   });
@@ -55,6 +57,7 @@ class Organization {
         acceptingAdminRequests:
             acceptingAdminRequests ?? this.acceptingAdminRequests,
         id: this.id ?? id,
+        globalRoomID: globalRoomID,
         notificationSettings: notificationSettings);
   }
 

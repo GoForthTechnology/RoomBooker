@@ -21,11 +21,12 @@ List<Color> roomColors = [
 ];
 
 class RoomState extends ChangeNotifier {
+  final String? globalRoomID;
   final Map<String, Room> _rooms;
   final Set<String> _activeIDs;
   final Map<String, Color> _colorMap;
 
-  RoomState(List<Room> rooms, Set<Room> activeRooms)
+  RoomState(List<Room> rooms, Set<Room> activeRooms, this.globalRoomID)
       : _rooms = Map.fromEntries(rooms.map((r) => MapEntry(r.id!, r))),
         _activeIDs = activeRooms.map((r) => r.id!).toSet(),
         _colorMap =
@@ -37,6 +38,9 @@ class RoomState extends ChangeNotifier {
   }
 
   Color color(String roomID) {
+    if (roomID == globalRoomID) {
+      return Colors.black; // Global room color
+    }
     var color = _colorMap[roomID];
     return color ?? Colors.black;
   }
@@ -45,8 +49,12 @@ class RoomState extends ChangeNotifier {
     return _rooms[roomID];
   }
 
-  List<Room> allRooms() {
-    return _rooms.values.toList();
+  List<Room> allRooms({bool includeGlobalRoom = true}) {
+    var rooms = _rooms.values.toList();
+    if (!includeGlobalRoom && globalRoomID != null) {
+      rooms.removeWhere((room) => room.id == globalRoomID);
+    }
+    return rooms;
   }
 
   Room? enabledValue() {
@@ -88,13 +96,13 @@ class RoomState extends ChangeNotifier {
 }
 
 class RoomStateProvider extends StatelessWidget {
-  final String orgID;
+  final Organization org;
   final bool enableAllRooms;
   final Widget Function(BuildContext, RoomState) builder;
 
   const RoomStateProvider(
       {super.key,
-      required this.orgID,
+      required this.org,
       required this.builder,
       this.enableAllRooms = false});
 
@@ -102,14 +110,14 @@ class RoomStateProvider extends StatelessWidget {
   Widget build(BuildContext context) {
     var roomRepo = Provider.of<RoomRepo>(context, listen: false);
     return FutureBuilder(
-        future: roomRepo.listRooms(orgID).first,
+        future: roomRepo.listRooms(org.id!).first,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const CircularProgressIndicator();
           }
           var rooms = snapshot.data!;
           var activeRooms = enableAllRooms ? rooms.toSet() : {rooms.first};
-          var roomState = RoomState(rooms, activeRooms);
+          var roomState = RoomState(rooms, activeRooms, org.globalRoomID);
           return builder(context, roomState);
         });
   }
@@ -128,14 +136,17 @@ class RoomCardSelector extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               children: [
                 const Text("Active Rooms:"),
-                ...state.allRooms().mapIndexed((i, e) => RoomCard(
-                      color:
-                          !state.isEnabled(e.id!) ? Colors.grey : roomColors[i],
-                      room: e,
-                      onClick: (room) {
-                        state.toggleRoom(room);
-                      },
-                    )),
+                ...state
+                    .allRooms(includeGlobalRoom: true)
+                    .mapIndexed((i, e) => RoomCard(
+                          color: !state.isEnabled(e.id!)
+                              ? Colors.grey
+                              : state.color(e.id!),
+                          room: e,
+                          onClick: (room) {
+                            state.toggleRoom(room);
+                          },
+                        )),
               ],
             )));
   }

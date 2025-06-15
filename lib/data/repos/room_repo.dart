@@ -13,8 +13,8 @@ class RoomRepo extends ChangeNotifier {
         .map((s) => s.docs.map((d) => d.data()).toList());
   }
 
-  Future<void> addRoom(String orgID, Room room) async {
-    await _roomsRef(orgID).add(room);
+  Future<String> addRoom(String orgID, Room room) {
+    return _roomsRef(orgID).add(room).then((ref) => ref.id);
   }
 
   Future<void> removeRoom(String orgID, String roomID) async {

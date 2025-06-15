@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/router.dart';
@@ -353,14 +354,16 @@ String formatDate(DateTime dateTime) {
 }
 
 class Calendar extends StatelessWidget {
-  final String orgID;
+  final Organization org;
   final Request request;
 
-  const Calendar({super.key, required this.request, required this.orgID});
+  const Calendar({super.key, required this.request, required this.org});
 
   @override
   Widget build(BuildContext context) {
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
+    var startTime = stripTime(request.eventStartTime);
+    var endTime = stripTime(request.eventEndTime).add(const Duration(days: 1));
     return CalendarStateProvider(
         initialView: CalendarView.day,
         focusDate: request.eventStartTime,
@@ -368,14 +371,13 @@ class Calendar extends StatelessWidget {
           builder: (context, calendarState, child) => StreamBuilder(
             stream: Rx.combineLatest3(
                 bookingRepo.listRequests(
-                    orgID: orgID,
-                    startTime: stripTime(request.eventStartTime),
-                    endTime: stripTime(request.eventStartTime)
-                        .add(const Duration(days: 1)),
+                    orgID: org.id!,
+                    startTime: startTime,
+                    endTime: endTime,
                     includeRoomIDs: {request.roomID},
                     includeStatuses: {RequestStatus.confirmed}),
-                bookingRepo.getRequestDetails(orgID, request.id!),
-                bookingRepo.listBlackoutWindows(orgID),
+                bookingRepo.getRequestDetails(org.id!, request.id!),
+                bookingRepo.listBlackoutWindows(org, startTime, endTime),
                 (requests, requestDetails, blackoutWindows) => CalendarData(
                     existingRequests: requests,
                     blackoutWindows: blackoutWindows,

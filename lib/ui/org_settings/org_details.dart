@@ -24,10 +24,32 @@ class OrgDetails extends StatelessWidget {
           if (org == null) {
             return const Text('Organization not found');
           }
+          Widget globalBookingWidget;
+          if (org.globalRoomID == null) {
+            globalBookingWidget = ElevatedButton(
+              onPressed: () async {
+                var messenger = ScaffoldMessenger.of(context);
+                repo.enableGlobalBookings(org.id!).then((_) {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Global booking enabled')),
+                  );
+                }).catchError((error) {
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Error: $error')),
+                  );
+                });
+              },
+              child: Text("Enable Global Booking"),
+            );
+          } else {
+            globalBookingWidget =
+                Text("Global Booking Enabled using ${org.globalRoomID}");
+          }
           return Column(
             children: [
               Text('Name: ${org.name}'),
               Text('Owner: ${org.ownerID}'),
+              globalBookingWidget,
             ],
           );
         },

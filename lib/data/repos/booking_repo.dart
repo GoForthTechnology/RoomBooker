@@ -6,6 +6,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart' hide Action;
 import 'package:room_booker/data/entities/blackout_window.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
+import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
@@ -250,21 +251,42 @@ class BookingRepo extends ChangeNotifier {
     }).startWith([]);
   }
 
-  Stream<List<BlackoutWindow>> listBlackoutWindows(String orgID) =>
-      Future.value([
-        BlackoutWindow(
-          start: DateTime(2023, 1, 1, 0, 0),
-          end: DateTime(2023, 1, 1, 5, 59),
-          recurrenceRule: 'FREQ=DAILY',
-          reason: "Too Early",
-        ),
-        BlackoutWindow(
-          start: DateTime(2023, 1, 1, 22, 0),
-          end: DateTime(2023, 1, 1, 23, 59),
-          recurrenceRule: 'FREQ=DAILY',
-          reason: "Too Late",
-        ),
-      ]).asStream();
+  final List<BlackoutWindow> _defaultBlackoutWindows = [
+    BlackoutWindow(
+      start: DateTime(2023, 1, 1, 0, 0),
+      end: DateTime(2023, 1, 1, 5, 59),
+      recurrenceRule: 'FREQ=DAILY',
+      reason: "Too Early",
+    ),
+    BlackoutWindow(
+      start: DateTime(2023, 1, 1, 22, 0),
+      end: DateTime(2023, 1, 1, 23, 59),
+      recurrenceRule: 'FREQ=DAILY',
+      reason: "Too Late",
+    ),
+  ];
+
+  Stream<List<BlackoutWindow>> listBlackoutWindows(
+      Organization org, DateTime startTime, DateTime endTime) {
+    Set<String>? roomIDs;
+    if (org.globalRoomID != null) {
+      roomIDs = {org.globalRoomID!};
+    }
+    return listRequests(
+            orgID: org.id!,
+            startTime: startTime,
+            endTime: endTime,
+            includeStatuses: {RequestStatus.confirmed},
+            includeRoomIDs: roomIDs)
+        .map((requests) {
+      var windows = requests
+          .where((r) => r.roomID == org.globalRoomID)
+          .map((r) => BlackoutWindow.fromRequest(r))
+          .toList();
+      windows.addAll(_defaultBlackoutWindows);
+      return windows;
+    });
+  }
 
   Future<void> confirmRequest(String orgID, String requestID) async {
     var requestRef = _pendingBookingsRef(orgID).doc(requestID);

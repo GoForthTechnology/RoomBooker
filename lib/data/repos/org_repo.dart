@@ -3,6 +3,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/organization.dart';
+import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/data/repos/user_repo.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -16,8 +17,23 @@ class OrgRepo extends ChangeNotifier {
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final UserRepo _userRepo;
+  final RoomRepo _roomRepo;
 
-  OrgRepo({required UserRepo userRepo}) : _userRepo = userRepo;
+  OrgRepo({required userRepo, required roomRepo})
+      : _userRepo = userRepo,
+        _roomRepo = roomRepo;
+
+  Future<void> enableGlobalBookings(String orgID) async {
+    var roomID = await _roomRepo.addRoom(
+        orgID,
+        Room(
+          name: "All Rooms",
+        ));
+
+    await _db.collection("orgs").doc(orgID).update({
+      "globalRoomID": roomID,
+    });
+  }
 
   Future<String> addOrgForCurrentUser(String orgName) async {
     var user = FirebaseAuth.instance.currentUser;

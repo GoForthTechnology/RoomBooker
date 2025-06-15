@@ -47,7 +47,7 @@ class MyApp extends StatelessWidget {
     var bookingRepo = BookingRepo(logRepo: logRepo);
     var roomRepo = RoomRepo();
     var userRepo = UserRepo();
-    var orgRepo = OrgRepo(userRepo: userRepo);
+    var orgRepo = OrgRepo(userRepo: userRepo, roomRepo: roomRepo);
     return MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => bookingRepo),

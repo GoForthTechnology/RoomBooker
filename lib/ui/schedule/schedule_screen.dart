@@ -43,7 +43,7 @@ class ScheduleScreen extends StatelessWidget {
             focusDate: DateTime.now(),
             child: RequestStateProvider(
               enableAllRooms: true,
-              orgID: orgID,
+              org: orgState.org,
               child: Column(
                 children: [
                   RoomCardSelector(),

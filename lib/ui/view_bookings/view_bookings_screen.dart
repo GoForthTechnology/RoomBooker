@@ -89,7 +89,7 @@ class ViewBookingsScreen extends StatelessWidget {
       child: Consumer<OrgState>(
         builder: (context, orgState, child) => RequestStateProvider(
           enableAllRooms: true,
-          orgID: orgID,
+          org: orgState.org,
           initialRequest: request,
           initialDetails: details,
           requestStartTime: createRequest ? targetDate : null,

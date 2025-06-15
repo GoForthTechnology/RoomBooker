@@ -21,6 +21,7 @@ Organization _$OrganizationFromJson(Map<String, dynamic> json) => Organization(
       name: json['name'] as String,
       ownerID: json['ownerID'] as String,
       acceptingAdminRequests: json['acceptingAdminRequests'] as bool,
+      globalRoomID: json['globalRoomID'] as String?,
       notificationSettings: json['notificationSettings'] == null
           ? null
           : NotificationSettings.fromJson(
@@ -31,6 +32,7 @@ Map<String, dynamic> _$OrganizationToJson(Organization instance) =>
     <String, dynamic>{
       'name': instance.name,
       'ownerID': instance.ownerID,
+      'globalRoomID': instance.globalRoomID,
       'acceptingAdminRequests': instance.acceptingAdminRequests,
       'notificationSettings': instance.notificationSettings?.toJson(),
     };

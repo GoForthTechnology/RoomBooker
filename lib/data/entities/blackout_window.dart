@@ -6,7 +6,7 @@ class BlackoutWindow {
   final String? recurrenceRule;
   final String reason;
 
-  BlackoutWindow(
+  const BlackoutWindow(
       {required this.start,
       required this.end,
       this.recurrenceRule,
@@ -16,7 +16,7 @@ class BlackoutWindow {
     return BlackoutWindow(
       start: request.eventStartTime,
       end: request.eventEndTime,
-      reason: 'Busy',
+      reason: request.publicName ?? "Blackout Window",
     );
   }
 }

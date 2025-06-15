@@ -450,7 +450,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
 }
 
 class RequestStateProvider extends StatelessWidget {
-  final String orgID;
+  final Organization org;
   final Widget child;
   final bool enableAllRooms;
   final DateTime? requestStartTime;
@@ -460,7 +460,7 @@ class RequestStateProvider extends StatelessWidget {
   const RequestStateProvider(
       {super.key,
       required this.child,
-      required this.orgID,
+      required this.org,
       required this.enableAllRooms,
       this.initialRequest,
       this.initialDetails,
@@ -471,7 +471,7 @@ class RequestStateProvider extends StatelessWidget {
     bool panelActive =
         (requestStartTime ?? initialRequest?.eventStartTime) != null;
     return RoomStateProvider(
-        orgID: orgID,
+        org: org,
         enableAllRooms: enableAllRooms,
         builder: (context, roomState) => ChangeNotifierProvider.value(
             value: RequestEditorState(
@@ -480,7 +480,7 @@ class RequestStateProvider extends StatelessWidget {
               initialDetails: initialDetails,
             ),
             child: ChangeNotifierProvider.value(
-                value: RequestPanelSate(panelActive, orgID),
+                value: RequestPanelSate(panelActive, org.id!),
                 child: ChangeNotifierProvider.value(
                     value: roomState, child: child))));
   }
