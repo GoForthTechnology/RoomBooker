@@ -28,6 +28,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  sentry_flutter: ^8.14.2
   flutter:
     sdk: flutter
 
@@ -53,6 +54,7 @@ dependencies:
   firebase_performance: ^0.10.1+5
 
 dev_dependencies:
+  sentry_dart_plugin: ^2.4.1
   flutter_launcher_icons: ^0.14.3
   flutter_test:
     sdk: flutter
@@ -114,3 +116,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
+sentry:
+  upload_debug_symbols: true
+  upload_source_maps: true
+  project: flutter
+  org: go-forth-technology

@@ -46,3 +46,4 @@ app.*.map.json
 
 
 /functions/node_modules
+sentry.properties
