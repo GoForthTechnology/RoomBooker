@@ -9,6 +9,8 @@ class TimeField extends StatelessWidget {
   final String? validationMessage;
   final controller = TextEditingController();
   final MaterialLocalizations localizations;
+  final TimeOfDay? maxTime;
+  final TimeOfDay? minTime;
 
   TimeField(
       {super.key,
@@ -17,7 +19,9 @@ class TimeField extends StatelessWidget {
       required this.labelText,
       this.validationMessage,
       required this.readOnly,
-      required this.localizations}) {
+      required this.localizations,
+      this.maxTime,
+      this.minTime}) {
     controller.text = localizations.formatTimeOfDay(initialValue);
   }
 
@@ -28,6 +32,25 @@ class TimeField extends StatelessWidget {
       labelText: labelText,
       validationMessage: validationMessage,
       readOnly: readOnly,
+      customValidator: (value) {
+        TimeOfDay? parsedTime;
+        try {
+          final timeParts = value.split(':');
+          if (timeParts.length != 2) throw FormatException();
+          final hour = int.parse(timeParts[0]);
+          final minute = int.parse(timeParts[1].split(' ')[0]);
+          parsedTime = TimeOfDay(hour: hour, minute: minute);
+        } catch (e) {
+          return 'Invalid time format';
+        }
+        if (maxTime != null && parsedTime.isAfter(maxTime!)) {
+          return 'Time cannot be after ${localizations.formatTimeOfDay(maxTime!)}';
+        }
+        if (minTime != null && parsedTime.isBefore(minTime!)) {
+          return 'Time cannot be before ${localizations.formatTimeOfDay(minTime!)}';
+        }
+        return null;
+      },
       onTap: readOnly
           ? null
           : () async {

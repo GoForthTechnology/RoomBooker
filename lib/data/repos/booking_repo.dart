@@ -44,8 +44,15 @@ class BookingRepo extends ChangeNotifier {
     }
   }
 
+  void validateRequest(Request request) {
+    if (request.eventEndTime.isBefore(request.eventStartTime)) {
+      throw ArgumentError("Event end time cannot be before event start time");
+    }
+  }
+
   Future<void> submitBookingRequest(String orgID, Request request,
       PrivateRequestDetails privateDetails) async {
+    validateRequest(request);
     await _db.runTransaction((t) async {
       var requestRef = _pendingBookingsRef(orgID).doc();
       t.set(requestRef, request);
@@ -62,6 +69,7 @@ class BookingRepo extends ChangeNotifier {
     RequestStatus status,
     RecurringBookingEditChoiceProvider choiceProvider,
   ) async {
+    validateRequest(request);
     await _db.runTransaction((t) async {
       try {
         switch (status) {
@@ -89,6 +97,7 @@ class BookingRepo extends ChangeNotifier {
 
   Future<void> addBooking(String orgID, Request request,
       PrivateRequestDetails privateDetails) async {
+    validateRequest(request);
     var id = await _db.runTransaction((t) async {
       return _addBooking(orgID, request, privateDetails, t);
     });

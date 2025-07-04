@@ -119,6 +119,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               labelText: 'Start Time',
               initialValue: TimeOfDay.fromDateTime(state.startTime),
               localizations: localizations,
+              maxTime: TimeOfDay.fromDateTime(state.endTime),
               onChanged: (newTime) {
                 var eventDuration = state.endTime.difference(state.startTime);
                 var newStartTime = DateTime(
@@ -133,6 +134,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           TimeField(
               readOnly: readOnly,
               labelText: 'End Time',
+              minTime: TimeOfDay.fromDateTime(state.startTime),
               initialValue: TimeOfDay.fromDateTime(state.endTime),
               localizations: localizations,
               onChanged: (newTime) {
@@ -257,15 +259,25 @@ class NewRequestPanelState extends State<NewRequestPanel> {
         onPressed: () async {
           if (_formKey.currentState!.validate()) {
             var request = state.getRequest(roomState)!;
-            await repo.submitBookingRequest(
-                widget.orgID, request, state.getPrivateDetails());
-            if (context.mounted) {
-              closePanel(context);
-            } else {
-              log("Context not mounted", error: Exception());
+            try {
+              await repo.submitBookingRequest(
+                  widget.orgID, request, state.getPrivateDetails());
+              if (context.mounted) {
+                closePanel(context);
+              } else {
+                log("Context not mounted", error: Exception());
+              }
+              FirebaseAnalytics.instance.logEvent(
+                  name: "Request Submitted",
+                  parameters: {"orgID": widget.orgID});
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error: $e'),
+                  duration: const Duration(seconds: 3),
+                ),
+              );
             }
-            FirebaseAnalytics.instance.logEvent(
-                name: "Request Submitted", parameters: {"orgID": widget.orgID});
           }
         },
         child: const Text("Submit Request"),
