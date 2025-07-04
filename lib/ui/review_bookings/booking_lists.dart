@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
@@ -276,15 +277,35 @@ class BookingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-        elevation: 1,
-        child: ExpansionTile(
-          title: Text("${details.eventName} for ${details.name}"),
-          subtitle: _subtitle(context),
-          leading: _leading(),
-          trailing: _trailing(),
-          expandedAlignment: Alignment.topLeft,
-          expandedCrossAxisAlignment: CrossAxisAlignment.start,
-        ));
+      elevation: 1,
+      child: ExpansionTile(
+        title: Text("${details.eventName} for ${details.name}"),
+        subtitle: _subtitle(context),
+        leading: _leading(),
+        trailing: _trailing(),
+        expandedAlignment: Alignment.topLeft,
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: GestureDetector(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: request.id!));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Request ID copied to clipboard'),
+                    ),
+                  );
+                },
+                child: Text(
+                  "Request ID: ${request.id}",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                )),
+          ),
+          detailTable(request, details),
+        ],
+      ),
+    );
   }
 
   Widget? _trailing() {
