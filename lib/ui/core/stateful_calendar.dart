@@ -259,7 +259,6 @@ class StatefulCalendar extends StatelessWidget {
         CalendarView.week,
         CalendarView.month,
       ],
-      minDate: nowRoundedUpToNearestHour(),
       onAppointmentResizeEnd: onResizeEnd,
       allowDragAndDrop: allowDragAndDrop && newAppointment != null,
       onDragEnd: onDragEnd,
@@ -330,11 +329,6 @@ DateTime getStartDate(DateTime displayDate) {
   var cleanDate = stripTime(displayDate);
   var daysToAdd = cleanDate.weekday % 7;
   return displayDate.subtract(Duration(days: daysToAdd));
-}
-
-DateTime nowRoundedUpToNearestHour() {
-  var now = DateTime.now();
-  return DateTime(now.year, now.month, now.day, now.hour + 1);
 }
 
 extension on BlackoutWindow {
