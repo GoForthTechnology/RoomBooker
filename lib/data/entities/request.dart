@@ -313,7 +313,7 @@ DateTime advanceOneDay(DateTime date) {
   newDate = DateTime(newDate.year, newDate.month, newDate.day);
   if (newDate == date) {
     // Add an extra hour to avoid the extra hour from ending DST
-    newDate = newDate.add(const Duration(days: 1));
+    newDate = newDate.add(const Duration(hours: 1));
   }
   return newDate;
 }
@@ -432,8 +432,8 @@ class RecurrancePattern {
 DateTime nthWeekdayOfMonth(DateTime date, Weekday weekday, int nth) {
   var firstDayOfMonth = DateTime(date.year, date.month, 1);
   var weekdayCount = 0;
+  var currentDay = firstDayOfMonth;
   for (var i = 0; i < 31; i++) {
-    var currentDay = firstDayOfMonth.add(Duration(days: i));
     if (currentDay.month != date.month) break;
     if (getWeekday(currentDay) == weekday) {
       weekdayCount++;
@@ -441,6 +441,7 @@ DateTime nthWeekdayOfMonth(DateTime date, Weekday weekday, int nth) {
         return currentDay;
       }
     }
+    currentDay = advanceOneDay(currentDay);
   }
   throw Exception("The month does not have $nth $weekday");
 }
