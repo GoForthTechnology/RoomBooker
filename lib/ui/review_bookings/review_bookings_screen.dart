@@ -8,6 +8,7 @@ import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/core/heading.dart';
+import 'package:room_booker/ui/core/room_selector.dart';
 import 'package:room_booker/ui/review_bookings/booking_lists.dart';
 
 @RoutePage()
@@ -39,50 +40,59 @@ class ReviewBookingsScreen extends StatelessWidget {
           return Container();
         }
         var org = snapshot.data;
-        return Scaffold(
-            appBar: AppBar(
-              title: Text('Booking Requests for ${org!.name}'),
-              leading: BackButton(
-                onPressed: () {
-                  var router = AutoRouter.of(context);
-                  if (router.canPop()) {
-                    router.popForced();
-                  } else {
-                    router.replace(LandingRoute());
-                  }
-                },
-              ),
-            ),
-            body: SingleChildScrollView(
-                child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                  const Heading("Pending"),
-                  PendingBookings(
-                    repo: bookingRepo,
-                    onFocusBooking: (r) {},
-                    orgID: orgID,
-                  ),
-                  const Heading("Confirmed"),
-                  const Subheading("One-offs"),
-                  ConfirmedOneOffBookings(
-                    repo: bookingRepo,
-                    onFocusBooking: (r) {},
-                    orgID: orgID,
-                  ),
-                  const Subheading("Recurring"),
-                  ConfirmedRepeatingBookings(
-                    repo: bookingRepo,
-                    onFocusBooking: (r) {},
-                    orgID: orgID,
-                  ),
-                  const Heading("Denied"),
-                  RejectedBookings(
-                    repo: bookingRepo,
-                    onFocusBooking: (r) {},
-                    orgID: orgID,
-                  ),
-                ])));
+        return RoomStateProvider(
+            org: org!,
+            builder: (context, roomState) {
+              roomState.activateAll();
+              return ChangeNotifierProvider.value(
+                value: roomState,
+                child: Scaffold(
+                    appBar: AppBar(
+                      title: Text('Booking Requests for ${org!.name}'),
+                      leading: BackButton(
+                        onPressed: () {
+                          var router = AutoRouter.of(context);
+                          if (router.canPop()) {
+                            router.popForced();
+                          } else {
+                            router.replace(LandingRoute());
+                          }
+                        },
+                      ),
+                    ),
+                    body: SingleChildScrollView(
+                        child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                          RoomCardSelector(),
+                          const Heading("Pending"),
+                          PendingBookings(
+                            repo: bookingRepo,
+                            onFocusBooking: (r) {},
+                            orgID: orgID,
+                          ),
+                          const Heading("Confirmed"),
+                          const Subheading("One-offs"),
+                          ConfirmedOneOffBookings(
+                            repo: bookingRepo,
+                            onFocusBooking: (r) {},
+                            orgID: orgID,
+                          ),
+                          const Subheading("Recurring"),
+                          ConfirmedRepeatingBookings(
+                            repo: bookingRepo,
+                            onFocusBooking: (r) {},
+                            orgID: orgID,
+                          ),
+                          const Heading("Denied"),
+                          RejectedBookings(
+                            repo: bookingRepo,
+                            onFocusBooking: (r) {},
+                            orgID: orgID,
+                          ),
+                        ]))),
+              );
+            });
       },
     );
   }

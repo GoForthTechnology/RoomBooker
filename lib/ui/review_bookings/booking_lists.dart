@@ -8,6 +8,7 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/router.dart';
+import 'package:room_booker/ui/core/room_selector.dart';
 import 'package:room_booker/ui/core/stateful_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -179,6 +180,13 @@ class PendingBookings extends StatelessWidget {
   }
 }
 
+class RenderedRequest {
+  final Request request;
+  final PrivateRequestDetails details;
+
+  RenderedRequest({required this.request, required this.details});
+}
+
 class BookingList extends StatelessWidget {
   final String orgID;
   final String emptyText;
@@ -196,58 +204,94 @@ class BookingList extends StatelessWidget {
       required this.emptyText,
       this.requestFilter});
 
+  Stream<List<RenderedRequest>> _renderedRequests(
+      BookingRepo bookingRepo, String orgID, List<Request> requests) {
+    return Rx.combineLatest(
+        requests.map(
+            (request) => bookingRepo.getRequestDetails(orgID, request.id!)),
+        (detailsList) {
+      return List<RenderedRequest>.generate(
+        detailsList.length,
+        (index) {
+          var details = detailsList[index];
+          if (details == null) {
+            log("No details found for request ${requests[index].id}");
+            details = PrivateRequestDetails(
+              name: "Unknown",
+              email: "Unknown",
+              phone: "Unknown",
+              eventName: "Unknown",
+            );
+          }
+          return RenderedRequest(
+            request: requests[index],
+            details: details,
+          );
+        },
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
-    return StreamBuilder(
-      stream: bookingRepo
-          .listRequests(
-              orgID: orgID,
-              startTime: DateTime.now(),
-              endTime: DateTime.now().add(const Duration(days: 365)),
-              includeStatuses: Set.from(statusList))
-          .map((requests) =>
-              requests.where(requestFilter ?? (r) => true).toList()),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          log(snapshot.error.toString(), error: snapshot.error);
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error: ${snapshot.error}')),
-            );
-          });
-          return const Placeholder();
-        }
-        List<Request> requests = snapshot.data ?? [];
-        if (requests.isEmpty) {
-          return Text(emptyText);
-        }
-        requests.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
-        return ListView.builder(
-          shrinkWrap: true,
-          itemCount: requests.length,
-          itemBuilder: (context, index) {
-            var request = requests[index];
-            return StreamBuilder(
-              stream: bookingRepo.getRequestDetails(orgID, request.id!),
-              builder: (context, detailsSnapshot) {
-                if (!detailsSnapshot.hasData) {
-                  return Container();
-                }
-                var details = detailsSnapshot.data!;
-                return BookingTile(
-                  orgID: orgID,
-                  request: request,
-                  details: details,
-                  onFocusBooking: onFocusBooking,
-                  actions: actions,
-                );
-              },
-            );
-          },
-        );
-      },
-    );
+    return Consumer<RoomState>(
+        builder: (context, roomState, child) => StreamBuilder(
+            stream: bookingRepo
+                .listRequests(
+                    orgID: orgID,
+                    startTime: DateTime.now(),
+                    endTime: DateTime.now().add(const Duration(days: 365)),
+                    includeRoomIDs:
+                        roomState.enabledValues().map((r) => r.id!).toSet(),
+                    includeStatuses: Set.from(statusList))
+                .map((requests) =>
+                    requests.where(requestFilter ?? (r) => true).toList()),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                log(snapshot.error.toString(), error: snapshot.error);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: ${snapshot.error}')),
+                  );
+                });
+                return const Placeholder();
+              }
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              return StreamBuilder(
+                  stream: _renderedRequests(
+                      bookingRepo, orgID, snapshot.data ?? []),
+                  builder: (context, detailsSnapshot) {
+                    if (detailsSnapshot.hasError) {
+                      log(detailsSnapshot.error.toString(),
+                          error: detailsSnapshot.error);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text('Error: ${detailsSnapshot.error}')),
+                        );
+                      });
+                      return const Placeholder();
+                    }
+                    var renderedRequests = detailsSnapshot.data ?? [];
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: renderedRequests.length,
+                      itemBuilder: (context, index) {
+                        var renderedRequest = renderedRequests[index];
+                        return BookingTile(
+                          orgID: orgID,
+                          request: renderedRequest.request,
+                          details: renderedRequest.details,
+                          onFocusBooking: onFocusBooking,
+                          actions: actions,
+                        );
+                      },
+                    );
+                  });
+            }));
   }
 }
 
@@ -276,12 +320,13 @@ class BookingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var roomState = Provider.of<RoomState>(context, listen: false);
     return Card(
       elevation: 1,
       child: ExpansionTile(
         title: Text("${details.eventName} for ${details.name}"),
         subtitle: _subtitle(context),
-        leading: _leading(),
+        leading: _leading(roomState.color(request.roomID)),
         trailing: _trailing(),
         expandedAlignment: Alignment.topLeft,
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
@@ -320,15 +365,13 @@ class BookingTile extends StatelessWidget {
     );
   }
 
-  Widget? _leading() {
+  Widget? _leading(Color color) {
     if (request.status == RequestStatus.pending) {
       return null;
     }
     return Icon(
       Icons.event,
-      /*color: request.status == RequestStatus.confirmed
-            ? const Color.fromRGBO(120, 166, 90, 1.0)
-            : const Color.fromRGBO(187, 39, 26, 1.0),*/
+      color: color,
     );
   }
 
