@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:room_booker/ui/core/simple_text_form_field.dart';
+
+final timeFormat = DateFormat("h:mm a");
 
 class TimeField extends StatelessWidget {
   final bool readOnly;
@@ -25,6 +28,10 @@ class TimeField extends StatelessWidget {
     controller.text = localizations.formatTimeOfDay(initialValue);
   }
 
+  TimeOfDay parseTime(String timeString) {
+    return TimeOfDay.fromDateTime(timeFormat.parse(timeString));
+  }
+
   @override
   Widget build(BuildContext context) {
     return SimpleTextFormField(
@@ -35,11 +42,7 @@ class TimeField extends StatelessWidget {
       customValidator: (value) {
         TimeOfDay? parsedTime;
         try {
-          final timeParts = value.split(':');
-          if (timeParts.length != 2) throw FormatException();
-          final hour = int.parse(timeParts[0]);
-          final minute = int.parse(timeParts[1].split(' ')[0]);
-          parsedTime = TimeOfDay(hour: hour, minute: minute);
+          parsedTime = parseTime(value);
         } catch (e) {
           return 'Invalid time format';
         }
