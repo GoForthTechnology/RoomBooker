@@ -194,7 +194,13 @@ class Request {
   List<DateTime> _generateDates(DateTime windowStart, DateTime windowEnd) {
     var pattern = recurrancePattern;
     if (pattern == null || pattern.frequency == Frequency.never) {
-      return [eventStartTime];
+      if (!eventStartTime.isBefore(windowStart) &&
+          !eventStartTime.isAfter(windowEnd)) {
+        // The event is within the window
+        // Using negation to avoid cases where windowStart == eventStartTime
+        return [eventStartTime];
+      }
+      return [];
     }
     // Cap the end date if it is before the window end
     var effectiveEnd = windowEnd.isBefore(pattern.end ?? windowEnd)
@@ -212,7 +218,7 @@ class Request {
       return [];
     }
     // add one day to make it inclusive
-    effectiveEnd = effectiveEnd.add(const Duration(days: 1));
+    effectiveEnd = stripTime(effectiveEnd.add(const Duration(days: 1)));
     switch (pattern.frequency) {
       case Frequency.never:
         return [];
@@ -285,19 +291,33 @@ class Request {
     if (offset == null) {
       return [];
     }
+    int period = pattern.period > 0 ? pattern.period : 1;
     var dates = <DateTime>[];
-    var currentDate = windowStart;
-    var currentMonth = windowStart.month - 1;
-    DateTime? nthWeekday;
-    while (currentDate.isBefore(windowEnd)) {
-      if (currentDate.month != currentMonth) {
-        currentMonth = currentDate.month;
-        nthWeekday = nthWeekdayOfMonth(currentDate, weekday, offset);
+
+    // Start from the first month that is >= windowStart
+    var year = windowStart.year;
+    var month = windowStart.month;
+
+    // Find the first nth weekday of month >= windowStart
+    while (true) {
+      DateTime nthDate;
+      try {
+        nthDate = nthWeekdayOfMonth(DateTime(year, month, 1), weekday, offset);
+      } catch (_) {
+        // Month doesn't have this nth weekday, skip
+        nthDate = DateTime(year, month, 1).add(const Duration(days: 32));
+        nthDate = DateTime(nthDate.year, nthDate.month, 1);
       }
-      if (nthWeekday == currentDate) {
-        dates.add(currentDate);
+      if (nthDate.isAfter(windowEnd)) break;
+      if (!nthDate.isBefore(windowStart) && nthDate.isBefore(windowEnd)) {
+        dates.add(nthDate);
       }
-      currentDate = advanceOneDay(currentDate);
+      // Advance by period months
+      month += period;
+      while (month > 12) {
+        month -= 12;
+        year += 1;
+      }
     }
     return dates;
   }
@@ -357,7 +377,15 @@ class RecurrancePattern {
     this.offset,
     this.weekday,
     this.end,
-  });
+  }) {
+    if (frequency == Frequency.monthly && (offset == null || offset! < 1)) {
+      throw ArgumentError(
+          "Offset must be greater than 0 for monthly frequency");
+    }
+    if (frequency == Frequency.monthly && weekday == null) {
+      throw ArgumentError("Weekday must be set for monthly frequency");
+    }
+  }
 
   RecurrancePattern copyWith({
     Frequency? frequency,
