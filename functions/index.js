@@ -226,8 +226,8 @@ async function notifyRequesterOfPeningBooking(orgID, bookingID) {
 
         Thank you for your request for ${details.eventName} has been received and we will be in touch shortly.
 
-        Best,
-        RoomBooker
+        God Bless,
+        Church of the Resurrection Parish Office
         `);
     logger.debug(`Sent email notification for ${bookingID} to requester ${details.email}`);
   } catch (error) {
@@ -256,8 +256,8 @@ async function notifyRequesterOfBookingApproval(orgID, bookingID) {
 
         Your room booking request for ${details.eventName} has been Approved!
 
-        Best,
-        RoomBooker
+        God Bless,
+        Church of the Resurrection Parish Office
         `);
     logger.debug(`Sent email notification for ${bookingID} to requester ${details.email}`);
   } catch (error) {
@@ -286,8 +286,8 @@ async function notifyRequesterOfBookingDenial(orgID, bookingID) {
 
         Unfortunately rour room booking request for ${details.eventName} has been denied.
 
-        Best,
-        RoomBooker
+        God Bless,
+        Church of the Resurrection Parish Office
         `);
     logger.debug(`Sent email notification for ${bookingID} to requester ${details.email}`);
   } catch (error) {
