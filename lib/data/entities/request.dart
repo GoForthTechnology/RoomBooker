@@ -309,7 +309,10 @@ class Request {
         nthDate = DateTime(nthDate.year, nthDate.month, 1);
       }
       if (nthDate.isAfter(windowEnd)) break;
-      if (!nthDate.isBefore(windowStart) && nthDate.isBefore(windowEnd)) {
+      if (!nthDate.isBefore(windowStart) &&
+          nthDate.isBefore(windowEnd) &&
+          // Check for cases where it spills to the next month
+          nthDate.month == month) {
         dates.add(nthDate);
       }
       // Advance by period months
@@ -431,7 +434,8 @@ class RecurrancePattern {
 
   static RecurrancePattern every(int n, Frequency frequency,
       {required Weekday on}) {
-    return RecurrancePattern(frequency: frequency, weekday: {on}, period: n);
+    return RecurrancePattern(
+        frequency: frequency, weekday: {on}, period: n, offset: 1);
   }
 
   static RecurrancePattern daily() {
