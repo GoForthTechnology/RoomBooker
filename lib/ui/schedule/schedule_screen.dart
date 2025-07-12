@@ -30,7 +30,7 @@ class ScheduleScreen extends StatelessWidget {
               onPressed: () {
                 var router = AutoRouter.of(context);
                 if (router.canPop()) {
-                  router.popForced();
+                  router.pop();
                 } else {
                   router.replace(LandingRoute());
                 }

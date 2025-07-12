@@ -48,12 +48,12 @@ class ReviewBookingsScreen extends StatelessWidget {
                 value: roomState,
                 child: Scaffold(
                     appBar: AppBar(
-                      title: Text('Booking Requests for ${org!.name}'),
+                      title: Text('Booking Requests for ${org.name}'),
                       leading: BackButton(
                         onPressed: () {
                           var router = AutoRouter.of(context);
                           if (router.canPop()) {
-                            router.popForced();
+                            router.pop();
                           } else {
                             router.replace(LandingRoute());
                           }
