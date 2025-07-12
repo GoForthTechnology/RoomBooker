@@ -8,9 +8,11 @@ class RoomRepo extends ChangeNotifier {
   RoomRepo({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
   Stream<List<Room>> listRooms(String orgID) {
-    return _roomsRef(orgID)
-        .snapshots()
-        .map((s) => s.docs.map((d) => d.data()).toList());
+    return _roomsRef(orgID).snapshots().map((s) {
+      var rooms = s.docs.map((d) => d.data()).toList();
+      rooms.sort((a, b) => a.orderKey?.compareTo(b.orderKey ?? 1) ?? 1);
+      return rooms;
+    });
   }
 
   Future<String> addRoom(String orgID, Room room) {
@@ -23,6 +25,16 @@ class RoomRepo extends ChangeNotifier {
 
   Future<void> updateRoom(String orgID, Room room) async {
     await _roomRef(orgID, room.id!).set(room);
+  }
+
+  Future<void> reorderRooms(String orgID, List<Room> rooms) async {
+    var batch = _db.batch();
+    for (var i = 0; i < rooms.length; i++) {
+      var room = rooms[i];
+      var roomRef = _roomRef(orgID, room.id!);
+      batch.update(roomRef, {'orderKey': i});
+    }
+    await batch.commit();
   }
 
   DocumentReference<Room> _roomRef(String orgID, String bookingID) {

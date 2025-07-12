@@ -33,24 +33,48 @@ class RoomListWidget extends StatelessWidget {
       content = const Text('No rooms found. Please add one.');
     } else {
       content = ConstrainedBox(
-          constraints: BoxConstraints.tightFor(width: 400),
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: rooms.length,
-            itemBuilder: (context, index) {
-              var room = rooms[index];
-              return RoomTile(
-                orgID: org.id!,
-                room: room,
-                onDeleted: () async {
-                  var confirmed = await confirmRoomDeletion(context);
-                  if (confirmed == true) {
-                    await repo.removeRoom(org.id!, room.id!);
-                  }
-                },
-              );
-            },
-          ));
+        constraints: BoxConstraints.tightFor(width: 400),
+        child: ReorderableListView.builder(
+          shrinkWrap: true,
+          itemCount: rooms.length,
+          buildDefaultDragHandles: false,
+          onReorder: (oldIndex, newIndex) async {
+            if (newIndex > oldIndex) newIndex -= 1;
+            final updatedRooms = List<Room>.from(rooms);
+            final room = updatedRooms.removeAt(oldIndex);
+            updatedRooms.insert(newIndex, room);
+            // Call repo to update order (implement this in your repo)
+            await repo.reorderRooms(org.id!, updatedRooms);
+          },
+          itemBuilder: (context, index) {
+            var room = rooms[index];
+            return Row(
+              key: ValueKey(room.id),
+              children: [
+                ReorderableDragStartListener(
+                  index: index,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Icon(Icons.drag_handle),
+                  ),
+                ),
+                Expanded(
+                  child: RoomTile(
+                    orgID: org.id!,
+                    room: room,
+                    onDeleted: () async {
+                      var confirmed = await confirmRoomDeletion(context);
+                      if (confirmed == true) {
+                        await repo.removeRoom(org.id!, room.id!);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
     }
     return Column(
       children: [
@@ -115,7 +139,7 @@ class RoomTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: fromHex(room.colorHex) ?? Colors.grey,
+          backgroundColor: room.color,
         ),
         title: Text(room.name),
         trailing: Row(
@@ -165,7 +189,7 @@ class _EditRoomDialogState extends State<_EditRoomDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.room.name);
-    _selectedColor = fromHex(widget.room.colorHex) ?? Colors.grey;
+    _selectedColor = widget.room.color;
   }
 
   @override
@@ -189,7 +213,7 @@ class _EditRoomDialogState extends State<_EditRoomDialog> {
                   final color = await showDialog<Color>(
                     context: context,
                     builder: (context) => _ColorPickerDialog(
-                      initialColor: _selectedColor ?? Colors.grey,
+                      initialColor: _selectedColor ?? Colors.black,
                     ),
                   );
                   if (color != null) {

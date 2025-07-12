@@ -24,7 +24,7 @@ class RoomState extends ChangeNotifier {
     if (room == null) {
       throw ArgumentError("Room with ID $roomID not found");
     }
-    return fromHex(room.colorHex) ?? Colors.grey;
+    return room.color;
   }
 
   Room? getRoom(String roomID) {

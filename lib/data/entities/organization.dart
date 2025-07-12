@@ -1,4 +1,8 @@
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:room_booker/ui/core/room_colors.dart';
 
 part 'organization.g.dart';
 
@@ -100,14 +104,20 @@ class Room {
   final String? id;
   final String name;
   final String? colorHex;
+  final int? orderKey;
 
-  Room({required this.name, this.id, this.colorHex});
+  Room({required this.name, this.id, this.colorHex, this.orderKey});
 
-  Room copyWith({String? id, String? name, String? colorHex}) {
+  Color get color {
+    return fromHex(colorHex) ?? Colors.black;
+  }
+
+  Room copyWith({String? id, String? name, String? colorHex, int? order}) {
     return Room(
         name: name ?? this.name,
         id: id ?? this.id,
-        colorHex: colorHex ?? this.colorHex);
+        colorHex: colorHex ?? this.colorHex,
+        orderKey: order ?? orderKey);
   }
 
   @override
