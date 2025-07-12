@@ -238,13 +238,10 @@ class _EditRoomDialogState extends State<_EditRoomDialog> {
         ),
         TextButton(
           onPressed: () {
-            Navigator.of(context).pop(
-              Room(
-                id: widget.room.id,
-                name: _nameController.text,
-                colorHex: toHex(_selectedColor),
-              ),
-            );
+            Navigator.of(context).pop(widget.room.copyWith(
+              name: _nameController.text,
+              colorHex: toHex(_selectedColor),
+            ));
           },
           child: const Text('Save'),
         ),
