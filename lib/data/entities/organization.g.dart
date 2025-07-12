@@ -65,8 +65,10 @@ const _$NotificationEventEnumMap = {
 
 Room _$RoomFromJson(Map<String, dynamic> json) => Room(
       name: json['name'] as String,
+      colorHex: json['colorHex'] as String?,
     );
 
 Map<String, dynamic> _$RoomToJson(Room instance) => <String, dynamic>{
       'name': instance.name,
+      'colorHex': instance.colorHex,
     };

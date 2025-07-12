@@ -21,6 +21,10 @@ class RoomRepo extends ChangeNotifier {
     await _roomRef(orgID, roomID).delete();
   }
 
+  Future<void> updateRoom(String orgID, Room room) async {
+    await _roomRef(orgID, room.id!).set(room);
+  }
+
   DocumentReference<Room> _roomRef(String orgID, String bookingID) {
     return _roomsRef(orgID).doc(bookingID);
   }

@@ -99,28 +99,29 @@ class Room {
   @JsonKey(includeFromJson: false, includeToJson: false)
   final String? id;
   final String name;
+  final String? colorHex;
 
-  Room({
-    required this.name,
-    this.id,
-  });
+  Room({required this.name, this.id, this.colorHex});
 
-  Room copyWith({String? id}) {
+  Room copyWith({String? id, String? name, String? colorHex}) {
     return Room(
-      name: name,
-      id: this.id ?? id,
-    );
+        name: name ?? this.name,
+        id: id ?? this.id,
+        colorHex: colorHex ?? this.colorHex);
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is Room && other.id == id && other.name == name;
+    return other is Room &&
+        other.id == id &&
+        other.name == name &&
+        other.colorHex == colorHex;
   }
 
   @override
-  int get hashCode => id.hashCode ^ name.hashCode;
+  int get hashCode => id.hashCode ^ name.hashCode ^ colorHex.hashCode;
 
   factory Room.fromJson(Map<String, dynamic> json) => _$RoomFromJson(json);
   Map<String, dynamic> toJson() => _$RoomToJson(this);

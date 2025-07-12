@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/ui/core/heading.dart';
+import 'package:room_booker/ui/core/room_colors.dart';
 import 'action_button.dart';
 
 class RoomListWidget extends StatelessWidget {
@@ -30,22 +32,25 @@ class RoomListWidget extends StatelessWidget {
     if (rooms.isEmpty) {
       content = const Text('No rooms found. Please add one.');
     } else {
-      content = ListView.builder(
-        shrinkWrap: true,
-        itemCount: rooms.length,
-        itemBuilder: (context, index) {
-          var room = rooms[index];
-          return RoomTile(
-            room: room,
-            onDeleted: () async {
-              var confirmed = await confirmRoomDeletion(context);
-              if (confirmed == true) {
-                await repo.removeRoom(org.id!, room.id!);
-              }
+      content = ConstrainedBox(
+          constraints: BoxConstraints.tightFor(width: 400),
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: rooms.length,
+            itemBuilder: (context, index) {
+              var room = rooms[index];
+              return RoomTile(
+                orgID: org.id!,
+                room: room,
+                onDeleted: () async {
+                  var confirmed = await confirmRoomDeletion(context);
+                  if (confirmed == true) {
+                    await repo.removeRoom(org.id!, room.id!);
+                  }
+                },
+              );
             },
-          );
-        },
-      );
+          ));
     }
     return Column(
       children: [
@@ -90,17 +95,167 @@ Future<bool?> confirmRoomDeletion(BuildContext context) {
 }
 
 class RoomTile extends StatelessWidget {
+  final String orgID;
   final Room room;
-  final Function() onDeleted;
+  final VoidCallback onDeleted;
+  final VoidCallback? onUpdated;
 
-  const RoomTile({super.key, required this.room, required this.onDeleted});
+  const RoomTile({
+    super.key,
+    required this.orgID,
+    required this.room,
+    required this.onDeleted,
+    this.onUpdated,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      label: Text(room.name),
-      deleteIcon: const Icon(Icons.delete),
-      onDeleted: onDeleted,
+    var orgRepo = Provider.of<RoomRepo>(context, listen: false);
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: fromHex(room.colorHex) ?? Colors.grey,
+        ),
+        title: Text(room.name),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit),
+              tooltip: 'Edit Room',
+              onPressed: () async {
+                final updatedRoom = await showDialog<Room>(
+                  context: context,
+                  builder: (context) => _EditRoomDialog(room: room),
+                );
+                // If the user updated the room, we should save it.
+                if (updatedRoom != null) {
+                  await orgRepo.updateRoom(orgID, updatedRoom);
+                  if (onUpdated != null) onUpdated!();
+                }
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete),
+              tooltip: 'Delete Room',
+              onPressed: onDeleted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EditRoomDialog extends StatefulWidget {
+  final Room room;
+
+  const _EditRoomDialog({required this.room});
+
+  @override
+  State<_EditRoomDialog> createState() => _EditRoomDialogState();
+}
+
+class _EditRoomDialogState extends State<_EditRoomDialog> {
+  late TextEditingController _nameController;
+  Color? _selectedColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.room.name);
+    _selectedColor = fromHex(widget.room.colorHex) ?? Colors.grey;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit Room'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextFormField(
+            controller: _nameController,
+            decoration: const InputDecoration(labelText: 'Room Name'),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              const Text('Color:'),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () async {
+                  final color = await showDialog<Color>(
+                    context: context,
+                    builder: (context) => _ColorPickerDialog(
+                      initialColor: _selectedColor ?? Colors.grey,
+                    ),
+                  );
+                  if (color != null) {
+                    setState(() {
+                      _selectedColor = color;
+                    });
+                  }
+                },
+                child: CircleAvatar(
+                  backgroundColor: _selectedColor,
+                  radius: 16,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(
+              Room(
+                id: widget.room.id,
+                name: _nameController.text,
+                colorHex: toHex(_selectedColor),
+              ),
+            );
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ColorPickerDialog extends StatelessWidget {
+  final Color initialColor;
+
+  const _ColorPickerDialog({required this.initialColor});
+
+  @override
+  Widget build(BuildContext context) {
+    // Simple color choices for demonstration
+    return AlertDialog(
+      title: const Text('Pick a color'),
+      content: Wrap(
+        spacing: 8,
+        children: colors
+            .map(
+              (color) => GestureDetector(
+                onTap: () => Navigator.of(context).pop(color),
+                child: CircleAvatar(
+                  backgroundColor: color,
+                  radius: 18,
+                  child: initialColor == color
+                      ? const Icon(Icons.check, color: Colors.white)
+                      : null,
+                ),
+              ),
+            )
+            .toList(),
+      ),
     );
   }
 }

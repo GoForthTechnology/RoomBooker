@@ -1,54 +1,30 @@
-import 'dart:developer';
-
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
+import 'package:room_booker/ui/core/room_colors.dart';
 
 List<Color> lightColors = [];
-
-List<Color> roomColors = [
-  Color.fromRGBO(131, 45, 164, 1),
-  Color.fromRGBO(123, 134, 198, 1),
-  Color.fromRGBO(67, 80, 175, 1),
-  Color.fromRGBO(69, 153, 223, 1),
-  Color.fromRGBO(57, 126, 73, 1),
-  Color.fromRGBO(93, 179, 126, 1),
-  Color.fromRGBO(237, 193, 75, 1),
-  Color.fromRGBO(226, 93, 51, 1),
-  Color.fromRGBO(216, 129, 119, 1),
-  Color.fromRGBO(195, 41, 28, 1),
-  Color.fromRGBO(97, 97, 97, 1),
-];
 
 class RoomState extends ChangeNotifier {
   final String? globalRoomID;
   final Map<String, Room> _rooms;
   final Set<String> _activeIDs;
-  final Map<String, Color> _colorMap;
 
   RoomState(List<Room> rooms, Set<Room> activeRooms, this.globalRoomID)
       : _rooms = Map.fromEntries(rooms.map((r) => MapEntry(r.id!, r))),
-        _activeIDs = activeRooms.map((r) => r.id!).toSet(),
-        _colorMap =
-            Map.fromEntries(rooms.map((r) => MapEntry(r.id!, Colors.black))) {
-    for (int i = 0; i < rooms.length; i++) {
-      var room = rooms[i];
-      var color = Colors.black;
-      if (i < roomColors.length) {
-        color = roomColors[i];
-      }
-      _colorMap[room.id!] = color;
-    }
-  }
+        _activeIDs = activeRooms.map((r) => r.id!).toSet();
 
   Color color(String roomID) {
     if (roomID == globalRoomID) {
       return Colors.black; // Global room color
     }
-    var color = _colorMap[roomID];
-    return color ?? Colors.black;
+    var room = _rooms[roomID];
+    if (room == null) {
+      throw ArgumentError("Room with ID $roomID not found");
+    }
+    return fromHex(room.colorHex) ?? Colors.grey;
   }
 
   Room? getRoom(String roomID) {
