@@ -35,7 +35,11 @@ class RoomState extends ChangeNotifier {
             Map.fromEntries(rooms.map((r) => MapEntry(r.id!, Colors.black))) {
     for (int i = 0; i < rooms.length; i++) {
       var room = rooms[i];
-      _colorMap[room.id!] = roomColors[i];
+      var color = Colors.black;
+      if (i < roomColors.length) {
+        color = roomColors[i];
+      }
+      _colorMap[room.id!] = color;
     }
   }
 
@@ -81,6 +85,15 @@ class RoomState extends ChangeNotifier {
       _activeIDs.add(room.id!);
     }
     notifyListeners();
+  }
+
+  void toggleSolorRoom(Room room) {
+    if (_activeIDs.length == 1) {
+      _activeIDs.clear();
+      activateAll();
+    } else {
+      setActiveRoom(room);
+    }
   }
 
   void setActiveRoom(Room? room) {
@@ -148,6 +161,9 @@ class RoomCardSelector extends StatelessWidget {
                           onClick: (room) {
                             state.toggleRoom(room);
                           },
+                          onDoubleTap: (room) {
+                            state.toggleSolorRoom(room);
+                          },
                         )),
               ],
             )));
@@ -158,12 +174,14 @@ class RoomCard extends StatelessWidget {
   final Color color;
   final Room room;
   final Function(Room) onClick;
+  final Function(Room) onDoubleTap;
 
   const RoomCard(
       {super.key,
       required this.color,
       required this.room,
-      required this.onClick});
+      required this.onClick,
+      required this.onDoubleTap});
 
   @override
   Widget build(BuildContext context) {
@@ -171,7 +189,7 @@ class RoomCard extends StatelessWidget {
       message: "Show/hide this room",
       child: GestureDetector(
         onTap: () => onClick(room),
-        onDoubleTap: () => log("douple tap"),
+        onDoubleTap: () => onDoubleTap(room),
         child: Card(
           color: color,
           child: Padding(
