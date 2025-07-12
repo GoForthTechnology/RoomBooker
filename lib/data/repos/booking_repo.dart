@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -18,11 +19,15 @@ typedef RecurringBookingEditChoiceProvider = Future<RecurringBookingEditChoice?>
 class BookingRepo extends ChangeNotifier {
   BookingRepo({required this.logRepo, FirebaseFirestore? db})
       : _db = db ?? FirebaseFirestore.instance,
-        _analytics = FirebaseAnalytics.instance;
+        _analytics = FirebaseAnalytics.instance {
+    _detailsCache = DetailCache(
+        (orgID, requestID) => _loadRequestDetails(orgID, requestID));
+  }
 
   final FirebaseFirestore _db;
   final FirebaseAnalytics _analytics;
   final LogRepo logRepo;
+  late final DetailCache _detailsCache;
 
   Future<void> _log(
       String orgID, String requestID, String eventName, Action action) async {
@@ -200,6 +205,11 @@ class BookingRepo extends ChangeNotifier {
   }
 
   Stream<PrivateRequestDetails?> getRequestDetails(
+      String orgID, String requestID) {
+    return _detailsCache.get(orgID, requestID);
+  }
+
+  Stream<PrivateRequestDetails?> _loadRequestDetails(
       String orgID, String requestID) {
     return _privateRequestDetailsRef(orgID, requestID)
         .snapshots()
@@ -455,4 +465,34 @@ Request _overrideRecurrance(Request request, Request override) {
   var overrides = request.recurranceOverrides ?? {};
   overrides[_stripTime(override.eventStartTime)] = override;
   return request.copyWith(recurranceOverrides: overrides);
+}
+
+class DetailCache {
+  final Map<String, Subject<PrivateRequestDetails>> _cache = {};
+  final Set<StreamSubscription> _subs = {};
+  final Stream<PrivateRequestDetails?> Function(String, String) _loader;
+
+  DetailCache(this._loader);
+
+  Stream<PrivateRequestDetails?> get(String orgID, String requestID) async* {
+    var cachedValue = _cache[requestID];
+    if (cachedValue != null) {
+      yield* cachedValue.stream;
+    } else {
+      var subject = BehaviorSubject<PrivateRequestDetails>();
+      _cache[requestID] = subject;
+      try {
+        _subs.add(_loader(orgID, requestID).listen(
+          (event) {
+            if (event != null) subject.add(event);
+          },
+        ));
+      } catch (e, s) {
+        log("Error loading details for $orgID, $requestID",
+            error: e, stackTrace: s);
+        subject.addError(e);
+      }
+      yield* subject.stream;
+    }
+  }
 }
