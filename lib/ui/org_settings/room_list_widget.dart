@@ -225,6 +225,7 @@ class _EditRoomDialogState extends State<_EditRoomDialog> {
                 child: CircleAvatar(
                   backgroundColor: _selectedColor,
                   radius: 16,
+                  child: Icon(Icons.edit, color: Colors.white, size: 16),
                 ),
               ),
             ],
@@ -262,6 +263,7 @@ class _ColorPickerDialog extends StatelessWidget {
       title: const Text('Pick a color'),
       content: Wrap(
         spacing: 8,
+        runSpacing: 8,
         children: colors
             .map(
               (color) => GestureDetector(
