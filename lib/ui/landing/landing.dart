@@ -302,7 +302,7 @@ class OrgTile extends StatelessWidget {
             leading: const Icon(Icons.business),
             title: Text(org.name),
             subtitle: subtitle != null ? Text(subtitle) : null,
-            onTap: () => AutoRouter.of(context).push(ViewBookingsRoute(
+            onTap: () => AutoRouter.of(context).replace(ViewBookingsRoute(
                 orgID: org.id!, view: defaultCalendarView.name)),
           );
         },

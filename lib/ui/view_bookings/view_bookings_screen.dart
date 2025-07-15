@@ -108,11 +108,13 @@ class ViewBookingsScreen extends StatelessWidget {
                           child: const Icon(Icons.add),
                         )
                       : null,
-                  drawer: MyDrawer(org: orgState.org),
+                  drawer: _isSmallView(context)
+                      ? MyDrawer(org: orgState.org)
+                      : null,
                   body: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      MyDrawer(org: orgState.org),
+                      if (!_isSmallView(context)) MyDrawer(org: orgState.org),
                       Flexible(
                         flex: 3,
                         child: _buildCalendar(context, request),

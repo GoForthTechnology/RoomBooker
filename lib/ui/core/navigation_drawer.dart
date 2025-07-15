@@ -36,9 +36,12 @@ class MyDrawer extends StatelessWidget {
                 );
               }),
               TextButton(
-                child: Text("Edit Rooms"),
-                onPressed: () => AutoRouter.of(context)
-                    .push(OrgSettingsRoute(orgID: org.id!)),
+                child: Text("Close Calendar"),
+                onPressed: () {
+                  var router = AutoRouter.of(context);
+                  router.popUntilRoot();
+                  router.replace(const LandingRoute());
+                },
               ),
             ],
           );
