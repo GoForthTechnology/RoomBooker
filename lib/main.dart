@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
+import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/data/repos/user_repo.dart';
 import 'package:room_booker/router.dart';
@@ -63,6 +64,7 @@ class MyApp extends StatelessWidget {
     var bookingRepo = BookingRepo(logRepo: logRepo);
     var roomRepo = RoomRepo();
     var userRepo = UserRepo();
+    var prefsRepo = PreferencesRepo();
     var orgRepo = OrgRepo(userRepo: userRepo, roomRepo: roomRepo);
     return MultiProvider(
         providers: [
@@ -71,6 +73,7 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => orgRepo),
           ChangeNotifierProvider(create: (_) => roomRepo),
           ChangeNotifierProvider(create: (_) => logRepo),
+          ChangeNotifierProvider(create: (_) => prefsRepo),
         ],
         child: MaterialApp.router(
           title: 'Room Booker',

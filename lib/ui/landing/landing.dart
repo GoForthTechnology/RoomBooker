@@ -9,6 +9,7 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
+import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -25,6 +26,7 @@ class LandingScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Room Booker"),
         actions: [
+          SettingsAction(),
           AuthAction(isSignedIn: FirebaseAuth.instance.currentUser != null),
         ],
       ),
@@ -36,7 +38,12 @@ class LandingScreen extends StatelessWidget {
                 orgRepo: orgRepo,
                 isLoggedIn: FirebaseAuth.instance.currentUser != null),
             Heading("All Organizations"),
-            OrgList(orgStream: orgRepo.getOrgs(excludeOwned: true)),
+            Consumer<PreferencesRepo>(
+              builder: (context, settingsProvider, child) => OrgList(
+                orgStream: orgRepo.getOrgs(excludeOwned: true),
+                defaultCalendarView: settingsProvider.defaultCalendarView,
+              ),
+            ),
           ],
         ),
       ),
@@ -51,6 +58,85 @@ class LandingScreen extends StatelessWidget {
         child: const Icon(Icons.add),
       ),
     );
+  }
+}
+
+class SettingsAction extends StatelessWidget {
+  const SettingsAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: "Settings",
+      child: IconButton(
+        icon: const Icon(Icons.settings),
+        onPressed: () => _showSettingsDialog(context),
+      ),
+    );
+  }
+
+  void _showSettingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Settings'),
+        content: Consumer<PreferencesRepo>(
+            builder: (context, prefsRepo, child) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Default Calendar View:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    ...CalendarView.values
+                        .where((view) => _isValidCalendarView(view))
+                        .map((view) => RadioListTile<CalendarView>(
+                              title: Text(_getCalendarViewDisplayName(view)),
+                              value: view,
+                              groupValue: prefsRepo.defaultCalendarView,
+                              onChanged: (CalendarView? value) {
+                                if (value != null) {
+                                  prefsRepo.setDefaultCalendarView(value);
+                                }
+                              },
+                            )),
+                  ],
+                )),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isValidCalendarView(CalendarView view) {
+    // Filter to only show commonly used calendar views
+    return [
+      CalendarView.month,
+      CalendarView.week,
+      CalendarView.day,
+      CalendarView.workWeek,
+    ].contains(view);
+  }
+
+  String _getCalendarViewDisplayName(CalendarView view) {
+    switch (view) {
+      case CalendarView.month:
+        return 'Month';
+      case CalendarView.week:
+        return 'Week';
+      case CalendarView.day:
+        return 'Day';
+      case CalendarView.workWeek:
+        return 'Work Week';
+      default:
+        return view.name;
+    }
   }
 }
 
@@ -69,8 +155,11 @@ class YourOrgs extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Heading("Your Organizations"),
-        OrgList(
-          orgStream: orgRepo.getOrgsForCurrentUser(),
+        Consumer<PreferencesRepo>(
+          builder: (context, prefsRepo, child) => OrgList(
+            orgStream: orgRepo.getOrgsForCurrentUser(),
+            defaultCalendarView: prefsRepo.defaultCalendarView,
+          ),
         ),
       ],
     );
@@ -128,7 +217,9 @@ class AuthAction extends StatelessWidget {
 
 class OrgList extends StatelessWidget {
   final Stream<List<Organization>> orgStream;
-  const OrgList({super.key, required this.orgStream});
+  final CalendarView defaultCalendarView;
+  const OrgList(
+      {super.key, required this.orgStream, required this.defaultCalendarView});
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +241,8 @@ class OrgList extends StatelessWidget {
           shrinkWrap: true,
           itemCount: orgs.length,
           itemBuilder: (context, index) {
-            return OrgTile(org: orgs[index]);
+            return OrgTile(
+                org: orgs[index], defaultCalendarView: defaultCalendarView);
           },
         );
       },
@@ -184,8 +276,10 @@ class CardState {
 
 class OrgTile extends StatelessWidget {
   final Organization org;
+  final CalendarView defaultCalendarView;
 
-  const OrgTile({super.key, required this.org});
+  const OrgTile(
+      {super.key, required this.org, required this.defaultCalendarView});
 
   @override
   Widget build(BuildContext context) {
@@ -209,7 +303,7 @@ class OrgTile extends StatelessWidget {
             title: Text(org.name),
             subtitle: subtitle != null ? Text(subtitle) : null,
             onTap: () => AutoRouter.of(context).push(ViewBookingsRoute(
-                orgID: org.id!, view: CalendarView.month.name)),
+                orgID: org.id!, view: defaultCalendarView.name)),
           );
         },
       ),

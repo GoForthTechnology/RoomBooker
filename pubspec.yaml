@@ -52,6 +52,7 @@ dependencies:
   intl: ^0.20.0
   firebase_analytics: ^11.4.3
   firebase_performance: ^0.10.1+5
+  shared_preferences: ^2.3.2
 
 dev_dependencies:
   sentry_dart_plugin: ^2.4.1
