@@ -9,7 +9,6 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
-import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -21,19 +20,26 @@ class LandingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     FirebaseAnalytics.instance.logScreenView(screenName: "Landing");
+    var orgRepo = Provider.of<OrgRepo>(context, listen: false);
     return Scaffold(
       appBar: AppBar(
         title: const Text("Room Booker"),
         actions: [
-          IconButton(
-              onPressed: () {
-                FirebaseAuth.instance.signOut();
-                AutoRouter.of(context).replace(LoginRoute());
-              },
-              icon: const Icon(Icons.logout))
+          AuthAction(isSignedIn: FirebaseAuth.instance.currentUser != null),
         ],
       ),
-      body: const Center(child: OrgList()),
+      body: Center(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            YourOrgs(
+                orgRepo: orgRepo,
+                isLoggedIn: FirebaseAuth.instance.currentUser != null),
+            Heading("All Organizations"),
+            OrgList(orgStream: orgRepo.getOrgs(excludeOwned: true)),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           var repo = Provider.of<OrgRepo>(context, listen: false);
@@ -48,34 +54,106 @@ class LandingScreen extends StatelessWidget {
   }
 }
 
-class OrgList extends StatelessWidget {
-  const OrgList({super.key});
+class YourOrgs extends StatelessWidget {
+  final OrgRepo orgRepo;
+  final bool isLoggedIn;
+
+  const YourOrgs({super.key, required this.orgRepo, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<OrgRepo>(
-      builder: (context, repo, child) => StreamBuilder(
-        stream: repo.getOrgsForCurrentUser(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            log(snapshot.error.toString(), error: snapshot.error);
-            return const Text('Error loading organizations');
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const CircularProgressIndicator();
-          }
-          var orgs = snapshot.data!;
-          if (orgs.isEmpty) {
-            return const Text('No organizations found. Please add one.');
-          }
-          return ListView.builder(
-            itemCount: orgs.length,
-            itemBuilder: (context, index) {
-              return OrgTile(org: orgs[index]);
-            },
-          );
-        },
+    if (!isLoggedIn) {
+      return Container();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Heading("Your Organizations"),
+        OrgList(
+          orgStream: orgRepo.getOrgsForCurrentUser(),
+        ),
+      ],
+    );
+  }
+}
+
+class Heading extends StatelessWidget {
+  final String text;
+
+  const Heading(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, left: 16, bottom: 4),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
       ),
+    );
+  }
+}
+
+class AuthAction extends StatelessWidget {
+  final bool isSignedIn;
+
+  const AuthAction({super.key, required this.isSignedIn});
+
+  @override
+  Widget build(BuildContext context) {
+    if (isSignedIn) {
+      return Tooltip(
+        message: "Sign out",
+        child: IconButton(
+          icon: const Icon(Icons.logout),
+          onPressed: () {
+            FirebaseAuth.instance.signOut();
+            AutoRouter.of(context).replace(LoginRoute());
+          },
+        ),
+      );
+    } else {
+      return Tooltip(
+        message: "Sign in",
+        child: IconButton(
+          icon: const Icon(Icons.login),
+          onPressed: () {
+            AutoRouter.of(context).replace(LoginRoute());
+          },
+        ),
+      );
+    }
+  }
+}
+
+class OrgList extends StatelessWidget {
+  final Stream<List<Organization>> orgStream;
+  const OrgList({super.key, required this.orgStream});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: orgStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          log(snapshot.error.toString(), error: snapshot.error);
+          return const Text('Error loading organizations');
+        }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        }
+        var orgs = snapshot.data!;
+        if (orgs.isEmpty) {
+          return const Text('No organizations found. Please add one.');
+        }
+        return ListView.builder(
+          shrinkWrap: true,
+          itemCount: orgs.length,
+          itemBuilder: (context, index) {
+            return OrgTile(org: orgs[index]);
+          },
+        );
+      },
     );
   }
 }
@@ -130,93 +208,9 @@ class OrgTile extends StatelessWidget {
             leading: const Icon(Icons.business),
             title: Text(org.name),
             subtitle: subtitle != null ? Text(subtitle) : null,
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _viewCalendarButton(context),
-                _reviewButton(context),
-                _scheduleButton(context),
-                _settingsButton(context),
-              ],
-            ),
+            onTap: () => AutoRouter.of(context).push(ViewBookingsRoute(
+                orgID: org.id!, view: CalendarView.month.name)),
           );
-        },
-      ),
-    );
-  }
-
-  Widget _viewCalendarButton(BuildContext context) {
-    var roomRepo = Provider.of<RoomRepo>(context, listen: false);
-    return Consumer<OrgRepo>(
-      builder: (context, repo, child) => StreamBuilder(
-          stream: roomRepo.listRooms(org.id!),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return Container();
-            }
-            var rooms = snapshot.data!;
-            return Tooltip(
-              message: "Bookings for this org",
-              child: IconButton(
-                icon: const Icon(Icons.event),
-                onPressed: () {
-                  if (rooms.isEmpty) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text("No rooms found"),
-                        content: const Text(
-                            "Please add a room to this organization.\n\nThis can be done in the settings page."),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('OK'),
-                          ),
-                        ],
-                      ),
-                    );
-                    return;
-                  }
-                  AutoRouter.of(context).push(ViewBookingsRoute(
-                      orgID: org.id!, view: CalendarView.month.name));
-                },
-              ),
-            );
-          }),
-    );
-  }
-
-  Widget _settingsButton(BuildContext context) {
-    return Tooltip(
-      message: "Settings for this org",
-      child: IconButton(
-        icon: const Icon(Icons.settings),
-        onPressed: () {
-          AutoRouter.of(context).push(OrgSettingsRoute(orgID: org.id!));
-        },
-      ),
-    );
-  }
-
-  Widget _scheduleButton(BuildContext context) {
-    return Tooltip(
-      message: "Schedule for this org",
-      child: IconButton(
-        icon: const Icon(Icons.view_agenda),
-        onPressed: () {
-          AutoRouter.of(context).push(ScheduleRoute(orgID: org.id!));
-        },
-      ),
-    );
-  }
-
-  Widget _reviewButton(BuildContext context) {
-    return Tooltip(
-      message: "Review requests for this org",
-      child: IconButton(
-        icon: const Icon(Icons.approval),
-        onPressed: () {
-          AutoRouter.of(context).push(ReviewBookingsRoute(orgID: org.id!));
         },
       ),
     );

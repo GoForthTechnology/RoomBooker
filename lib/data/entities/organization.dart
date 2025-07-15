@@ -34,6 +34,7 @@ class Organization {
   final String ownerID;
   final String? globalRoomID;
   final bool acceptingAdminRequests;
+  final bool? publiclyVisible;
   final NotificationSettings? notificationSettings;
 
   Organization({
@@ -43,6 +44,7 @@ class Organization {
     this.globalRoomID,
     this.id,
     this.notificationSettings,
+    this.publiclyVisible,
   });
 
   String? emailForNotification(NotificationEvent event) {
@@ -52,15 +54,21 @@ class Organization {
     return notificationSettings!.notificationTargets[event];
   }
 
-  Organization copyWith({String? id, bool? acceptingAdminRequests}) {
+  Organization copyWith({
+    String? id,
+    bool? acceptingAdminRequests,
+    bool? publiclyVisible,
+  }) {
     return Organization(
-        name: name,
-        ownerID: ownerID,
-        acceptingAdminRequests:
-            acceptingAdminRequests ?? this.acceptingAdminRequests,
-        id: this.id ?? id,
-        globalRoomID: globalRoomID,
-        notificationSettings: notificationSettings);
+      name: name,
+      ownerID: ownerID,
+      acceptingAdminRequests:
+          acceptingAdminRequests ?? this.acceptingAdminRequests,
+      id: this.id ?? id,
+      globalRoomID: globalRoomID,
+      notificationSettings: notificationSettings,
+      publiclyVisible: publiclyVisible ?? this.publiclyVisible,
+    );
   }
 
   factory Organization.fromJson(Map<String, dynamic> json) =>

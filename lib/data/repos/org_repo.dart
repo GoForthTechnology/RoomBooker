@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -47,6 +49,7 @@ class OrgRepo extends ChangeNotifier {
       notificationSettings:
           NotificationSettings.defaultSettings(user.email ?? ""),
     );
+    // TODO: add an initial room for the organization
     var orgID = await _db.runTransaction((t) async {
       var orgRef = await _db.collection("orgs").add(org.toJson());
       _userRepo.addOrg(t, user.uid, orgRef.id);
@@ -148,6 +151,18 @@ class OrgRepo extends ChangeNotifier {
     });
   }
 
+  Future<void> publishOrg(String orgID) async {
+    return _db.collection("orgs").doc(orgID).update({
+      "publiclyVisible": true,
+    });
+  }
+
+  Future<void> hideOrg(String orgID) async {
+    return _db.collection("orgs").doc(orgID).update({
+      "publiclyVisible": false,
+    });
+  }
+
   Future<void> removeOrg(String orgID) async {
     var user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -178,14 +193,39 @@ class OrgRepo extends ChangeNotifier {
     });
   }
 
+  Stream<List<Organization>> getOrgs({bool excludeOwned = false}) async* {
+    Set<String> ownedOrgs = {};
+    var user = FirebaseAuth.instance.currentUser;
+    if (excludeOwned && user != null) {
+      var profile = await _userRepo.getUser(user.uid);
+      ownedOrgs = Set.from(profile?.orgIDs ?? []);
+    }
+    yield* _db
+        .collection("orgs")
+        .where("publiclyVisible", isEqualTo: true)
+        .withConverter(
+          fromFirestore: (snapshot, _) =>
+              Organization.fromJson(snapshot.data()!).copyWith(id: snapshot.id),
+          toFirestore: (org, _) => org.toJson(),
+        )
+        .snapshots()
+        .map((s) => s.docs
+            .map((d) => d.data())
+            .toList()
+            .where((o) => !ownedOrgs.contains(o.id!))
+            .toList());
+  }
+
   Stream<List<Organization>> getOrgsForCurrentUser() async* {
     var user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      yield* Stream.error("User not logged in");
+      log("foo");
+      yield* Stream.value([]);
+      return;
     }
 
     yield* _userRepo
-        .streamUser(user!.uid)
+        .streamUser(user.uid)
         .map((profile) {
           var orgIDs = profile?.orgIDs ?? [];
           var streams = orgIDs.map(getOrg).toList();

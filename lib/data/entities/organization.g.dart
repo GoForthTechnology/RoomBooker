@@ -26,6 +26,7 @@ Organization _$OrganizationFromJson(Map<String, dynamic> json) => Organization(
           ? null
           : NotificationSettings.fromJson(
               json['notificationSettings'] as Map<String, dynamic>),
+      publiclyVisible: json['publiclyVisible'] as bool?,
     );
 
 Map<String, dynamic> _$OrganizationToJson(Organization instance) =>
@@ -34,6 +35,7 @@ Map<String, dynamic> _$OrganizationToJson(Organization instance) =>
       'ownerID': instance.ownerID,
       'globalRoomID': instance.globalRoomID,
       'acceptingAdminRequests': instance.acceptingAdminRequests,
+      'publiclyVisible': instance.publiclyVisible,
       'notificationSettings': instance.notificationSettings?.toJson(),
     };
 

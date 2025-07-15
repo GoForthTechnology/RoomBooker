@@ -21,10 +21,32 @@ class OrgActions extends StatelessWidget {
           children: [
             const Heading('Danger Zone'),
             const Text("These action have consequences!"),
+            _publishButton(context),
             _adminRegistrationButton(context),
             _removeOrgButton(context)
           ],
         ));
+  }
+
+  Widget _publishButton(BuildContext context) {
+    if (org.publiclyVisible ?? false) {
+      return ActionButton(
+        tooltip: 'This will hide your organization from public view',
+        isDangerous: false,
+        text: 'Hide Organization',
+        onPressed: () async {
+          await repo.hideOrg(org.id!);
+        },
+      );
+    }
+    return ActionButton(
+      tooltip: 'This will make your organization visible to the public',
+      isDangerous: true,
+      text: 'Publish Organization',
+      onPressed: () async {
+        await repo.publishOrg(org.id!);
+      },
+    );
   }
 
   Widget _adminRegistrationButton(BuildContext context) {

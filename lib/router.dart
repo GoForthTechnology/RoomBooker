@@ -15,8 +15,7 @@ class AppRouter extends RootStackRouter {
   @override
   List<AutoRoute> get routes => [
         AutoRoute(path: "/view/:orgID", page: ViewBookingsRoute.page),
-        AutoRoute(
-            page: LandingRoute.page, initial: true, guards: [AuthGuard()]),
+        AutoRoute(page: LandingRoute.page, initial: true),
         AutoRoute(
             path: "/schedule/:orgID",
             page: ScheduleRoute.page,
