@@ -28,14 +28,16 @@ class LogRepo extends ChangeNotifier {
     });
   }
 
-  Stream<List<RequestLogEntry>> getLogEntries(String orgID) {
-    return db
+  Stream<List<RequestLogEntry>> getLogEntries(String orgID, {int? limit}) {
+    var query = db
         .collection("orgs")
         .doc(orgID)
         .collection("request-logs")
-        .orderBy("timestamp", descending: true)
-        .snapshots()
-        .map((snapshot) {
+        .orderBy("timestamp", descending: true);
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+    return query.snapshots().map((snapshot) {
       return snapshot.docs
           .map((doc) => RequestLogEntry.fromJson(doc.data()))
           .toList();

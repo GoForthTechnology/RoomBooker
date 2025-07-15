@@ -15,7 +15,8 @@ class RequestLogsWidget extends StatelessWidget {
     var logRepo = Provider.of<LogRepo>(context, listen: false);
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
     var entries = StreamBuilder(
-      stream: bookingRepo.decorateLogs(org.id!, logRepo.getLogEntries(org.id!)),
+      stream: bookingRepo.decorateLogs(
+          org.id!, logRepo.getLogEntries(org.id!, limit: 10)),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const Text('Error loading request logs');
