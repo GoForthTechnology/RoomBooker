@@ -286,6 +286,14 @@ class ViewBookingsScreen extends StatelessWidget {
                 AutoRouter.of(context).push(ReviewBookingsRoute(orgID: orgID)),
           ),
         ));
+        privilegedActions.add(Tooltip(
+          message: "Settings",
+          child: IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () =>
+                AutoRouter.of(context).push(OrgSettingsRoute(orgID: orgID)),
+          ),
+        ));
       }
       return [
         ...privilegedActions,
