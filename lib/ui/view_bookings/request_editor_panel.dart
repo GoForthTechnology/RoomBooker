@@ -30,12 +30,11 @@ class NewRequestPanel extends StatefulWidget {
 
 void closePanel(BuildContext context) {
   var panelState = Provider.of<RequestPanelSate>(context, listen: false);
-  panelState.hidePanel(context);
-
   var requestState = Provider.of<RequestEditorState>(context, listen: false);
-  requestState.clearAppointment();
-
   var roomState = Provider.of<RoomState>(context, listen: false);
+
+  requestState.clearAppointment();
+  panelState.hidePanel(context);
   roomState.activateAll();
 }
 
@@ -68,6 +67,11 @@ class NewRequestPanelState extends State<NewRequestPanel> {
     return Consumer3<RoomState, RequestEditorState, RequestPanelSate>(
         builder: (context, roomState, state, panelState, child) {
       var readOnly = state.readOnly();
+      if (state.startTime == null) {
+        // No idea why this is neccessary but without it there are a lot of NPEs
+        // for the start and end time...
+        return Container();
+      }
       var formContents = Column(
         children: [
           AppBar(
@@ -109,23 +113,23 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             onChanged: (newDate) {
               state.updateTimes(
                   DateTime(newDate.year, newDate.month, newDate.day,
-                      state.startTime.hour, state.startTime.minute),
+                      state.startTime!.hour, state.startTime!.minute),
                   DateTime(newDate.year, newDate.month, newDate.day,
-                      state.endTime.hour, state.endTime.minute));
+                      state.endTime!.hour, state.endTime!.minute));
             },
           ),
           TimeField(
               readOnly: readOnly,
               labelText: 'Start Time',
-              initialValue: TimeOfDay.fromDateTime(state.startTime),
+              initialValue: TimeOfDay.fromDateTime(state.startTime!),
               localizations: localizations,
-              maxTime: TimeOfDay.fromDateTime(state.endTime),
+              maxTime: TimeOfDay.fromDateTime(state.endTime!),
               onChanged: (newTime) {
-                var eventDuration = state.endTime.difference(state.startTime);
+                var eventDuration = state.endTime!.difference(state.startTime!);
                 var newStartTime = DateTime(
-                    state.startTime.year,
-                    state.startTime.month,
-                    state.startTime.day,
+                    state.startTime!.year,
+                    state.startTime!.month,
+                    state.startTime!.day,
                     newTime.hour,
                     newTime.minute);
                 var newEndTime = newStartTime.add(eventDuration);
@@ -134,21 +138,21 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           TimeField(
               readOnly: readOnly,
               labelText: 'End Time',
-              minTime: TimeOfDay.fromDateTime(state.startTime),
-              initialValue: TimeOfDay.fromDateTime(state.endTime),
+              minTime: TimeOfDay.fromDateTime(state.startTime!),
+              initialValue: TimeOfDay.fromDateTime(state.endTime!),
               localizations: localizations,
               onChanged: (newTime) {
                 var newEndTime = DateTime(
-                    state.startTime.year,
-                    state.startTime.month,
-                    state.startTime.day,
+                    state.startTime!.year,
+                    state.startTime!.month,
+                    state.startTime!.day,
                     newTime.hour,
                     newTime.minute);
-                state.updateTimes(state.startTime, newEndTime);
+                state.updateTimes(state.startTime!, newEndTime);
               }),
           RepeatBookingsSelector(
             readOnly: readOnly,
-            startTime: state.startTime,
+            startTime: state.startTime!,
             isCustom: state.isCustomRecurrencePattern,
             onIntervalChanged: state.updateInterval,
             pattern: state.recurrancePattern,
@@ -382,7 +386,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
       buttons.add(ElevatedButton(
         onPressed: () async {
           var request = state.getRequest(roomState);
-          await repo.endBooking(widget.orgID, request!.id!, state.startTime);
+          await repo.endBooking(widget.orgID, request!.id!, state.startTime!);
           state.updateEndDate(state.startTime);
           FirebaseAnalytics.instance.logEvent(
               name: "Series Cancelled", parameters: {"orgID": widget.orgID});
@@ -545,8 +549,8 @@ class RequestEditorState extends ChangeNotifier {
   String? get contactEmail => _contactEmail;
   String? get contactPhone => _contactPhone;
   String? get message => _message;
-  DateTime get startTime => _startTime!;
-  DateTime get endTime => _endTime!;
+  DateTime? get startTime => _startTime;
+  DateTime? get endTime => _endTime;
   RecurrancePattern get recurrancePattern => _recurrancePattern;
   bool get isCustomRecurrencePattern => _customRecurrencePattern;
   bool get editingEnabled => _editingEnabled;
@@ -623,7 +627,7 @@ class RequestEditorState extends ChangeNotifier {
 
   void updateFrequency(Frequency frequency, bool isCustom) {
     _customRecurrencePattern = isCustom || frequency == Frequency.custom;
-    var weekday = getWeekday(startTime);
+    var weekday = getWeekday(startTime!);
     var interval = _recurrancePattern.period;
     if (frequency != Frequency.never && interval == 0) {
       interval = 1;
