@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/core/current_bookings_calendar.dart';
 import 'package:room_booker/ui/core/org_state_provider.dart';
@@ -20,7 +21,7 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 @RoutePage()
 class ViewBookingsScreen extends StatelessWidget {
   final String orgID;
-  final String view;
+  final String? view;
   final bool createRequest;
   final bool readOnlyMode;
   final DateTime? targetDate;
@@ -38,7 +39,7 @@ class ViewBookingsScreen extends StatelessWidget {
       @QueryParam('v') String? view})
       : view = (targetDate != null || requestID != null
             ? CalendarView.day.name
-            : view ?? CalendarView.month.name);
+            : view);
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +85,11 @@ class ViewBookingsScreen extends StatelessWidget {
               }
             },
           );
+    var defaultView = view;
+    if (defaultView == null) {
+      var prefRepo = Provider.of<PreferencesRepo>(context, listen: false);
+      defaultView = prefRepo.defaultCalendarView.name;
+    }
     return OrgStateProvider(
       orgID: orgID,
       child: Consumer<OrgState>(
@@ -95,7 +101,7 @@ class ViewBookingsScreen extends StatelessWidget {
           requestStartTime: createRequest ? targetDate : null,
           child: CalendarStateProvider(
             initialView: CalendarView.values
-                .firstWhere((element) => element.name == view),
+                .firstWhere((element) => element.name == defaultView),
             focusDate: targetDate ?? request?.eventEndTime ?? DateTime.now(),
             builder: (context, child) {
               var calendarState = Provider.of<CalendarState>(context);
