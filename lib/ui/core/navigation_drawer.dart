@@ -22,8 +22,9 @@ class MyDrawer extends StatelessWidget {
           return ListView(
             padding: EdgeInsets.zero,
             children: [
-              Text("Active Rooms",
-                  style: Theme.of(context).textTheme.headlineSmall),
+              Center(
+                  child: Text("Active Rooms",
+                      style: Theme.of(context).textTheme.labelMedium)),
               ...state.allRooms().map((room) {
                 final isActive = state.isEnabled(room.id!);
                 return CheckboxListTile(

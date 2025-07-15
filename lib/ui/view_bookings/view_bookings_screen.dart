@@ -114,7 +114,8 @@ class ViewBookingsScreen extends StatelessWidget {
                   body: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (!_isSmallView(context)) MyDrawer(org: orgState.org),
+                      if (!_isSmallView(context) && !requestPanelState.active)
+                        Flexible(flex: 1, child: MyDrawer(org: orgState.org)),
                       Flexible(
                         flex: 3,
                         child: _buildCalendar(context, request),
