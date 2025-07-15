@@ -64,12 +64,8 @@ class LoginScreen extends StatelessWidget {
             }
             if (!state.user!.emailVerified) {
               router.push(const EmailVerifyRoute());
-            } else if (orgID != null) {
-              router.popUntilRoot();
-              router.replace(ViewBookingsRoute(orgID: orgID!));
             } else {
-              router.pushAndPopUntil(const LandingRoute(),
-                  predicate: (r) => false);
+              router.pop(true);
             }
           }),
           AuthStateChangeAction<UserCreated>((context, state) {
@@ -114,9 +110,10 @@ class EmailVerifyScreen extends StatelessWidget {
 
 class AuthGuard extends AutoRouteGuard {
   @override
-  void onNavigation(NavigationResolver resolver, StackRouter router) {
+  void onNavigation(NavigationResolver resolver, StackRouter router) async {
     bool loggedIn = firebase_auth.FirebaseAuth.instance.currentUser != null;
     if (loggedIn) return resolver.next(true);
-    router.push(LoginRoute());
+    bool? authenticated = await router.push(LoginRoute());
+    resolver.next(authenticated ?? false);
   }
 }
