@@ -22,21 +22,17 @@ class LandingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     FirebaseAnalytics.instance.logScreenView(screenName: "Landing");
     var orgRepo = Provider.of<OrgRepo>(context, listen: false);
+    bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
     return Scaffold(
       appBar: AppBar(
         title: const Text("Room Booker"),
-        actions: [
-          SettingsAction(),
-          AuthAction(isSignedIn: FirebaseAuth.instance.currentUser != null),
-        ],
+        actions: [SettingsAction(), AuthAction(isSignedIn: isLoggedIn)],
       ),
       body: Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            YourOrgs(
-                orgRepo: orgRepo,
-                isLoggedIn: FirebaseAuth.instance.currentUser != null),
+            YourOrgs(orgRepo: orgRepo, isLoggedIn: isLoggedIn),
             Heading("All Organizations"),
             Consumer<PreferencesRepo>(
               builder: (context, settingsProvider, child) => OrgList(
@@ -47,16 +43,18 @@ class LandingScreen extends StatelessWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          var repo = Provider.of<OrgRepo>(context, listen: false);
-          var name = await promptForOrgName(context);
-          if (name != null) {
-            await repo.addOrgForCurrentUser(name);
-          }
-        },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: isLoggedIn
+          ? FloatingActionButton(
+              onPressed: () async {
+                var repo = Provider.of<OrgRepo>(context, listen: false);
+                var name = await promptForOrgName(context);
+                if (name != null) {
+                  await repo.addOrgForCurrentUser(name);
+                }
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 }
