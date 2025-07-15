@@ -11,6 +11,7 @@ import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/core/current_bookings_calendar.dart';
+import 'package:room_booker/ui/core/navigation_drawer.dart';
 import 'package:room_booker/ui/core/org_state_provider.dart';
 import 'package:room_booker/ui/view_bookings/request_editor_panel.dart';
 import 'package:room_booker/ui/core/room_selector.dart';
@@ -73,18 +74,6 @@ class ViewBookingsScreen extends StatelessWidget {
 
   Widget _content(
       BuildContext context, Request? request, PrivateRequestDetails? details) {
-    Widget? leading = FirebaseAuth.instance.currentUser == null
-        ? null
-        : BackButton(
-            onPressed: () {
-              var router = AutoRouter.of(context);
-              if (router.canPop()) {
-                router.pop();
-              } else {
-                router.replace(LandingRoute());
-              }
-            },
-          );
     var defaultView = view;
     if (defaultView == null) {
       var prefRepo = Provider.of<PreferencesRepo>(context, listen: false);
@@ -110,7 +99,7 @@ class ViewBookingsScreen extends StatelessWidget {
                 builder: (context, requestPanelState, child) => Scaffold(
                   appBar: AppBar(
                     title: Text(orgState.org.name),
-                    leading: leading,
+                    //leading: leading,
                     actions: _actions(context, orgState),
                   ),
                   floatingActionButton: showFab
@@ -119,17 +108,14 @@ class ViewBookingsScreen extends StatelessWidget {
                           child: const Icon(Icons.add),
                         )
                       : null,
+                  drawer: MyDrawer(org: orgState.org),
                   body: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      MyDrawer(org: orgState.org),
                       Flexible(
                         flex: 3,
-                        child: Column(
-                          children: [
-                            RoomCardSelector(),
-                            Expanded(child: _buildCalendar(context, request)),
-                          ],
-                        ),
+                        child: _buildCalendar(context, request),
                       ),
                       if (requestPanelState.active)
                         Flexible(
