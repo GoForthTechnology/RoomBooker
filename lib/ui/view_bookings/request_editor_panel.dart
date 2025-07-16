@@ -75,7 +75,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
       var formContents = Column(
         children: [
           AppBar(
-            title: const Text("New Request"),
+            title: Text(state.pannelTitle()),
             actions: [
               IconButton(
                 icon: const Icon(Icons.close),
@@ -610,6 +610,16 @@ class RequestEditorState extends ChangeNotifier {
   void disableEditing() {
     _editingEnabled = false;
     notifyListeners();
+  }
+
+  String pannelTitle() {
+    if (_existingRequest == null) {
+      return "New Request";
+    }
+    if (_editingEnabled) {
+      return "Edit Request";
+    }
+    return "Request Details";
   }
 
   bool showID() {
