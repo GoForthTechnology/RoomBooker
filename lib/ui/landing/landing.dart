@@ -251,23 +251,28 @@ class OrgList extends StatelessWidget {
 class CardState {
   final int numPendingBookings;
   final int numPendingAdminRequests;
+  final int numOverlappingBookings;
 
   CardState(
       {required this.numPendingBookings,
-      required this.numPendingAdminRequests});
+      required this.numPendingAdminRequests,
+      required this.numOverlappingBookings});
 
   static Stream<CardState> stream(
       BookingRepo bookingRepo, OrgRepo orgRepo, String orgID) {
-    return Rx.combineLatest2(
+    return Rx.combineLatest3(
       bookingRepo.listRequests(
           orgID: orgID,
           startTime: DateTime.now(),
           endTime: DateTime.now().add(Duration(days: 365)),
           includeStatuses: {RequestStatus.pending}),
       orgRepo.adminRequests(orgID),
-      (pendingRequests, adminRequests) => CardState(
+      bookingRepo.findOverlappingBookings(
+          orgID, DateTime.now(), DateTime.now().add(Duration(days: 365))),
+      (pendingRequests, adminRequests, overlaps) => CardState(
           numPendingBookings: pendingRequests.length,
-          numPendingAdminRequests: adminRequests.length),
+          numPendingAdminRequests: adminRequests.length,
+          numOverlappingBookings: overlaps.length),
     );
   }
 }
@@ -294,6 +299,10 @@ class OrgTile extends StatelessWidget {
             subtitle = "${state.numPendingBookings} pending bookings";
             if (state.numPendingAdminRequests > 0) {
               subtitle += ", ${state.numPendingAdminRequests} admin requests";
+            }
+            if (state.numOverlappingBookings > 0) {
+              subtitle +=
+                  ", ${state.numOverlappingBookings} overlapping bookings";
             }
           }
           return ListTile(

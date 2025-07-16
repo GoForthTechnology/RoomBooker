@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -39,6 +40,67 @@ class ConfirmedOneOffBookings extends StatelessWidget {
             text: "Revisit",
             onClick: (request) => repo.revisitBookingRequest(orgID, request))
       ],
+    );
+  }
+}
+
+class ConflictingBookings extends StatelessWidget {
+  final BookingRepo repo;
+  final String orgID;
+  final Function(Request) onFocusBooking;
+
+  const ConflictingBookings(
+      {super.key,
+      required this.orgID,
+      required this.onFocusBooking,
+      required this.repo});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: repo.findOverlappingBookings(
+          orgID, DateTime.now(), DateTime.now().add(Duration(days: 365))),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          log(snapshot.error.toString(), error: snapshot.error);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: ${snapshot.error}')),
+            );
+          });
+          return const CircularProgressIndicator();
+        }
+        if (!snapshot.hasData) {
+          return Container();
+        }
+        var conflicts = snapshot.data!;
+        Set<Request> conflictingRequests = {};
+        for (var pair in conflicts) {
+          conflictingRequests.add(pair.first);
+          conflictingRequests.add(pair.second);
+        }
+        return BookingList(
+          onFocusBooking: onFocusBooking,
+          orgID: orgID,
+          emptyText: "No conflicting bookings",
+          requestFilter: (r) => conflictingRequests.contains(r),
+          statusList: const [
+            RequestStatus.confirmed,
+          ],
+          overrideRequests: conflictingRequests
+              .sorted((a, b) => a.eventStartTime.compareTo(b.eventStartTime)),
+          actions: [
+            RequestAction(
+                text: "View",
+                onClick: (request) => AutoRouter.of(context).push(
+                    ViewBookingsRoute(
+                        orgID: orgID,
+                        requestID: request.id!,
+                        view: CalendarView.day.name,
+                        targetDate: request.eventStartTime))),
+          ],
+        );
+      },
     );
   }
 }
@@ -194,6 +256,7 @@ class BookingList extends StatelessWidget {
   final List<RequestStatus> statusList;
   final bool Function(Request)? requestFilter;
   final List<RequestAction> actions;
+  final List<Request> overrideRequests;
 
   const BookingList(
       {super.key,
@@ -202,7 +265,8 @@ class BookingList extends StatelessWidget {
       required this.actions,
       required this.statusList,
       required this.emptyText,
-      this.requestFilter});
+      this.requestFilter,
+      this.overrideRequests = const []});
 
   Stream<List<RenderedRequest>> _renderedRequests(
       BookingRepo bookingRepo, String orgID, List<Request> requests) {
@@ -235,63 +299,70 @@ class BookingList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
-    return Consumer<RoomState>(
-        builder: (context, roomState, child) => StreamBuilder(
-            stream: bookingRepo
-                .listRequests(
-                    orgID: orgID,
-                    startTime: DateTime.now(),
-                    endTime: DateTime.now().add(const Duration(days: 365)),
-                    includeRoomIDs:
-                        roomState.enabledValues().map((r) => r.id!).toSet(),
-                    includeStatuses: Set.from(statusList))
-                .map((requests) =>
-                    requests.where(requestFilter ?? (r) => true).toList()),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                log(snapshot.error.toString(), error: snapshot.error);
+    return Consumer<RoomState>(builder: (context, roomState, child) {
+      Stream<List<Request>> requestStream;
+      if (overrideRequests.isNotEmpty) {
+        requestStream = Stream.value(overrideRequests);
+      } else {
+        requestStream = bookingRepo
+            .listRequests(
+                orgID: orgID,
+                startTime: DateTime.now(),
+                endTime: DateTime.now().add(const Duration(days: 365)),
+                includeRoomIDs:
+                    roomState.enabledValues().map((r) => r.id!).toSet(),
+                includeStatuses: Set.from(statusList))
+            .map((requests) =>
+                requests.where(requestFilter ?? (r) => true).toList());
+      }
+      return StreamBuilder(
+        stream: requestStream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            log(snapshot.error.toString(), error: snapshot.error);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error: ${snapshot.error}')),
+              );
+            });
+            return const Placeholder();
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder(
+            stream: _renderedRequests(bookingRepo, orgID, snapshot.data ?? []),
+            builder: (context, detailsSnapshot) {
+              if (detailsSnapshot.hasError) {
+                log(detailsSnapshot.error.toString(),
+                    error: detailsSnapshot.error);
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: ${snapshot.error}')),
+                    SnackBar(content: Text('Error: ${detailsSnapshot.error}')),
                   );
                 });
                 return const Placeholder();
               }
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              return StreamBuilder(
-                  stream: _renderedRequests(
-                      bookingRepo, orgID, snapshot.data ?? []),
-                  builder: (context, detailsSnapshot) {
-                    if (detailsSnapshot.hasError) {
-                      log(detailsSnapshot.error.toString(),
-                          error: detailsSnapshot.error);
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text('Error: ${detailsSnapshot.error}')),
-                        );
-                      });
-                      return const Placeholder();
-                    }
-                    var renderedRequests = detailsSnapshot.data ?? [];
-                    return ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: renderedRequests.length,
-                      itemBuilder: (context, index) {
-                        var renderedRequest = renderedRequests[index];
-                        return BookingTile(
-                          orgID: orgID,
-                          request: renderedRequest.request,
-                          details: renderedRequest.details,
-                          onFocusBooking: onFocusBooking,
-                          actions: actions,
-                        );
-                      },
-                    );
-                  });
-            }));
+              var renderedRequests = detailsSnapshot.data ?? [];
+              return ListView.builder(
+                shrinkWrap: true,
+                itemCount: renderedRequests.length,
+                itemBuilder: (context, index) {
+                  var renderedRequest = renderedRequests[index];
+                  return BookingTile(
+                    orgID: orgID,
+                    request: renderedRequest.request,
+                    details: renderedRequest.details,
+                    onFocusBooking: onFocusBooking,
+                    actions: actions,
+                  );
+                },
+              );
+            },
+          );
+        },
+      );
+    });
   }
 }
 

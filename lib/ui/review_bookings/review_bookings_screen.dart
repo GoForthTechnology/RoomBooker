@@ -71,6 +71,12 @@ class ReviewBookingsScreen extends StatelessWidget {
                             onFocusBooking: (r) {},
                             orgID: orgID,
                           ),
+                          const Heading("Conflicts"),
+                          ConflictingBookings(
+                            repo: bookingRepo,
+                            onFocusBooking: (r) {},
+                            orgID: orgID,
+                          ),
                           const Heading("Confirmed"),
                           const Subheading("One-offs"),
                           ConfirmedOneOffBookings(

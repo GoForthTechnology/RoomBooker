@@ -449,6 +449,55 @@ class BookingRepo extends ChangeNotifier {
           toFirestore: (request, _) => request.toJson(),
         );
   }
+
+  Stream<List<OverlapPair>> findOverlappingBookings(
+      String orgID, DateTime startTime, DateTime endTime) {
+    return listRequests(
+        orgID: orgID,
+        startTime: startTime,
+        endTime: endTime,
+        includeStatuses: {RequestStatus.confirmed}).map((requests) {
+      var overlaps = <OverlapPair>[];
+      // Group requests by roomID
+      var requestsByRoom = <String, List<Request>>{};
+      for (var request in requests) {
+        requestsByRoom
+            .putIfAbsent(request.roomID, () => [])
+            .addAll(request.expand(startTime, endTime));
+      }
+      for (var roomID in requestsByRoom.keys) {
+        overlaps.addAll(findOverlaps(requestsByRoom[roomID]!));
+      }
+      return overlaps;
+    });
+  }
+}
+
+List<OverlapPair> findOverlaps(List<Request> requests) {
+  var overlaps = <OverlapPair>[];
+  requests.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
+  for (var i = 0; i < requests.length; i++) {
+    var l = requests[i];
+    for (var j = i + 1; j < requests.length; j++) {
+      var r = requests[j];
+      if (r.eventStartTime.isAfter(l.eventEndTime)) {
+        break;
+      }
+      if (_doRequestsOverlap(l, r)) {
+        overlaps.add(OverlapPair(l, r));
+      }
+    }
+  }
+  return overlaps;
+}
+
+bool _doRequestsOverlap(Request a, Request b) {
+  if (a.roomID != b.roomID) return false;
+  if (!a.eventStartTime.isBefore(b.eventEndTime) ||
+      !b.eventStartTime.isBefore(a.eventEndTime)) {
+    return false;
+  }
+  return true;
 }
 
 DateTime _stripTime(DateTime dt) {
@@ -465,6 +514,29 @@ Request _overrideRecurrance(Request request, Request override) {
   var overrides = request.recurranceOverrides ?? {};
   overrides[_stripTime(override.eventStartTime)] = override;
   return request.copyWith(recurranceOverrides: overrides);
+}
+
+class OverlapPair {
+  final Request first;
+  final Request second;
+
+  OverlapPair(this.first, this.second);
+
+  @override
+  String toString() {
+    return "OverlapPair(first: ${first.id}, second: ${second.id})";
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OverlapPair &&
+          runtimeType == other.runtimeType &&
+          first == other.first &&
+          second == other.second;
+
+  @override
+  int get hashCode => first.hashCode ^ second.hashCode;
 }
 
 class DetailCache {
