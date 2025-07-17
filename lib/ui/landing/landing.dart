@@ -7,12 +7,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
-import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
-import 'package:rxdart/rxdart.dart';
+import 'package:room_booker/ui/core/org_details.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()
@@ -271,35 +269,6 @@ class OrgList extends StatelessWidget {
   }
 }
 
-class CardState {
-  final int numPendingBookings;
-  final int numPendingAdminRequests;
-  final int numOverlappingBookings;
-
-  CardState(
-      {required this.numPendingBookings,
-      required this.numPendingAdminRequests,
-      required this.numOverlappingBookings});
-
-  static Stream<CardState> stream(
-      BookingRepo bookingRepo, OrgRepo orgRepo, String orgID) {
-    return Rx.combineLatest3(
-      bookingRepo.listRequests(
-          orgID: orgID,
-          startTime: DateTime.now(),
-          endTime: DateTime.now().add(Duration(days: 365)),
-          includeStatuses: {RequestStatus.pending}),
-      orgRepo.adminRequests(orgID),
-      bookingRepo.findOverlappingBookings(
-          orgID, DateTime.now(), DateTime.now().add(Duration(days: 365))),
-      (pendingRequests, adminRequests, overlaps) => CardState(
-          numPendingBookings: pendingRequests.length,
-          numPendingAdminRequests: adminRequests.length,
-          numOverlappingBookings: overlaps.length),
-    );
-  }
-}
-
 class OrgTile extends StatelessWidget {
   final Organization org;
   final CalendarView defaultCalendarView;
@@ -309,35 +278,31 @@ class OrgTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var orgRepo = Provider.of<OrgRepo>(context, listen: false);
-    var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
-    return Card(
-      elevation: 1,
-      child: StreamBuilder(
-        stream: CardState.stream(bookingRepo, orgRepo, org.id!),
-        builder: (context, snapshot) {
+    return OrgDetailsProvider(
+        orgID: org.id!,
+        builder: (context, details) {
           String? subtitle;
-          if (snapshot.hasData) {
-            var state = snapshot.data!;
-            subtitle = "${state.numPendingBookings} pending bookings";
-            if (state.numPendingAdminRequests > 0) {
-              subtitle += ", ${state.numPendingAdminRequests} admin requests";
+          if (details != null) {
+            subtitle = "${details.numPendingRequests} pending bookings";
+            if (details.numAdminRequests > 0) {
+              subtitle += ", ${details.numAdminRequests} admin requests";
             }
-            if (state.numOverlappingBookings > 0) {
+            if (details.numConflictingRequests > 0) {
               subtitle +=
-                  ", ${state.numOverlappingBookings} overlapping bookings";
+                  ", ${details.numConflictingRequests} overlapping bookings";
             }
           }
-          return ListTile(
-            leading: const Icon(Icons.business),
-            title: Text(org.name),
-            subtitle: subtitle != null ? Text(subtitle) : null,
-            onTap: () => AutoRouter.of(context).replace(ViewBookingsRoute(
-                orgID: org.id!, view: defaultCalendarView.name)),
+          return Card(
+            elevation: 1,
+            child: ListTile(
+              leading: const Icon(Icons.business),
+              title: Text(org.name),
+              subtitle: subtitle != null ? Text(subtitle) : null,
+              onTap: () => AutoRouter.of(context).replace(ViewBookingsRoute(
+                  orgID: org.id!, view: defaultCalendarView.name)),
+            ),
           );
-        },
-      ),
-    );
+        });
   }
 }
 

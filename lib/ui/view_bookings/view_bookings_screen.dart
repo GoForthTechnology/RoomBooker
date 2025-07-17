@@ -4,7 +4,7 @@ import 'dart:developer';
 import 'package:auto_route/auto_route.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/request.dart';
@@ -13,12 +13,14 @@ import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/core/current_bookings_calendar.dart';
 import 'package:room_booker/ui/core/navigation_drawer.dart';
+import 'package:room_booker/ui/core/org_details.dart';
 import 'package:room_booker/ui/core/org_state_provider.dart';
 import 'package:room_booker/ui/view_bookings/request_editor_panel.dart';
 import 'package:room_booker/ui/core/room_selector.dart';
 import 'package:room_booker/ui/core/stateful_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
+import 'package:badges/badges.dart';
 
 @RoutePage()
 class ViewBookingsScreen extends StatefulWidget {
@@ -304,14 +306,7 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
     if (FirebaseAuth.instance.currentUser != null) {
       var privilegedActions = <Widget>[];
       if (orgState.currentUserIsAdmin()) {
-        privilegedActions.add(Tooltip(
-          message: "Review Bookings",
-          child: IconButton(
-            icon: const Icon(Icons.approval_rounded),
-            onPressed: () => AutoRouter.of(context)
-                .push(ReviewBookingsRoute(orgID: widget.orgID)),
-          ),
-        ));
+        privilegedActions.add(ReviewBookingsAction(orgID: widget.orgID));
         privilegedActions.add(Tooltip(
           message: "Settings",
           child: IconButton(
@@ -346,5 +341,39 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
         ),
       )
     ];
+  }
+}
+
+class ReviewBookingsAction extends StatelessWidget {
+  final String orgID;
+
+  const ReviewBookingsAction({super.key, required this.orgID});
+
+  @override
+  Widget build(BuildContext context) {
+    return OrgDetailsProvider(
+        orgID: orgID,
+        builder: (context, details) {
+          Widget widget = IconButton(
+            icon: const Icon(Icons.approval_rounded),
+            onPressed: () =>
+                AutoRouter.of(context).push(ReviewBookingsRoute(orgID: orgID)),
+          );
+          if (details != null) {
+            var total =
+                details.numPendingRequests + details.numConflictingRequests;
+            widget = Badge(
+              badgeContent:
+                  Text("$total", style: TextStyle(color: Colors.white)),
+              badgeAnimation:
+                  const BadgeAnimation.slide(), // Optional animation
+              child: widget,
+            );
+          }
+          return Tooltip(
+            message: "Review Bookings",
+            child: widget,
+          );
+        });
   }
 }
