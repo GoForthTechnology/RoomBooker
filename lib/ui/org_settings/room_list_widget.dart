@@ -37,6 +37,8 @@ class RoomListWidget extends StatelessWidget {
         child: ReorderableListView.builder(
           shrinkWrap: true,
           itemCount: rooms.length,
+          // Prevent scrolling to avoid conflicts with the parent scroll view
+          physics: const NeverScrollableScrollPhysics(),
           buildDefaultDragHandles: false,
           onReorder: (oldIndex, newIndex) async {
             if (newIndex > oldIndex) newIndex -= 1;

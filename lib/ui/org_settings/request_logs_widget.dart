@@ -30,6 +30,8 @@ class RequestLogsWidget extends StatelessWidget {
         }
         return ListView.builder(
           shrinkWrap: true,
+          // Prevent scrolling to avoid conflicts with the parent scroll view
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: logs.length,
           itemBuilder: (context, index) {
             var log = logs[index];
