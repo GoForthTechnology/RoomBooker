@@ -15,14 +15,30 @@ import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()
-class LandingScreen extends StatelessWidget {
+class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
+
+  @override
+  State<LandingScreen> createState() => _LandingScreenState();
+}
+
+class _LandingScreenState extends State<LandingScreen> {
+  bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
+
+  @override
+  initState() {
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      setState(() {
+        isLoggedIn = user != null;
+      });
+    });
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
     FirebaseAnalytics.instance.logScreenView(screenName: "Landing");
     var orgRepo = Provider.of<OrgRepo>(context, listen: false);
-    bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
     return Scaffold(
       appBar: AppBar(
         title: const Text("Room Booker"),
@@ -195,7 +211,6 @@ class AuthAction extends StatelessWidget {
           icon: const Icon(Icons.logout),
           onPressed: () {
             FirebaseAuth.instance.signOut();
-            AutoRouter.of(context).replace(LoginRoute());
           },
         ),
       );
@@ -205,7 +220,7 @@ class AuthAction extends StatelessWidget {
         child: IconButton(
           icon: const Icon(Icons.login),
           onPressed: () {
-            AutoRouter.of(context).replace(LoginRoute());
+            AutoRouter.of(context).push(LoginRoute());
           },
         ),
       );
