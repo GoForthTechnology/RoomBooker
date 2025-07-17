@@ -142,7 +142,7 @@ class SettingsAction extends StatelessWidget {
       CalendarView.month,
       CalendarView.week,
       CalendarView.day,
-      CalendarView.workWeek,
+      CalendarView.schedule,
     ].contains(view);
   }
 
@@ -154,8 +154,8 @@ class SettingsAction extends StatelessWidget {
         return 'Week';
       case CalendarView.day:
         return 'Day';
-      case CalendarView.workWeek:
-        return 'Work Week';
+      case CalendarView.schedule:
+        return 'Schedule';
       default:
         return view.name;
     }

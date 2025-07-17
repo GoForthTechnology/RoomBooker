@@ -6,7 +6,6 @@ import 'package:room_booker/ui/review_bookings/review_bookings_screen.dart';
 import 'package:room_booker/ui/landing/landing.dart';
 import 'package:room_booker/ui/org_settings/org_settings_screen.dart';
 import 'package:room_booker/ui/join_org/join_org_screen.dart';
-import 'package:room_booker/ui/schedule/schedule_screen.dart';
 
 part 'router.gr.dart';
 
@@ -16,10 +15,6 @@ class AppRouter extends RootStackRouter {
   List<AutoRoute> get routes => [
         AutoRoute(path: "/view/:orgID", page: ViewBookingsRoute.page),
         AutoRoute(page: LandingRoute.page, initial: true),
-        AutoRoute(
-            path: "/schedule/:orgID",
-            page: ScheduleRoute.page,
-            guards: [AuthGuard()]),
         AutoRoute(
             path: "/join/:orgID",
             page: JoinOrgRoute.page,

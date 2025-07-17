@@ -305,14 +305,6 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
       var privilegedActions = <Widget>[];
       if (orgState.currentUserIsAdmin()) {
         privilegedActions.add(Tooltip(
-          message: "View Agenda",
-          child: IconButton(
-            icon: const Icon(Icons.view_agenda),
-            onPressed: () =>
-                AutoRouter.of(context).push(ScheduleRoute(orgID: widget.orgID)),
-          ),
-        ));
-        privilegedActions.add(Tooltip(
           message: "Review Bookings",
           child: IconButton(
             icon: const Icon(Icons.approval_rounded),

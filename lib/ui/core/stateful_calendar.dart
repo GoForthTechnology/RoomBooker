@@ -258,6 +258,7 @@ class StatefulCalendar extends StatelessWidget {
         CalendarView.day,
         CalendarView.week,
         CalendarView.month,
+        CalendarView.schedule,
       ],
       onAppointmentResizeEnd: onResizeEnd,
       allowDragAndDrop: allowDragAndDrop && newAppointment != null,
