@@ -29,6 +29,7 @@ class ViewBookingsScreen extends StatefulWidget {
   final DateTime? targetDate;
   final String? requestID;
   final bool showPrivateBookings;
+  final bool embed;
 
   ViewBookingsScreen(
       {super.key,
@@ -36,6 +37,7 @@ class ViewBookingsScreen extends StatefulWidget {
       @QueryParam('rid') this.requestID,
       @QueryParam('spb') this.showPrivateBookings = true,
       @QueryParam('ro') this.readOnlyMode = false,
+      @QueryParam('embed') this.embed = false,
       this.createRequest = false,
       this.targetDate,
       @QueryParam('v') String? view})
@@ -127,6 +129,9 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
             focusDate:
                 widget.targetDate ?? request?.eventEndTime ?? DateTime.now(),
             builder: (context, child) {
+              if (widget.embed) {
+                return _buildCalendar(context, request);
+              }
               var calendarState = Provider.of<CalendarState>(context);
               bool showFab = calendarState.controller.view != CalendarView.day;
               return Consumer<RequestPanelSate>(

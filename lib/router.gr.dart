@@ -252,6 +252,7 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
     String? requestID,
     bool showPrivateBookings = true,
     bool readOnlyMode = false,
+    bool embed = false,
     bool createRequest = false,
     DateTime? targetDate,
     String? view,
@@ -264,6 +265,7 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
            requestID: requestID,
            showPrivateBookings: showPrivateBookings,
            readOnlyMode: readOnlyMode,
+           embed: embed,
            createRequest: createRequest,
            targetDate: targetDate,
            view: view,
@@ -273,6 +275,7 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
            'rid': requestID,
            'spb': showPrivateBookings,
            'ro': readOnlyMode,
+           'embed': embed,
            'v': view,
          },
          initialChildren: children,
@@ -291,6 +294,7 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
           requestID: queryParams.optString('rid'),
           showPrivateBookings: queryParams.getBool('spb', true),
           readOnlyMode: queryParams.getBool('ro', false),
+          embed: queryParams.getBool('embed', false),
           view: queryParams.optString('v'),
         ),
       );
@@ -300,6 +304,7 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
         requestID: args.requestID,
         showPrivateBookings: args.showPrivateBookings,
         readOnlyMode: args.readOnlyMode,
+        embed: args.embed,
         createRequest: args.createRequest,
         targetDate: args.targetDate,
         view: args.view,
@@ -315,6 +320,7 @@ class ViewBookingsRouteArgs {
     this.requestID,
     this.showPrivateBookings = true,
     this.readOnlyMode = false,
+    this.embed = false,
     this.createRequest = false,
     this.targetDate,
     this.view,
@@ -330,6 +336,8 @@ class ViewBookingsRouteArgs {
 
   final bool readOnlyMode;
 
+  final bool embed;
+
   final bool createRequest;
 
   final DateTime? targetDate;
@@ -338,6 +346,6 @@ class ViewBookingsRouteArgs {
 
   @override
   String toString() {
-    return 'ViewBookingsRouteArgs{key: $key, orgID: $orgID, requestID: $requestID, showPrivateBookings: $showPrivateBookings, readOnlyMode: $readOnlyMode, createRequest: $createRequest, targetDate: $targetDate, view: $view}';
+    return 'ViewBookingsRouteArgs{key: $key, orgID: $orgID, requestID: $requestID, showPrivateBookings: $showPrivateBookings, readOnlyMode: $readOnlyMode, embed: $embed, createRequest: $createRequest, targetDate: $targetDate, view: $view}';
   }
 }
