@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:auto_route/auto_route.dart';
@@ -20,7 +21,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()
-class ViewBookingsScreen extends StatelessWidget {
+class ViewBookingsScreen extends StatefulWidget {
   final String orgID;
   final String? view;
   final bool createRequest;
@@ -43,17 +44,49 @@ class ViewBookingsScreen extends StatelessWidget {
             : view);
 
   @override
+  State<ViewBookingsScreen> createState() => _ViewBookingsScreenState();
+}
+
+class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
+  bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
+  StreamSubscription<User?>? subscription;
+
+  @override
+  void initState() {
+    subscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user == null) {
+        log("User logged out");
+        setState(() {
+          isLoggedIn = false;
+        });
+      } else {
+        log("User logged in: ${user.email}");
+        setState(() {
+          isLoggedIn = true;
+        });
+      }
+    });
+    super.initState();
+  }
+
+  @override
+  dispose() {
+    subscription?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     FirebaseAnalytics.instance.logScreenView(
-        screenName: "View Bookings", parameters: {"orgID": orgID});
+        screenName: "View Bookings", parameters: {"orgID": widget.orgID});
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
-    if (requestID == null) {
+    if (widget.requestID == null) {
       return _content(context, null, null);
     }
     return StreamBuilder(
       stream: Rx.combineLatest2(
-        bookingRepo.getRequestDetails(orgID, requestID!),
-        bookingRepo.getRequest(orgID, requestID!),
+        bookingRepo.getRequestDetails(widget.orgID, widget.requestID!),
+        bookingRepo.getRequest(widget.orgID, widget.requestID!),
         (details, request) => (details, request),
       ),
       builder: (context, snapshot) {
@@ -63,7 +96,7 @@ class ViewBookingsScreen extends StatelessWidget {
           return const Placeholder();
         }
         if (!snapshot.hasData) {
-          log("No data for request ID: $requestID");
+          log("No data for request ID: ${widget.requestID}");
           return const Placeholder();
         }
         var data = snapshot.data!;
@@ -74,24 +107,25 @@ class ViewBookingsScreen extends StatelessWidget {
 
   Widget _content(
       BuildContext context, Request? request, PrivateRequestDetails? details) {
-    var defaultView = view;
+    var defaultView = widget.view;
     if (defaultView == null) {
       var prefRepo = Provider.of<PreferencesRepo>(context, listen: false);
       defaultView = prefRepo.defaultCalendarView.name;
     }
     return OrgStateProvider(
-      orgID: orgID,
+      orgID: widget.orgID,
       child: Consumer<OrgState>(
         builder: (context, orgState, child) => RequestStateProvider(
           enableAllRooms: true,
           org: orgState.org,
           initialRequest: request,
           initialDetails: details,
-          requestStartTime: createRequest ? targetDate : null,
+          requestStartTime: widget.createRequest ? widget.targetDate : null,
           child: CalendarStateProvider(
             initialView: CalendarView.values
                 .firstWhere((element) => element.name == defaultView),
-            focusDate: targetDate ?? request?.eventEndTime ?? DateTime.now(),
+            focusDate:
+                widget.targetDate ?? request?.eventEndTime ?? DateTime.now(),
             builder: (context, child) {
               var calendarState = Provider.of<CalendarState>(context);
               bool showFab = calendarState.controller.view != CalendarView.day;
@@ -99,7 +133,6 @@ class ViewBookingsScreen extends StatelessWidget {
                 builder: (context, requestPanelState, child) => Scaffold(
                   appBar: AppBar(
                     title: Text(orgState.org.name),
-                    //leading: leading,
                     actions: _actions(context, orgState),
                   ),
                   floatingActionButton: showFab
@@ -125,7 +158,7 @@ class ViewBookingsScreen extends StatelessWidget {
                           flex: 1,
                           child: SingleChildScrollView(
                               child: NewRequestPanel(
-                            orgID: orgID,
+                            orgID: widget.orgID,
                           )),
                         )
                     ],
@@ -168,7 +201,7 @@ class ViewBookingsScreen extends StatelessWidget {
     var startTime = DateTime(targetDate.year, targetDate.month, targetDate.day,
         eventTime.hour, eventTime.minute);
     router.push(ViewBookingsRoute(
-        orgID: orgID,
+        orgID: widget.orgID,
         view: CalendarView.day.name,
         targetDate: startTime,
         createRequest: true));
@@ -186,16 +219,16 @@ class ViewBookingsScreen extends StatelessWidget {
     var calendarState = Provider.of<CalendarState>(context, listen: false);
     var roomState = Provider.of<RoomState>(context, listen: false);
     return CurrentBookingsCalendar(
-      includePrivateBookings: showPrivateBookings,
-      orgID: orgID,
-      onTap: readOnlyMode
+      includePrivateBookings: widget.showPrivateBookings,
+      orgID: widget.orgID,
+      onTap: widget.readOnlyMode
           ? null
           : (details) {
               var targetDate = details.date!;
               var currentView = calendarState.controller.view;
               if (currentView == CalendarView.month) {
                 AutoRouter.of(context).push(ViewBookingsRoute(
-                  orgID: orgID,
+                  orgID: widget.orgID,
                   view: CalendarView.day.name,
                   targetDate: targetDate,
                 ));
@@ -212,7 +245,7 @@ class ViewBookingsScreen extends StatelessWidget {
                 requestPanelState.showPanel();
               }
             },
-      onTapRequest: readOnlyMode
+      onTapRequest: widget.readOnlyMode
           ? null
           : (request) async {
               if (FirebaseAuth.instance.currentUser == null) {
@@ -221,7 +254,7 @@ class ViewBookingsScreen extends StatelessWidget {
               var isSmallView = _isSmallView(context);
               var details =
                   await Provider.of<BookingRepo>(context, listen: false)
-                      .getRequestDetails(orgID, request.id!)
+                      .getRequestDetails(widget.orgID, request.id!)
                       .first;
               if (details == null) {
                 return;
@@ -233,7 +266,8 @@ class ViewBookingsScreen extends StatelessWidget {
                 requestPanelState.showPanel();
               }
               SystemNavigator.routeInformationUpdated(
-                  uri: Uri(path: "/view/$orgID?requestID=${request.id}"));
+                  uri: Uri(
+                      path: "/view/${widget.orgID}?requestID=${request.id}"));
               FirebaseAnalytics.instance
                   .logEvent(name: "Start creating request");
             },
@@ -257,8 +291,8 @@ class ViewBookingsScreen extends StatelessWidget {
                   ChangeNotifierProvider.value(value: requestPanelState),
                   ChangeNotifierProvider.value(value: orgState),
                 ],
-                builder: (context, child) =>
-                    Dialog.fullscreen(child: NewRequestPanel(orgID: orgID))));
+                builder: (context, child) => Dialog.fullscreen(
+                    child: NewRequestPanel(orgID: widget.orgID))));
   }
 
   List<Widget> _actions(BuildContext context, OrgState orgState) {
@@ -270,23 +304,23 @@ class ViewBookingsScreen extends StatelessWidget {
           child: IconButton(
             icon: const Icon(Icons.view_agenda),
             onPressed: () =>
-                AutoRouter.of(context).push(ScheduleRoute(orgID: orgID)),
+                AutoRouter.of(context).push(ScheduleRoute(orgID: widget.orgID)),
           ),
         ));
         privilegedActions.add(Tooltip(
           message: "Review Bookings",
           child: IconButton(
             icon: const Icon(Icons.approval_rounded),
-            onPressed: () =>
-                AutoRouter.of(context).push(ReviewBookingsRoute(orgID: orgID)),
+            onPressed: () => AutoRouter.of(context)
+                .push(ReviewBookingsRoute(orgID: widget.orgID)),
           ),
         ));
         privilegedActions.add(Tooltip(
           message: "Settings",
           child: IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () =>
-                AutoRouter.of(context).push(OrgSettingsRoute(orgID: orgID)),
+            onPressed: () => AutoRouter.of(context)
+                .push(OrgSettingsRoute(orgID: widget.orgID)),
           ),
         ));
       }
@@ -299,7 +333,7 @@ class ViewBookingsScreen extends StatelessWidget {
             onPressed: () async {
               var router = AutoRouter.of(context);
               await FirebaseAuth.instance.signOut();
-              router.replace(ViewBookingsRoute(orgID: orgID));
+              router.replace(ViewBookingsRoute(orgID: widget.orgID));
             },
           ),
         ),
@@ -311,7 +345,7 @@ class ViewBookingsScreen extends StatelessWidget {
         child: IconButton(
           icon: const Icon(Icons.login),
           onPressed: () =>
-              AutoRouter.of(context).push(LoginRoute(orgID: orgID)),
+              AutoRouter.of(context).push(LoginRoute(orgID: widget.orgID)),
         ),
       )
     ];

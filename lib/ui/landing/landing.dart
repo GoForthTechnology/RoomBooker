@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:auto_route/auto_route.dart';
@@ -24,15 +25,22 @@ class LandingScreen extends StatefulWidget {
 
 class _LandingScreenState extends State<LandingScreen> {
   bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
+  StreamSubscription<User?>? subscription;
 
   @override
   initState() {
-    FirebaseAuth.instance.authStateChanges().listen((user) {
+    subscription = FirebaseAuth.instance.authStateChanges().listen((user) {
       setState(() {
         isLoggedIn = user != null;
       });
     });
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    subscription?.cancel();
+    super.dispose();
   }
 
   @override
