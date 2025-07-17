@@ -19,6 +19,7 @@ class _RequestLogsWidgetState extends State<RequestLogsWidget> {
   static const recordsPerPageOptions = [5, 10, 20];
   int _recordsPerPage = 5;
   final List<RequestLogEntry> _lastEntries = [];
+  List<DecoratedLogEntry>? _cachedLogs;
 
   RequestLogEntry? get _lastEntry =>
       _lastEntries.isNotEmpty ? _lastEntries.last : null;
@@ -27,7 +28,8 @@ class _RequestLogsWidgetState extends State<RequestLogsWidget> {
   Widget build(BuildContext context) {
     var logRepo = Provider.of<LogRepo>(context, listen: false);
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
-    var entries = StreamBuilder(
+
+    var entries = StreamBuilder<List<DecoratedLogEntry>>(
       stream: bookingRepo.decorateLogs(
           widget.org.id!,
           logRepo.getLogEntries(widget.org.id!,
@@ -36,69 +38,109 @@ class _RequestLogsWidgetState extends State<RequestLogsWidget> {
         if (snapshot.hasError) {
           return const Text('Error loading request logs');
         }
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
+
+        var isLoading = false;
+        // Use cached data while loading, or update cache with new data
+        List<DecoratedLogEntry> logs;
+        if (snapshot.hasData) {
+          logs = snapshot.data!;
+          _cachedLogs = logs;
+        } else if (snapshot.connectionState == ConnectionState.waiting) {
+          // Show cached data while loading
+          logs = _cachedLogs ?? [];
+          isLoading = true;
+        } else {
+          logs = [];
         }
-        var logs = snapshot.data ?? [];
+
         if (logs.isEmpty) {
           return const Text('No request logs found');
         }
-        return Column(
-          children: [
-            ListView.builder(
-              shrinkWrap: true,
-              // Prevent scrolling to avoid conflicts with the parent scroll view
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: logs.length,
-              itemBuilder: (context, index) {
-                var log = logs[index];
-                return Tooltip(
-                    message: log.entry.requestID,
-                    child: ListTile(
-                      title: Text(
-                          "${log.details.email} - ${log.entry.action.name}"),
-                      subtitle: Text(
-                          "${log.details.eventName} @ ${log.entry.timestamp.toIso8601String()}"),
-                    ));
-              },
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Spacer(),
-                IconButton(
-                  onPressed: _lastEntry == null
-                      ? null
-                      : () => setState(() {
-                            _lastEntries.removeLast();
-                          }),
-                  icon: Icon(Icons.arrow_left),
-                ),
-                DropdownButton<int>(
-                  value: _recordsPerPage,
-                  items: recordsPerPageOptions
-                      .map((value) => DropdownMenuItem<int>(
-                            value: value,
-                            child: Text('$value per page'),
-                          ))
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _recordsPerPage = value;
-                      });
-                    }
-                  },
-                ),
-                IconButton(
-                  onPressed: () => setState(() {
-                    _lastEntries.add(logs.last.entry);
-                  }),
-                  icon: Icon(Icons.arrow_right),
-                ),
-              ],
-            )
-          ],
+
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Column(
+            key: ValueKey(isLoading),
+            children: [
+              Stack(
+                children: [
+                  Opacity(
+                    opacity: isLoading ? 0.6 : 1.0,
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: logs.length,
+                      itemBuilder: (context, index) {
+                        var log = logs[index];
+                        return Tooltip(
+                            message: log.entry.requestID,
+                            child: ListTile(
+                              title: Text(
+                                  "${log.details.email} - ${log.entry.action.name}"),
+                              subtitle: Text(
+                                  "${log.details.eventName} @ ${log.entry.timestamp.toIso8601String()}"),
+                            ));
+                      },
+                    ),
+                  ),
+                  if (isLoading)
+                    Positioned.fill(
+                      child: Container(
+                        alignment: Alignment.center,
+                        child: const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const Spacer(),
+                  IconButton(
+                    onPressed: (_lastEntry == null || isLoading)
+                        ? null
+                        : () => setState(() {
+                              _lastEntries.removeLast();
+                            }),
+                    icon: const Icon(Icons.arrow_left),
+                  ),
+                  DropdownButton<int>(
+                    value: _recordsPerPage,
+                    items: recordsPerPageOptions
+                        .map((value) => DropdownMenuItem<int>(
+                              value: value,
+                              child: Text('$value per page'),
+                            ))
+                        .toList(),
+                    onChanged: isLoading
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              setState(() {
+                                _recordsPerPage = value;
+                                // Clear cache when changing page size
+                                _cachedLogs = null;
+                                _lastEntries.clear();
+                              });
+                            }
+                          },
+                  ),
+                  IconButton(
+                    onPressed: (isLoading || logs.isEmpty)
+                        ? null
+                        : () => setState(() {
+                              _lastEntries.add(logs.last.entry);
+                            }),
+                    icon: const Icon(Icons.arrow_right),
+                  ),
+                ],
+              )
+            ],
+          ),
         );
       },
     );
