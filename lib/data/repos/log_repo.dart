@@ -28,12 +28,16 @@ class LogRepo extends ChangeNotifier {
     });
   }
 
-  Stream<List<RequestLogEntry>> getLogEntries(String orgID, {int? limit}) {
+  Stream<List<RequestLogEntry>> getLogEntries(String orgID,
+      {int? limit, RequestLogEntry? startAfter}) {
     var query = db
         .collection("orgs")
         .doc(orgID)
         .collection("request-logs")
         .orderBy("timestamp", descending: true);
+    if (startAfter != null) {
+      query = query.startAfter([startAfter.timestamp.toString()]);
+    }
     if (limit != null) {
       query = query.limit(limit);
     }
