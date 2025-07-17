@@ -51,11 +51,11 @@ class OrgSettingsScreen extends StatelessWidget {
                   children: [
                     OrgDetails(orgID: orgID),
                     const Divider(),
+                    RequestLogsWidget(org: snapshot.data!),
+                    const Divider(),
                     RoomListWidget(org: snapshot.data!, repo: roomRepo),
                     const Divider(),
                     NotificationWidget(org: snapshot.data!, repo: repo),
-                    const Divider(),
-                    RequestLogsWidget(org: snapshot.data!),
                     const Divider(),
                     AdminWidget(org: snapshot.data!, repo: repo),
                     const Divider(),
