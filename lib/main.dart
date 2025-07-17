@@ -33,22 +33,28 @@ void main() async {
       print(e);
     }
   }
-  await SentryFlutter.init(
-    (options) {
-      options.dsn =
-          'https://c5ed84ffedec25c193d642e9a8e6ba0f@o4509504243630080.ingest.us.sentry.io/4509504245071872';
-      // Adds request headers and IP for users, for more info visit:
-      // https://docs.sentry.io/platforms/dart/guides/flutter/data-management/data-collected/
-      options.sendDefaultPii = true;
-      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-      // We recommend adjusting this value in production.
-      options.tracesSampleRate = 1.0;
-      // The sampling rate for profiling is relative to tracesSampleRate
-      // Setting to 1.0 will profile 100% of sampled transactions:
-      options.profilesSampleRate = 1.0;
-    },
-    appRunner: () => runApp(SentryWidget(child: MyApp())),
-  );
+  if (kDebugMode) {
+    // App is running in debug mode
+    debugPrint('App is running in debug mode, not initializing Sentry');
+    runApp(MyApp());
+  } else {
+    await SentryFlutter.init(
+      (options) {
+        options.dsn =
+            'https://c5ed84ffedec25c193d642e9a8e6ba0f@o4509504243630080.ingest.us.sentry.io/4509504245071872';
+        // Adds request headers and IP for users, for more info visit:
+        // https://docs.sentry.io/platforms/dart/guides/flutter/data-management/data-collected/
+        options.sendDefaultPii = true;
+        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
+        // We recommend adjusting this value in production.
+        options.tracesSampleRate = 1.0;
+        // The sampling rate for profiling is relative to tracesSampleRate
+        // Setting to 1.0 will profile 100% of sampled transactions:
+        options.profilesSampleRate = 1.0;
+      },
+      appRunner: () => runApp(SentryWidget(child: MyApp())),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
