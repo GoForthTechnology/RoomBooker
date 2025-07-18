@@ -52,6 +52,7 @@ class ViewBookingsScreen extends StatefulWidget {
 }
 
 class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
+  bool showRoomSelector = true;
   bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
   StreamSubscription<User?>? subscription;
 
@@ -77,6 +78,12 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
   dispose() {
     subscription?.cancel();
     super.dispose();
+  }
+
+  void _toggleRoomSelector() {
+    setState(() {
+      showRoomSelector = !showRoomSelector;
+    });
   }
 
   @override
@@ -141,6 +148,12 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
                   appBar: AppBar(
                     title: Text(orgState.org.name),
                     actions: _actions(context, orgState),
+                    leading: _isSmallView(context)
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.menu),
+                            onPressed: _toggleRoomSelector,
+                          ),
                   ),
                   floatingActionButton: showFab
                       ? FloatingActionButton(
@@ -154,7 +167,9 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
                   body: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (!_isSmallView(context) && !requestPanelState.active)
+                      if (!_isSmallView(context) &&
+                          showRoomSelector &&
+                          !requestPanelState.active)
                         Flexible(flex: 1, child: MyDrawer(org: orgState.org)),
                       Flexible(
                         flex: 3,
