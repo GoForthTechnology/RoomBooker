@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:auto_route/auto_route.dart';
+import 'package:flutter/material.dart' hide Action;
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
+import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/core/heading.dart';
 
 class RequestLogsWidget extends StatefulWidget {
@@ -62,83 +64,8 @@ class _RequestLogsWidgetState extends State<RequestLogsWidget> {
           child: Column(
             key: ValueKey(isLoading),
             children: [
-              Stack(
-                children: [
-                  Opacity(
-                    opacity: isLoading ? 0.6 : 1.0,
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: logs.length,
-                      itemBuilder: (context, index) {
-                        var log = logs[index];
-                        return Tooltip(
-                            message: log.entry.requestID,
-                            child: ListTile(
-                              title: Text(
-                                  "${log.details.email} - ${log.entry.action.name}"),
-                              subtitle: Text(
-                                  "${log.details.eventName} @ ${log.entry.timestamp.toIso8601String()}"),
-                            ));
-                      },
-                    ),
-                  ),
-                  if (isLoading)
-                    Positioned.fill(
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  const Spacer(),
-                  IconButton(
-                    onPressed: (_lastEntry == null || isLoading)
-                        ? null
-                        : () => setState(() {
-                              _lastEntries.removeLast();
-                            }),
-                    icon: const Icon(Icons.arrow_left),
-                  ),
-                  DropdownButton<int>(
-                    value: _recordsPerPage,
-                    items: recordsPerPageOptions
-                        .map((value) => DropdownMenuItem<int>(
-                              value: value,
-                              child: Text('$value per page'),
-                            ))
-                        .toList(),
-                    onChanged: isLoading
-                        ? null
-                        : (value) {
-                            if (value != null) {
-                              setState(() {
-                                _recordsPerPage = value;
-                                // Clear cache when changing page size
-                                _cachedLogs = null;
-                                _lastEntries.clear();
-                              });
-                            }
-                          },
-                  ),
-                  IconButton(
-                    onPressed: (isLoading || logs.isEmpty)
-                        ? null
-                        : () => setState(() {
-                              _lastEntries.add(logs.last.entry);
-                            }),
-                    icon: const Icon(Icons.arrow_right),
-                  ),
-                ],
-              )
+              _logView(isLoading, logs),
+              _paginationControls(isLoading, logs),
             ],
           ),
         );
@@ -156,6 +83,100 @@ class _RequestLogsWidgetState extends State<RequestLogsWidget> {
             borderRadius: BorderRadius.circular(4),
           ),
           child: entries,
+        ),
+      ],
+    );
+  }
+
+  Widget _logView(bool isLoading, List<DecoratedLogEntry> logs) {
+    return Stack(
+      children: [
+        Opacity(
+          opacity: isLoading ? 0.6 : 1.0,
+          child: ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: logs.length,
+            itemBuilder: (context, index) {
+              var log = logs[index];
+              Widget? trailing;
+              if (log.entry.action != Action.delete) {
+                trailing = TextButton(
+                    onPressed: () {
+                      AutoRouter.of(context).push(ViewBookingsRoute(
+                          orgID: widget.org.id!,
+                          requestID: log.entry.requestID));
+                    },
+                    child: Text("VIEW"));
+              }
+              return Tooltip(
+                  message: log.entry.requestID,
+                  child: ListTile(
+                    title:
+                        Text("${log.details.email} - ${log.entry.action.name}"),
+                    subtitle: Text(
+                        "${log.details.eventName} @ ${log.entry.timestamp.toIso8601String()}"),
+                    trailing: trailing,
+                  ));
+            },
+          ),
+        ),
+        if (isLoading)
+          Positioned.fill(
+            child: Container(
+              alignment: Alignment.center,
+              child: const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _paginationControls(bool isLoading, List<DecoratedLogEntry> logs) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        const Spacer(),
+        IconButton(
+          onPressed: (_lastEntry == null || isLoading)
+              ? null
+              : () => setState(() {
+                    _lastEntries.removeLast();
+                  }),
+          icon: const Icon(Icons.arrow_left),
+        ),
+        DropdownButton<int>(
+          value: _recordsPerPage,
+          items: recordsPerPageOptions
+              .map((value) => DropdownMenuItem<int>(
+                    value: value,
+                    child: Text('$value per page'),
+                  ))
+              .toList(),
+          onChanged: isLoading
+              ? null
+              : (value) {
+                  if (value != null) {
+                    setState(() {
+                      _recordsPerPage = value;
+                      // Clear cache when changing page size
+                      _cachedLogs = null;
+                      _lastEntries.clear();
+                    });
+                  }
+                },
+        ),
+        IconButton(
+          onPressed: (isLoading || logs.isEmpty)
+              ? null
+              : () => setState(() {
+                    _lastEntries.add(logs.last.entry);
+                  }),
+          icon: const Icon(Icons.arrow_right),
         ),
       ],
     );
