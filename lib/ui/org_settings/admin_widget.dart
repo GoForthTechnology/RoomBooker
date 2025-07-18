@@ -85,6 +85,7 @@ class AdminWidget extends StatelessWidget {
             ),
             child: ListView.builder(
               shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: admins.length,
               itemBuilder: (context, index) {
                 return ListTile(

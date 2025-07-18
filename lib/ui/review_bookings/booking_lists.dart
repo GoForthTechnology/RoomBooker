@@ -346,6 +346,7 @@ class BookingList extends StatelessWidget {
               var renderedRequests = detailsSnapshot.data ?? [];
               return ListView.builder(
                 shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: renderedRequests.length,
                 itemBuilder: (context, index) {
                   var renderedRequest = renderedRequests[index];
