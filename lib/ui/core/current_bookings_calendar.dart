@@ -14,12 +14,17 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 extension on Request {
   Appointment toAppointment(RoomState roomState,
-      {String? subject, bool diminish = false}) {
+      {String? subject, bool diminish = false, bool appendRoomName = false}) {
     var alphaLevel = diminish || status == RequestStatus.pending ? 128 : 255;
     var color = roomState.color(roomID).withAlpha(alphaLevel);
+    var s =
+        subject ?? (status == RequestStatus.confirmed ? "Booked" : "Requested");
+    if (appendRoomName) {
+      var roomName = roomState.getRoom(roomID)?.name ?? "Unknown Room";
+      s += " ($roomName)";
+    }
     return Appointment(
-      subject: subject ??
-          (status == RequestStatus.confirmed ? "Booked" : "Requested"),
+      subject: s,
       color: color,
       startTime: eventStartTime,
       endTime: eventEndTime,
@@ -35,6 +40,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
   final Request? existingRequest;
   final bool showDatePickerButton;
   final bool includePrivateBookings;
+  final bool appendRoomName;
 
   const CurrentBookingsCalendar(
       {super.key,
@@ -43,7 +49,8 @@ class CurrentBookingsCalendar extends StatelessWidget {
       required this.onTapRequest,
       required this.showDatePickerButton,
       this.includePrivateBookings = true,
-      this.existingRequest});
+      this.existingRequest,
+      this.appendRoomName = false});
 
   @override
   Widget build(BuildContext context) {
@@ -84,8 +91,11 @@ class CurrentBookingsCalendar extends StatelessWidget {
               if (newAppointment == null) {
                 var request = requestEditorState.getRequest(roomState);
                 var details = requestEditorState.getPrivateDetails();
-                newAppointment = request?.toAppointment(roomState,
-                    subject: details.eventName);
+                newAppointment = request?.toAppointment(
+                  roomState,
+                  subject: details.eventName,
+                  appendRoomName: appendRoomName,
+                );
               }
               Map<Appointment, Request> appointments = {};
               for (var request in remoteState.existingRequests) {
@@ -110,8 +120,12 @@ class CurrentBookingsCalendar extends StatelessWidget {
                     // Skip the current request
                     continue;
                   }
-                  var appointment = repeat.toAppointment(roomState,
-                      subject: subject, diminish: newAppointment != null);
+                  var appointment = repeat.toAppointment(
+                    roomState,
+                    subject: subject,
+                    diminish: newAppointment != null,
+                    appendRoomName: appendRoomName,
+                  );
                   appointments[appointment] = repeat;
                 }
               }

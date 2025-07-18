@@ -157,7 +157,7 @@ class CalendarState extends ChangeNotifier {
     }
   }
 
-  get controller => _controller;
+  CalendarController get controller => _controller;
 }
 
 extension DateTimeExt on DateTime {

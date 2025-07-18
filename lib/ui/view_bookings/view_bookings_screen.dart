@@ -241,6 +241,7 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
     var calendarState = Provider.of<CalendarState>(context, listen: false);
     var roomState = Provider.of<RoomState>(context, listen: false);
     return CurrentBookingsCalendar(
+      appendRoomName: widget.embed, // TODO make this a proper control
       includePrivateBookings: widget.showPrivateBookings,
       orgID: widget.orgID,
       onTap: widget.readOnlyMode
