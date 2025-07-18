@@ -128,7 +128,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
                 }
               }*/
               return StatefulCalendar(
-                view: calendarState.controller.view,
+                view: calendarState.controller.view ?? CalendarView.month,
                 showNavigationArrow: true,
                 showDatePickerButton: showDatePickerButton,
                 showTodayButton: true,
