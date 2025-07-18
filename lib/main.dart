@@ -52,6 +52,8 @@ void main() async {
         // Setting to 1.0 will profile 100% of sampled transactions:
         options.profilesSampleRate = 1.0;
         options.attachScreenshot = true;
+        options.replay.sessionSampleRate = 1.0;
+        options.replay.onErrorSampleRate = 1.0;
       },
       appRunner: () => runApp(SentryWidget(child: MyApp())),
     );
