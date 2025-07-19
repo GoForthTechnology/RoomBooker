@@ -42,11 +42,10 @@ class ReviewBookingsScreen extends StatelessWidget {
         var org = snapshot.data;
         return RoomStateProvider(
             org: org!,
-            builder: (context, roomState) {
-              roomState.activateAll();
-              return ChangeNotifierProvider.value(
-                value: roomState,
-                child: Scaffold(
+            builder: (context, child) =>
+                Consumer<RoomState>(builder: (context, roomState, child) {
+                  roomState.activateAll();
+                  return Scaffold(
                     appBar: AppBar(
                       title: Text('Booking Requests for ${org.name}'),
                       leading: BackButton(
@@ -96,9 +95,9 @@ class ReviewBookingsScreen extends StatelessWidget {
                             onFocusBooking: (r) {},
                             orgID: orgID,
                           ),
-                        ]))),
-              );
-            });
+                        ])),
+                  );
+                }));
       },
     );
   }

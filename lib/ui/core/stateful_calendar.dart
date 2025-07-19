@@ -187,6 +187,8 @@ class StatefulCalendar extends StatelessWidget {
   final List<BlackoutWindow> blackoutWindows;
   final Map<String, Request> requestIndex;
 
+  final List<CalendarView>? allowedViews;
+
   StatefulCalendar({
     super.key,
     required this.view,
@@ -204,6 +206,12 @@ class StatefulCalendar extends StatelessWidget {
     this.newAppointment,
     this.allowDragAndDrop = false,
     this.onAppointmentDragEnd,
+    this.allowedViews = const [
+      CalendarView.day,
+      CalendarView.week,
+      CalendarView.month,
+      CalendarView.schedule,
+    ],
   }) : requestIndex =
             appointments.map((key, value) => MapEntry(value.id!, value));
 
@@ -254,12 +262,7 @@ class StatefulCalendar extends StatelessWidget {
       allowAppointmentResize: allowAppointmentResize && newAppointment != null,
       allowViewNavigation: false,
       cellEndPadding: 20,
-      allowedViews: [
-        CalendarView.day,
-        CalendarView.week,
-        CalendarView.month,
-        CalendarView.schedule,
-      ],
+      allowedViews: allowedViews,
       onAppointmentResizeEnd: onResizeEnd,
       allowDragAndDrop: allowDragAndDrop && newAppointment != null,
       onDragEnd: onDragEnd,

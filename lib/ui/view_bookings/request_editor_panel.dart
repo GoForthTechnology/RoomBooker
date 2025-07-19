@@ -489,16 +489,16 @@ class RequestStateProvider extends StatelessWidget {
     return RoomStateProvider(
         org: org,
         enableAllRooms: enableAllRooms,
-        builder: (context, roomState) => ChangeNotifierProvider.value(
-            value: RequestEditorState(
-              startTime: requestStartTime,
-              initialRequest: initialRequest,
-              initialDetails: initialDetails,
-            ),
-            child: ChangeNotifierProvider.value(
-                value: RequestPanelSate(panelActive, org.id!),
-                child: ChangeNotifierProvider.value(
-                    value: roomState, child: child))));
+        builder: (context, _) => MultiProvider(providers: [
+              ChangeNotifierProvider.value(
+                  value: RequestPanelSate(panelActive, org.id!)),
+              ChangeNotifierProvider.value(
+                  value: RequestEditorState(
+                startTime: requestStartTime,
+                initialRequest: initialRequest,
+                initialDetails: initialDetails,
+              )),
+            ], builder: (context, _) => child));
   }
 }
 

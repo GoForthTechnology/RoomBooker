@@ -88,7 +88,7 @@ class RoomState extends ChangeNotifier {
 class RoomStateProvider extends StatelessWidget {
   final Organization org;
   final bool enableAllRooms;
-  final Widget Function(BuildContext, RoomState) builder;
+  final Widget Function(BuildContext, Widget?) builder;
 
   const RoomStateProvider(
       {super.key,
@@ -108,7 +108,8 @@ class RoomStateProvider extends StatelessWidget {
           var rooms = snapshot.data!;
           var activeRooms = enableAllRooms ? rooms.toSet() : {rooms.first};
           var roomState = RoomState(rooms, activeRooms, org.globalRoomID);
-          return builder(context, roomState);
+          return ChangeNotifierProvider.value(
+              value: roomState, builder: builder);
         });
   }
 }

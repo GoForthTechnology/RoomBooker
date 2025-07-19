@@ -39,8 +39,11 @@ class CurrentBookingsCalendar extends StatelessWidget {
   final Function(Request)? onTapRequest;
   final Request? existingRequest;
   final bool showDatePickerButton;
+  final bool showNavigationArrow;
+  final bool showTodayButton;
   final bool includePrivateBookings;
   final bool appendRoomName;
+  final List<CalendarView>? allowedViews;
 
   const CurrentBookingsCalendar(
       {super.key,
@@ -49,7 +52,10 @@ class CurrentBookingsCalendar extends StatelessWidget {
       required this.onTapRequest,
       required this.showDatePickerButton,
       this.includePrivateBookings = true,
+      this.showNavigationArrow = true,
+      this.showTodayButton = true,
       this.existingRequest,
+      this.allowedViews,
       this.appendRoomName = false});
 
   @override
@@ -143,10 +149,11 @@ class CurrentBookingsCalendar extends StatelessWidget {
               }*/
               return StatefulCalendar(
                 view: calendarState.controller.view ?? CalendarView.month,
-                showNavigationArrow: true,
+                showNavigationArrow: showNavigationArrow,
                 showDatePickerButton: showDatePickerButton,
-                showTodayButton: true,
+                showTodayButton: showTodayButton,
                 onTap: onTap,
+                allowedViews: allowedViews,
                 allowAppointmentResize: true,
                 onAppointmentResizeEnd: (details) => requestEditorState
                     .updateTimes(details.startTime, details.endTime),
