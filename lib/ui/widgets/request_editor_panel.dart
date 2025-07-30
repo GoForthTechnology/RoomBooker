@@ -165,9 +165,9 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               }
             },
             onPatternChanged: (pattern, isCustom) {
-              state.updateFrequency(pattern.frequency, isCustom);
-              state.updateInterval(pattern.period);
               state.updateOffset(pattern.offset);
+              state.updateInterval(pattern.period);
+              state.updateFrequency(pattern.frequency, isCustom);
             },
             toggleDay: state.toggleWeekday,
             frequency: state.recurrancePattern.frequency,
