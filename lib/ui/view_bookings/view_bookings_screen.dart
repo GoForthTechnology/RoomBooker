@@ -126,7 +126,7 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
       child: Consumer<OrgState>(
         builder: (context, orgState, child) => RequestStateProvider(
           enableAllRooms: true,
-          org: orgState.org,
+          orgState: orgState,
           initialRequest: request,
           initialDetails: details,
           requestStartTime: widget.createRequest ? widget.targetDate : null,

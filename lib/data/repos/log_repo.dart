@@ -29,7 +29,7 @@ class LogRepo extends ChangeNotifier {
   }
 
   Stream<List<RequestLogEntry>> getLogEntries(String orgID,
-      {int? limit, RequestLogEntry? startAfter}) {
+      {int? limit, RequestLogEntry? startAfter, Set<String>? requestIDs}) {
     var query = db
         .collection("orgs")
         .doc(orgID)
@@ -37,6 +37,9 @@ class LogRepo extends ChangeNotifier {
         .orderBy("timestamp", descending: true);
     if (startAfter != null) {
       query = query.startAfter([startAfter.timestamp.toString()]);
+    }
+    if (requestIDs != null && requestIDs.isNotEmpty) {
+      query = query.where("requestID", whereIn: requestIDs.toList());
     }
     if (limit != null) {
       query = query.limit(limit);

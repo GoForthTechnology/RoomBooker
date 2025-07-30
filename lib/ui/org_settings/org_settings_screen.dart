@@ -8,7 +8,7 @@ import 'package:room_booker/router.dart';
 
 import 'admin_widget.dart';
 import 'notification_widget.dart';
-import 'request_logs_widget.dart';
+import '../core/request_logs_widget.dart';
 import 'room_list_widget.dart';
 import 'org_actions.dart';
 import 'org_details.dart';
@@ -51,7 +51,10 @@ class OrgSettingsScreen extends StatelessWidget {
                   children: [
                     OrgDetails(orgID: orgID),
                     const Divider(),
-                    RequestLogsWidget(org: snapshot.data!),
+                    RequestLogsWidget(
+                      org: snapshot.data!,
+                      allowPagination: true,
+                    ),
                     const Divider(),
                     RoomListWidget(org: snapshot.data!, repo: roomRepo),
                     const Divider(),

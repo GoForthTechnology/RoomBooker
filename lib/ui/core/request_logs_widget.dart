@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart' hide Action;
 import 'package:provider/provider.dart';
@@ -10,8 +12,14 @@ import 'package:room_booker/ui/core/heading.dart';
 
 class RequestLogsWidget extends StatefulWidget {
   final Organization org;
+  final String? requestID;
+  final bool allowPagination;
 
-  const RequestLogsWidget({super.key, required this.org});
+  const RequestLogsWidget(
+      {super.key,
+      required this.org,
+      this.requestID,
+      required this.allowPagination});
 
   @override
   State<RequestLogsWidget> createState() => _RequestLogsWidgetState();
@@ -31,13 +39,28 @@ class _RequestLogsWidgetState extends State<RequestLogsWidget> {
     var logRepo = Provider.of<LogRepo>(context, listen: false);
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
 
+    Set<String>? requestIDs;
+    if (widget.requestID != null) {
+      requestIDs = {widget.requestID!};
+    }
+
     var entries = StreamBuilder<List<DecoratedLogEntry>>(
       stream: bookingRepo.decorateLogs(
           widget.org.id!,
-          logRepo.getLogEntries(widget.org.id!,
-              limit: _recordsPerPage, startAfter: _lastEntry)),
+          logRepo.getLogEntries(
+            widget.org.id!,
+            limit: _recordsPerPage,
+            startAfter: _lastEntry,
+            requestIDs: requestIDs,
+          )),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
+          log("Error loading request logs: ${snapshot.error.toString()}");
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: ${snapshot.error}')),
+            );
+          });
           return const Text('Error loading request logs');
         }
 
@@ -65,7 +88,7 @@ class _RequestLogsWidgetState extends State<RequestLogsWidget> {
             key: ValueKey(isLoading),
             children: [
               _logView(isLoading, logs),
-              _paginationControls(isLoading, logs),
+              if (widget.allowPagination) _paginationControls(isLoading, logs),
             ],
           ),
         );

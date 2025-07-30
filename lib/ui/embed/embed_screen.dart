@@ -24,27 +24,28 @@ class EmbedScreen extends StatelessWidget {
     return OrgStateProvider(
         orgID: orgID,
         child: Consumer<OrgState>(
-            builder: (context, orgState, child) => RequestStateProvider(
-                  org: orgState.org,
-                  enableAllRooms: true,
-                  child: CalendarStateProvider(
-                    initialView: CalendarView.values
-                        .firstWhere((element) => element.name == defaultView),
-                    focusDate: DateTime.now(),
-                    builder: (context, child) {
-                      return CurrentBookingsCalendar(
-                        orgID: orgID,
-                        onTap: (details) {},
-                        onTapRequest: (request) {},
-                        showDatePickerButton: false,
-                        includePrivateBookings: false,
-                        showNavigationArrow: false,
-                        showTodayButton: false,
-                        appendRoomName: true,
-                        allowedViews: [],
-                      );
-                    },
-                  ),
-                )));
+          builder: (context, orgState, child) => RequestStateProvider(
+            orgState: orgState,
+            enableAllRooms: true,
+            child: CalendarStateProvider(
+              initialView: CalendarView.values
+                  .firstWhere((element) => element.name == defaultView),
+              focusDate: DateTime.now(),
+              builder: (context, child) {
+                return CurrentBookingsCalendar(
+                  orgID: orgID,
+                  onTap: (details) {},
+                  onTapRequest: (request) {},
+                  showDatePickerButton: false,
+                  includePrivateBookings: false,
+                  showNavigationArrow: false,
+                  showTodayButton: false,
+                  appendRoomName: true,
+                  allowedViews: [],
+                );
+              },
+            ),
+          ),
+        ));
   }
 }

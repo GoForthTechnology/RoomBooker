@@ -9,6 +9,7 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
+import 'package:room_booker/ui/core/request_logs_widget.dart';
 import 'package:room_booker/ui/view_bookings/date_field.dart';
 import 'package:room_booker/ui/view_bookings/edit_recurring_booking_dialog.dart';
 import 'package:room_booker/ui/core/org_state_provider.dart';
@@ -223,6 +224,14 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               controller: idController,
               readOnly: readOnly,
               labelText: "Request ID",
+            ),
+          if (state.showRequestLog())
+            Consumer<OrgState>(
+              builder: (context, orgState, child) => RequestLogsWidget(
+                org: orgState.org,
+                requestID: state.requestID(),
+                allowPagination: false,
+              ),
             ),
           _getButtons(state, panelState, roomState, repo),
         ],
@@ -472,15 +481,18 @@ class RequestStateProvider extends StatelessWidget {
   final DateTime? requestStartTime;
   final Request? initialRequest;
   final PrivateRequestDetails? initialDetails;
+  final bool isCurrentUserAdmin;
 
-  const RequestStateProvider(
+  RequestStateProvider(
       {super.key,
       required this.child,
-      required this.org,
+      required OrgState orgState,
       required this.enableAllRooms,
       this.initialRequest,
       this.initialDetails,
-      this.requestStartTime});
+      this.requestStartTime})
+      : org = orgState.org,
+        isCurrentUserAdmin = orgState.currentUserIsAdmin();
 
   @override
   Widget build(BuildContext context) {
@@ -497,6 +509,7 @@ class RequestStateProvider extends StatelessWidget {
                 startTime: requestStartTime,
                 initialRequest: initialRequest,
                 initialDetails: initialDetails,
+                isCurrenetUserAdmin: isCurrentUserAdmin,
               )),
             ], builder: (context, _) => child));
   }
@@ -542,6 +555,7 @@ class RequestEditorState extends ChangeNotifier {
   bool _customRecurrencePattern = false;
   String _roomID = "";
   bool _publicEvent = false;
+  bool _isCurrenetUserAdmin;
 
   String? get roomID => _roomID;
   String? get eventname => _eventName;
@@ -562,7 +576,8 @@ class RequestEditorState extends ChangeNotifier {
     DateTime? startTime,
     Request? initialRequest,
     PrivateRequestDetails? initialDetails,
-  }) {
+    required bool isCurrenetUserAdmin,
+  }) : _isCurrenetUserAdmin = isCurrenetUserAdmin {
     if (startTime != null) {
       _startTime = roundToNearest15Minutes(startTime);
       _endTime = _startTime!.add(const Duration(hours: 1));
@@ -620,6 +635,10 @@ class RequestEditorState extends ChangeNotifier {
       return "Edit Request";
     }
     return "Request Details";
+  }
+
+  bool showRequestLog() {
+    return showID() && _isCurrenetUserAdmin;
   }
 
   bool showID() {
