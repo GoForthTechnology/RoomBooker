@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:room_booker/ui/core/simple_text_form_field.dart';
+import 'package:room_booker/ui/widgets/simple_text_form_field.dart';
 
 final timeFormat = DateFormat("h:mm a");
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/logic/recurring_bookings.dart';
-import 'package:room_booker/ui/view_bookings/repeat_period_selector.dart';
-import 'package:room_booker/ui/view_bookings/weekday_selector.dart';
+import 'package:room_booker/ui/widgets/repeat_period_selector.dart';
+import 'package:room_booker/ui/widgets/weekday_selector.dart';
 
 class RepeatBookingsSelector extends StatelessWidget {
   final DateTime startTime;

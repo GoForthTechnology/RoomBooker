@@ -10,7 +10,7 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
-import 'package:room_booker/ui/core/org_details.dart';
+import 'package:room_booker/ui/widgets/org_details.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()

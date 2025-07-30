@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:room_booker/ui/core/simple_text_form_field.dart';
+import 'package:room_booker/ui/widgets/simple_text_form_field.dart';
 
 class DateField extends StatelessWidget {
   final String labelText;

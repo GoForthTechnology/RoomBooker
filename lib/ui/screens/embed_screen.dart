@@ -1,10 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/ui/core/current_bookings_calendar.dart';
-import 'package:room_booker/ui/core/org_state_provider.dart';
-import 'package:room_booker/ui/core/stateful_calendar.dart';
-import 'package:room_booker/ui/view_bookings/request_editor_panel.dart';
+import 'package:room_booker/ui/widgets/current_bookings_calendar.dart';
+import 'package:room_booker/ui/widgets/org_state_provider.dart';
+import 'package:room_booker/ui/widgets/stateful_calendar.dart';
+import 'package:room_booker/ui/widgets/request_editor_panel.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()

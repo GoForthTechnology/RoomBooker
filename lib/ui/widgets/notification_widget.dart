@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
-import 'package:room_booker/ui/core/heading.dart';
-import 'package:room_booker/ui/core/simple_text_form_field.dart';
+import 'package:room_booker/ui/widgets/heading.dart';
+import 'package:room_booker/ui/widgets/simple_text_form_field.dart';
 
 class NotificationWidget extends StatefulWidget {
   final Organization org;

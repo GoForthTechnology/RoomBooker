@@ -9,15 +9,15 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
-import 'package:room_booker/ui/core/request_logs_widget.dart';
-import 'package:room_booker/ui/view_bookings/date_field.dart';
-import 'package:room_booker/ui/view_bookings/edit_recurring_booking_dialog.dart';
-import 'package:room_booker/ui/core/org_state_provider.dart';
-import 'package:room_booker/ui/view_bookings/repeat_bookings_selector.dart';
-import 'package:room_booker/ui/view_bookings/room_dropdown_selector.dart';
-import 'package:room_booker/ui/core/room_selector.dart';
-import 'package:room_booker/ui/core/simple_text_form_field.dart';
-import 'package:room_booker/ui/view_bookings/time_field.dart';
+import 'package:room_booker/ui/widgets/request_logs_widget.dart';
+import 'package:room_booker/ui/widgets/date_field.dart';
+import 'package:room_booker/ui/widgets/edit_recurring_booking_dialog.dart';
+import 'package:room_booker/ui/widgets/org_state_provider.dart';
+import 'package:room_booker/ui/widgets/repeat_bookings_selector.dart';
+import 'package:room_booker/ui/widgets/room_dropdown_selector.dart';
+import 'package:room_booker/ui/widgets/room_selector.dart';
+import 'package:room_booker/ui/widgets/simple_text_form_field.dart';
+import 'package:room_booker/ui/widgets/time_field.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class NewRequestPanel extends StatefulWidget {

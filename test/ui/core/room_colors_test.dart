@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:room_booker/ui/core/room_colors.dart';
+import 'package:room_booker/ui/widgets/room_colors.dart';
 
 void main() {
   group('RoomColors', () {

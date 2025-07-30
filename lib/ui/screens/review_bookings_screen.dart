@@ -7,9 +7,9 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
-import 'package:room_booker/ui/core/heading.dart';
-import 'package:room_booker/ui/core/room_selector.dart';
-import 'package:room_booker/ui/review_bookings/booking_lists.dart';
+import 'package:room_booker/ui/widgets/heading.dart';
+import 'package:room_booker/ui/widgets/room_selector.dart';
+import 'package:room_booker/ui/widgets/booking_lists.dart';
 
 @RoutePage()
 class ReviewBookingsScreen extends StatelessWidget {

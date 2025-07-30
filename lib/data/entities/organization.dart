@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:room_booker/ui/core/room_colors.dart';
+import 'package:room_booker/ui/widgets/room_colors.dart';
 
 part 'organization.g.dart';
 

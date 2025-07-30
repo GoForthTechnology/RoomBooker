@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/router.dart';
-import 'package:room_booker/ui/core/room_selector.dart';
+import 'package:room_booker/ui/widgets/room_selector.dart';
 
 // Assume RoomState and RoomCubit are defined elsewhere
 // RoomState has: List<Room> rooms, Set<String> activeRoomIds

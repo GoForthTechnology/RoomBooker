@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
-import 'package:room_booker/ui/core/heading.dart';
-import 'package:room_booker/ui/core/room_colors.dart';
+import 'package:room_booker/ui/widgets/heading.dart';
+import 'package:room_booker/ui/widgets/room_colors.dart';
 import 'action_button.dart';
 
 class RoomListWidget extends StatelessWidget {

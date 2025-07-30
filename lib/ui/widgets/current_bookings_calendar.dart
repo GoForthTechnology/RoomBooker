@@ -5,10 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/blackout_window.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
-import 'package:room_booker/ui/core/org_state_provider.dart';
-import 'package:room_booker/ui/view_bookings/request_editor_panel.dart';
-import 'package:room_booker/ui/core/room_selector.dart';
-import 'package:room_booker/ui/core/stateful_calendar.dart';
+import 'package:room_booker/ui/widgets/org_state_provider.dart';
+import 'package:room_booker/ui/widgets/request_editor_panel.dart';
+import 'package:room_booker/ui/widgets/room_selector.dart';
+import 'package:room_booker/ui/widgets/stateful_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 

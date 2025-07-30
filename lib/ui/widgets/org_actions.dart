@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
-import 'package:room_booker/ui/core/heading.dart';
+import 'package:room_booker/ui/widgets/heading.dart';
 
 import 'action_button.dart';
 
