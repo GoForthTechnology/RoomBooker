@@ -4,6 +4,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
@@ -227,10 +228,9 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             ),
           if (state.showRequestLog())
             Consumer<OrgState>(
-              builder: (context, orgState, child) => RequestLogsWidget(
+              builder: (context, orgState, child) => LogsWidget(
                 org: orgState.org,
-                requestID: state.requestID(),
-                allowPagination: false,
+                requestID: state.requestID()!,
               ),
             ),
           _getButtons(state, panelState, roomState, repo),
@@ -836,4 +836,33 @@ DateTime roundToNearest15Minutes(DateTime time) {
   }
 
   return DateTime(year, month, day, hour, roundedMinute);
+}
+
+class LogsWidget extends StatelessWidget {
+  final Organization org;
+  final String requestID;
+
+  const LogsWidget({super.key, required this.org, required this.requestID});
+
+  static final dateFormat = DateFormat('MM/dd/yyyy');
+  static final timeFormat = DateFormat('HH:mm');
+
+  @override
+  Widget build(BuildContext context) {
+    return ExpansionTile(
+      title: Text("Request Log"),
+      children: [
+        RequestLogsWidget(
+          org: org,
+          allowPagination: false,
+          requestID: requestID,
+          titleBuilder: (entry) => Text(
+              "${entry.action.name} on ${dateFormat.format(entry.timestamp)}"),
+          subtitleBuilder: (entry) => Text(
+              "By ${entry.adminEmail} at ${timeFormat.format(entry.timestamp)}"),
+          showViewButton: false,
+        )
+      ],
+    );
+  }
 }

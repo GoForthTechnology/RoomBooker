@@ -8,18 +8,23 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/router.dart';
-import 'package:room_booker/ui/widgets/heading.dart';
 
 class RequestLogsWidget extends StatefulWidget {
   final Organization org;
   final String? requestID;
   final bool allowPagination;
+  final bool showViewButton;
+  final Widget Function(RequestLogEntry)? titleBuilder;
+  final Widget Function(RequestLogEntry)? subtitleBuilder;
 
   const RequestLogsWidget(
       {super.key,
       required this.org,
       this.requestID,
-      required this.allowPagination});
+      required this.allowPagination,
+      this.titleBuilder,
+      this.subtitleBuilder,
+      this.showViewButton = true});
 
   @override
   State<RequestLogsWidget> createState() => _RequestLogsWidgetState();
@@ -44,7 +49,7 @@ class _RequestLogsWidgetState extends State<RequestLogsWidget> {
       requestIDs = {widget.requestID!};
     }
 
-    var entries = StreamBuilder<List<DecoratedLogEntry>>(
+    return StreamBuilder<List<DecoratedLogEntry>>(
       stream: bookingRepo.decorateLogs(
           widget.org.id!,
           logRepo.getLogEntries(
@@ -94,21 +99,6 @@ class _RequestLogsWidgetState extends State<RequestLogsWidget> {
         );
       },
     );
-    return Column(
-      children: [
-        const Heading("Request Logs"),
-        const Text(
-            "This shows the history of admin requests and actions taken on them"),
-        Container(
-          constraints: const BoxConstraints(maxWidth: 600),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: entries,
-        ),
-      ],
-    );
   }
 
   Widget _logView(bool isLoading, List<DecoratedLogEntry> logs) {
@@ -123,7 +113,7 @@ class _RequestLogsWidgetState extends State<RequestLogsWidget> {
             itemBuilder: (context, index) {
               var log = logs[index];
               Widget? trailing;
-              if (log.entry.action != Action.delete) {
+              if (widget.showViewButton && log.entry.action != Action.delete) {
                 trailing = TextButton(
                     onPressed: () {
                       AutoRouter.of(context).push(ViewBookingsRoute(
@@ -132,13 +122,18 @@ class _RequestLogsWidgetState extends State<RequestLogsWidget> {
                     },
                     child: Text("VIEW"));
               }
+              Widget title = widget.titleBuilder != null
+                  ? widget.titleBuilder!(log.entry)
+                  : Text("${log.details.email} - ${log.entry.action.name}");
+              Widget subtitle = widget.subtitleBuilder != null
+                  ? widget.subtitleBuilder!(log.entry)
+                  : Text(
+                      "${log.details.eventName} @ ${log.entry.timestamp.toIso8601String()}");
               return Tooltip(
                   message: log.entry.requestID,
                   child: ListTile(
-                    title:
-                        Text("${log.details.email} - ${log.entry.action.name}"),
-                    subtitle: Text(
-                        "${log.details.eventName} @ ${log.entry.timestamp.toIso8601String()}"),
+                    title: title,
+                    subtitle: subtitle,
                     trailing: trailing,
                   ));
             },

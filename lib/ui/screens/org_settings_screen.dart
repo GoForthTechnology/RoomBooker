@@ -2,11 +2,13 @@ import 'package:auto_route/auto_route.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/router.dart';
 
 import 'package:room_booker/ui/widgets/admin_widget.dart';
+import 'package:room_booker/ui/widgets/heading.dart';
 import 'package:room_booker/ui/widgets/notification_widget.dart';
 import 'package:room_booker/ui/widgets/request_logs_widget.dart';
 import 'package:room_booker/ui/widgets/room_list_widget.dart';
@@ -50,10 +52,7 @@ class OrgSettingsScreen extends StatelessWidget {
                   children: [
                     OrgDetails(orgID: orgID),
                     const Divider(),
-                    RequestLogsWidget(
-                      org: snapshot.data!,
-                      allowPagination: true,
-                    ),
+                    LogsWidget(org: snapshot.data!),
                     const Divider(),
                     RoomListWidget(org: snapshot.data!, repo: roomRepo),
                     const Divider(),
@@ -68,6 +67,31 @@ class OrgSettingsScreen extends StatelessWidget {
             },
           ),
         ));
+  }
+}
+
+class LogsWidget extends StatelessWidget {
+  final Organization org;
+
+  const LogsWidget({super.key, required this.org});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const Heading("Request Logs"),
+        const Text(
+            "This shows the history of admin requests and actions taken on them"),
+        Container(
+          constraints: const BoxConstraints(maxWidth: 600),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: RequestLogsWidget(org: org, allowPagination: true),
+        ),
+      ],
+    );
   }
 }
 
