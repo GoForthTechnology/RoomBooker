@@ -606,7 +606,7 @@ class RequestEditorState extends ChangeNotifier {
     _contactEmail = details.email;
     _contactName = details.name;
     _contactPhone = details.phone;
-    _eventName = details.eventName;
+    _eventName = request.publicName ?? details.eventName;
     _message = details.message;
     _roomID = request.roomID;
 
