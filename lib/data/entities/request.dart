@@ -163,9 +163,9 @@ class Request {
         status.hashCode;
   }
 
-  List<Request> expand(DateTime windowStart, DateTime windowEnd,
+  List<Request> expand(DateTime windowStart, DateTime windowEndExclusive,
       {bool includeRequestDate = true}) {
-    var dates = _generateDates(windowStart, windowEnd);
+    var dates = _generateDates(windowStart, windowEndExclusive);
     var eventDate =
         DateTime(eventStartTime.year, eventStartTime.month, eventStartTime.day);
     return dates
@@ -191,11 +191,12 @@ class Request {
         .toList();
   }
 
-  List<DateTime> _generateDates(DateTime windowStart, DateTime windowEnd) {
+  List<DateTime> _generateDates(
+      DateTime windowStart, DateTime windowEndExclusive) {
     var pattern = recurrancePattern;
     if (pattern == null || pattern.frequency == Frequency.never) {
       if (!eventStartTime.isBefore(windowStart) &&
-          !eventStartTime.isAfter(windowEnd)) {
+          !eventStartTime.isAfter(windowEndExclusive)) {
         // The event is within the window
         // Using negation to avoid cases where windowStart == eventStartTime
         return [eventStartTime];
@@ -203,9 +204,10 @@ class Request {
       return [];
     }
     // Cap the end date if it is before the window end
-    var effectiveEnd = windowEnd.isBefore(pattern.end ?? windowEnd)
-        ? windowEnd
-        : pattern.end ?? windowEnd;
+    var effectiveEnd =
+        windowEndExclusive.isBefore(pattern.end ?? windowEndExclusive)
+            ? windowEndExclusive
+            : pattern.end ?? windowEndExclusive;
     if (pattern.end != null) {
       effectiveEnd = min(effectiveEnd, pattern.end!);
     }
@@ -217,8 +219,6 @@ class Request {
       // The series has not started yet
       return [];
     }
-    // add one day to make it inclusive
-    effectiveEnd = stripTime(effectiveEnd.add(const Duration(days: 1)));
     switch (pattern.frequency) {
       case Frequency.never:
         return [];

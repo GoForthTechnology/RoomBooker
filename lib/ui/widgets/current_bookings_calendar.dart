@@ -105,18 +105,6 @@ class CurrentBookingsCalendar extends StatelessWidget {
               }
               Map<Appointment, Request> appointments = {};
               for (var request in remoteState.existingRequests) {
-                String? subject = request.publicName;
-                var details = remoteState.privateRequestDetails(request.id!);
-                if (subject == null && details != null) {
-                  subject = "${details.eventName} (Private)";
-                }
-                var isPrivateBooking = (subject ?? "") == "";
-                if (isPrivateBooking && !includePrivateBookings) {
-                  continue;
-                }
-                /*var appointment =
-                    request.toAppointment(roomState, subject: subject);
-                appointments[appointment] = request;*/
                 var start = calendarState.startOfView();
                 var end = calendarState.endOfView();
                 for (var repeat
@@ -124,6 +112,15 @@ class CurrentBookingsCalendar extends StatelessWidget {
                   if (_isSameRequest(
                       requestEditorState.existingRequest, repeat)) {
                     // Skip the current request
+                    continue;
+                  }
+                  String? subject = repeat.publicName;
+                  var details = remoteState.privateRequestDetails(request.id!);
+                  if (subject == null && details != null) {
+                    subject = "${details.eventName} (Private)";
+                  }
+                  var isPrivateBooking = (subject ?? "") == "";
+                  if (isPrivateBooking && !includePrivateBookings) {
                     continue;
                   }
                   var appointment = repeat.toAppointment(
