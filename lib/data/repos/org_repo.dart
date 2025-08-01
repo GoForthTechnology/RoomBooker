@@ -21,7 +21,7 @@ class OrgRepo extends ChangeNotifier {
   final UserRepo _userRepo;
   final RoomRepo _roomRepo;
 
-  OrgRepo({required userRepo, required roomRepo})
+  OrgRepo({required UserRepo userRepo, required RoomRepo roomRepo})
       : _userRepo = userRepo,
         _roomRepo = roomRepo;
 

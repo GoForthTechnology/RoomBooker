@@ -555,7 +555,7 @@ class RequestEditorState extends ChangeNotifier {
   bool _customRecurrencePattern = false;
   String _roomID = "";
   bool _publicEvent = false;
-  bool _isCurrenetUserAdmin;
+  final bool _isCurrenetUserAdmin;
 
   String? get roomID => _roomID;
   String? get eventname => _eventName;
