@@ -10,7 +10,17 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Clone repo
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Build app
+      - run: flutter pub get
+      - run: flutter test
+      - run: flutter build web
+      - name: Depoy app
       - run: npm init --yes
       - run: npm install --package-lock-only
       - run: npm ci
