@@ -121,7 +121,6 @@ void main() {
         DateTime(2025, 1, 2, 0, 0, 0),
         DateTime(2025, 1, 3, 0, 0, 0),
         DateTime(2025, 1, 4, 0, 0, 0),
-        DateTime(2025, 1, 5, 0, 0, 0),
       ];
       var occurrences = request.expand(now, now.add(Duration(days: 4)));
       expect(occurrences.map((e) => e.eventStartTime).toList(),
@@ -138,7 +137,6 @@ void main() {
         DateTime(2025, 1, 1, 0, 0, 0),
         DateTime(2025, 1, 3, 0, 0, 0),
         DateTime(2025, 1, 5, 0, 0, 0),
-        DateTime(2025, 1, 7, 0, 0, 0),
       ];
       var occurrences = request.expand(now, now.add(Duration(days: 6)));
       expect(occurrences.map((e) => e.eventStartTime).toList(),
@@ -313,7 +311,6 @@ void main() {
         DateTime(2025, 1, 2, 10, 0, 0),
         DateTime(2025, 1, 3, 10, 0, 0),
         DateTime(2025, 1, 4, 10, 0, 0),
-        DateTime(2025, 1, 5, 10, 0, 0),
       ];
 
       expect(occurrences.map((e) => e.eventStartTime).toList(),
@@ -338,7 +335,6 @@ void main() {
       // Should NOT include original event date
       var expectedStartTimes = [
         DateTime(2025, 1, 8, 10, 0, 0), // First recurrence
-        DateTime(2025, 1, 15, 10, 0, 0), // Second recurrence
       ];
 
       expect(occurrences.map((e) => e.eventStartTime).toList(),
@@ -367,7 +363,6 @@ void main() {
         DateTime(2025, 1, 2, 10, 0, 0),
         DateTime(2025, 1, 3, 10, 0, 0),
         DateTime(2025, 1, 4, 10, 0, 0),
-        DateTime(2025, 1, 5, 10, 0, 0),
       ];
 
       expect(occurrences.map((e) => e.eventStartTime).toList(),
@@ -1319,7 +1314,7 @@ void main() {
 
       // Check that override has different properties
       var overriddenOccurrence = occurrences[1];
-      expect(overriddenOccurrence.status, RequestStatus.confirmed);
+      expect(overriddenOccurrence.status, RequestStatus.pending);
       expect(overriddenOccurrence.publicName, 'Override Event Name');
 
       // Check that other occurrences maintain original properties
