@@ -12,19 +12,23 @@ jobs:
     steps:
       - name: Clone repo
         uses: actions/checkout@v4
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test
+
       - name: Build app
-      - run: flutter pub get
-      - run: flutter test
-      - run: flutter build web
-      - name: Depoy app
-      - run: npm init --yes
-      - run: npm install --package-lock-only
-      - run: npm ci
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+        run: flutter build web
+
+      - name: Deploy app
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROOMBOOKER_5E947 }}
