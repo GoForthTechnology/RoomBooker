@@ -42,6 +42,7 @@ class SimpleTextFormField extends StatelessWidget {
       controller: controller,
       readOnly: readOnly,
       enabled: !readOnly,
+      onTap: readOnly ? null : onTap,
       decoration: InputDecoration(
         labelText: labelText,
         border: const OutlineInputBorder(),
