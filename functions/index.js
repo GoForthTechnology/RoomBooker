@@ -284,7 +284,7 @@ async function notifyRequesterOfBookingDenial(orgID, bookingID) {
         "Booking Request Denied", `
         Dear ${details.name},
 
-        Unfortunately rour room booking request for ${details.eventName} has been denied.
+        Unfortunately your room booking request for ${details.eventName} has been denied.
 
         God Bless,
         Church of the Resurrection Parish Office
