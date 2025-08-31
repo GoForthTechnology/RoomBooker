@@ -184,17 +184,17 @@ async function getRequestDetails(orgID, bookingID) {
 
 /**
  * Returns a string representation of a booking.
- * 
- * @param {string} eventName 
- * @param {object} data 
- * @returns {string}
+ *
+ * @param {string} eventName
+ * @param {object} data
+ * @return {string}
  */
 function bookingInfo(eventName, data) {
   return `
   Event: ${eventName}
   Room: ${data.roomName}
   Start Time: ${data.eventStartTime}
-  End Time: ${data.eventEndTime}`
+  End Time: ${data.eventEndTime}`;
 }
 
 
@@ -227,6 +227,7 @@ async function notifyOwnerOfPendingBooking(orgID, bookingID) {
  *
  * @param {string} orgID - The ID of the organization.
  * @param {string} bookingID - The ID of the booking request.
+ * @param {object} data - The booking document
  * @return {Promise<void>} - A promise that resolves when the email has been sent.
  */
 async function notifyRequesterOfPeningBooking(orgID, bookingID, data) {
@@ -259,6 +260,7 @@ async function notifyRequesterOfPeningBooking(orgID, bookingID, data) {
  *
  * @param {string} orgID - The ID of the organization.
  * @param {string} bookingID - The ID of the booking request.
+ * @param {object} data - The booking document
  * @return {Promise<void>} - A promise that resolves when the email has been sent.
  */
 async function notifyRequesterOfBookingApproval(orgID, bookingID, data) {
@@ -291,6 +293,7 @@ async function notifyRequesterOfBookingApproval(orgID, bookingID, data) {
  *
  * @param {string} orgID - The ID of the organization.
  * @param {string} bookingID - The ID of the booking request.
+ * @param {object} data - The booking document
  * @return {Promise<void>} - A promise that resolves when the email has been sent.
  */
 async function notifyRequesterOfBookingDenial(orgID, bookingID, data) {
