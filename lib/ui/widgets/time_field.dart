@@ -64,17 +64,17 @@ class TimeField extends StatelessWidget {
               if (pickedTime == null) {
                 return;
               }
-              var roundedTime = roundToNearest30Minutes(pickedTime);
+              var roundedTime = roundToNearest15Minutes(pickedTime);
               controller.text = localizations.formatTimeOfDay(roundedTime);
               onChanged(roundedTime);
             },
     );
   }
 
-  TimeOfDay roundToNearest30Minutes(TimeOfDay time) {
+  TimeOfDay roundToNearest15Minutes(TimeOfDay time) {
     final int minute = time.minute;
-    final int mod = minute % 30;
-    final int roundedMinute = mod < 15 ? minute - mod : minute + (30 - mod);
+    final int mod = minute % 15;
+    final int roundedMinute = mod < 8 ? minute - mod : minute + (15 - mod);
     return TimeOfDay(hour: time.hour, minute: roundedMinute);
   }
 }
