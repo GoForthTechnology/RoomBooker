@@ -22,7 +22,7 @@ exports.onNewPendingBooking = functions.firestore
       const orgID = context.params.orgID;
       const bookingID = context.params.bookingID;
       logger.log(`Received new booking request (${bookingID})`);
-      await notifyRequesterOfPeningBooking(orgID, bookingID);
+      await notifyRequesterOfPeningBooking(orgID, bookingID, snap.data());
       await notifyOwnerOfPendingBooking(orgID, bookingID);
       logger.log(`Function finished for request ${bookingID}`);
     });
@@ -33,7 +33,7 @@ exports.onRequestApproved = functions.firestore
       const orgID = context.params.orgID;
       const bookingID = context.params.bookingID;
       logger.log(`Received new request approval (${bookingID})`);
-      await notifyRequesterOfBookingApproval(orgID, bookingID);
+      await notifyRequesterOfBookingApproval(orgID, bookingID, snap.data());
       logger.log(`Function finished for approval of ${bookingID}`);
     });
 
@@ -43,7 +43,7 @@ exports.onRequestDenied = functions.firestore
       const orgID = context.params.orgID;
       const bookingID = context.params.bookingID;
       logger.log(`Received new request denial (${bookingID})`);
-      await notifyRequesterOfBookingDenial(orgID, bookingID);
+      await notifyRequesterOfBookingDenial(orgID, bookingID, snap.data());
       logger.log(`Function finished for denial of ${bookingID}`);
     });
 
@@ -134,6 +134,7 @@ async function sendEmail(to, subject, message) {
       text: message,
     },
   });
+  logger.debug(`Sent email to ${to}: ${message}`);
 }
 
 /**
@@ -182,6 +183,22 @@ async function getRequestDetails(orgID, bookingID) {
 }
 
 /**
+ * Returns a string representation of a booking.
+ * 
+ * @param {string} eventName 
+ * @param {object} data 
+ * @returns {string}
+ */
+function bookingInfo(eventName, data) {
+  return `
+  Event: ${eventName}
+  Room: ${data.roomName}
+  Start Time: ${data.eventStartTime}
+  End Time: ${data.eventEndTime}`
+}
+
+
+/**
  * Sends an email notification to the org owner when a new request is received.
  *
  * @param {string} orgID - The ID of the organization.
@@ -212,7 +229,7 @@ async function notifyOwnerOfPendingBooking(orgID, bookingID) {
  * @param {string} bookingID - The ID of the booking request.
  * @return {Promise<void>} - A promise that resolves when the email has been sent.
  */
-async function notifyRequesterOfPeningBooking(orgID, bookingID) {
+async function notifyRequesterOfPeningBooking(orgID, bookingID, data) {
   try {
     const details = await getRequestDetails(orgID, bookingID);
     if (isFromAdmin(details)) {
@@ -224,7 +241,9 @@ async function notifyRequesterOfPeningBooking(orgID, bookingID) {
         "Booking Request Received", `
         Dear ${details.name},
 
-        Thank you for your request for ${details.eventName} has been received and we will be in touch shortly.
+        Thank you for your request has been received and we will be in touch shortly.
+
+        ${bookingInfo(details.eventName, data)}
 
         God Bless,
         Church of the Resurrection Parish Office
@@ -242,7 +261,7 @@ async function notifyRequesterOfPeningBooking(orgID, bookingID) {
  * @param {string} bookingID - The ID of the booking request.
  * @return {Promise<void>} - A promise that resolves when the email has been sent.
  */
-async function notifyRequesterOfBookingApproval(orgID, bookingID) {
+async function notifyRequesterOfBookingApproval(orgID, bookingID, data) {
   try {
     const details = await getRequestDetails(orgID, bookingID);
     if (isFromAdmin(details)) {
@@ -254,7 +273,9 @@ async function notifyRequesterOfBookingApproval(orgID, bookingID) {
         "Booking Request Approved", `
         Dear ${details.name},
 
-        Your room booking request for ${details.eventName} has been Approved!
+        Your room booking request for has been Approved!
+
+        ${bookingInfo(details.eventName, data)}
 
         God Bless,
         Church of the Resurrection Parish Office
@@ -272,7 +293,7 @@ async function notifyRequesterOfBookingApproval(orgID, bookingID) {
  * @param {string} bookingID - The ID of the booking request.
  * @return {Promise<void>} - A promise that resolves when the email has been sent.
  */
-async function notifyRequesterOfBookingDenial(orgID, bookingID) {
+async function notifyRequesterOfBookingDenial(orgID, bookingID, data) {
   try {
     const details = await getRequestDetails(orgID, bookingID);
     if (isFromAdmin(details)) {
@@ -284,7 +305,9 @@ async function notifyRequesterOfBookingDenial(orgID, bookingID) {
         "Booking Request Denied", `
         Dear ${details.name},
 
-        Unfortunately your room booking request for ${details.eventName} has been denied.
+        Unfortunately your room booking request has been denied.
+
+        ${bookingInfo(details.eventName, data)}
 
         God Bless,
         Church of the Resurrection Parish Office

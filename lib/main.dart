@@ -17,7 +17,7 @@ import 'package:room_booker/auth.dart';
 import 'firebase_options.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-bool useEmulator = false;
+bool useEmulator = true;
 
 void main() async {
   await Firebase.initializeApp(
