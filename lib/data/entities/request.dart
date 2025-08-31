@@ -67,6 +67,7 @@ class Request {
   final RequestStatus? status;
   final RecurrancePattern? recurrancePattern;
   final Map<DateTime, Request?>? recurranceOverrides;
+  final bool ignoreOverlaps;
 
   Request({
     this.recurrancePattern,
@@ -78,6 +79,7 @@ class Request {
     this.status,
     this.id,
     this.recurranceOverrides,
+    this.ignoreOverlaps = false,
   }) {
     if (!eventStartTime.isBefore(eventEndTime)) {
       log("Event start time is not before end time",
@@ -105,6 +107,7 @@ class Request {
     RequestStatus? status,
     RecurrancePattern? recurrancePattern,
     Map<DateTime, Request?>? recurranceOverrides,
+    bool? ignoreOverlaps,
   }) {
     return Request(
       eventStartTime: eventStartTime ?? this.eventStartTime,
@@ -116,6 +119,7 @@ class Request {
       id: id ?? this.id,
       recurrancePattern: recurrancePattern ?? this.recurrancePattern,
       recurranceOverrides: recurranceOverrides ?? this.recurranceOverrides,
+      ignoreOverlaps: ignoreOverlaps ?? this.ignoreOverlaps,
     );
   }
 
@@ -129,6 +133,7 @@ class Request {
       roomName: $roomName,
       status: $status,
       recurrencePattern: $recurrancePattern
+      ignoreOverlaps: $ignoreOverlaps
     }""";
   }
 
@@ -148,6 +153,8 @@ class Request {
         other.roomName == roomName &&
         other.publicName == publicName &&
         other.recurrancePattern == recurrancePattern &&
+        other.ignoreOverlaps == ignoreOverlaps &&
+        other.recurranceOverrides == recurranceOverrides &&
         other.status == status;
   }
 
@@ -159,6 +166,8 @@ class Request {
         roomID.hashCode ^
         roomName.hashCode ^
         recurrancePattern.hashCode ^
+        ignoreOverlaps.hashCode ^
+        recurranceOverrides.hashCode ^
         publicName.hashCode ^
         status.hashCode;
   }

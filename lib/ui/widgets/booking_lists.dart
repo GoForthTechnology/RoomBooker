@@ -74,21 +74,21 @@ class ConflictingBookings extends StatelessWidget {
           return Container();
         }
         var conflicts = snapshot.data!;
-        Set<Request> conflictingRequests = {};
+        Set<String> conflictingRequests = {};
         for (var pair in conflicts) {
-          conflictingRequests.add(pair.first);
-          conflictingRequests.add(pair.second);
+          conflictingRequests.add(pair.first.id!);
+          conflictingRequests.add(pair.second.id!);
         }
         return BookingList(
           onFocusBooking: onFocusBooking,
           orgID: orgID,
           emptyText: "No conflicting bookings",
-          requestFilter: (r) => conflictingRequests.contains(r),
+          requestFilter: (r) => conflictingRequests.contains(r.id),
           statusList: const [
             RequestStatus.confirmed,
           ],
-          overrideRequests: conflictingRequests
-              .sorted((a, b) => a.eventStartTime.compareTo(b.eventStartTime)),
+          /*overrideRequests: conflictingRequests
+              .sorted((a, b) => a.eventStartTime.compareTo(b.eventStartTime)),*/
           actions: [
             RequestAction(
                 text: "View",
@@ -98,6 +98,11 @@ class ConflictingBookings extends StatelessWidget {
                         requestID: request.id!,
                         view: CalendarView.day.name,
                         targetDate: request.eventStartTime))),
+            RequestAction(
+                text: "Ignore",
+                onClick: (request) async {
+                  await repo.ignoreOverlaps(orgID, request.id!);
+                })
           ],
         );
       },
@@ -256,7 +261,7 @@ class BookingList extends StatelessWidget {
   final List<RequestStatus> statusList;
   final bool Function(Request)? requestFilter;
   final List<RequestAction> actions;
-  final List<Request> overrideRequests;
+  final List<Request>? overrideRequests;
 
   const BookingList(
       {super.key,
@@ -266,7 +271,7 @@ class BookingList extends StatelessWidget {
       required this.statusList,
       required this.emptyText,
       this.requestFilter,
-      this.overrideRequests = const []});
+      this.overrideRequests});
 
   Stream<List<RenderedRequest>> _renderedRequests(
       BookingRepo bookingRepo, String orgID, List<Request> requests) {
@@ -300,21 +305,16 @@ class BookingList extends StatelessWidget {
   Widget build(BuildContext context) {
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
     return Consumer<RoomState>(builder: (context, roomState, child) {
-      Stream<List<Request>> requestStream;
-      if (overrideRequests.isNotEmpty) {
-        requestStream = Stream.value(overrideRequests);
-      } else {
-        requestStream = bookingRepo
-            .listRequests(
-                orgID: orgID,
-                startTime: DateTime.now(),
-                endTime: DateTime.now().add(const Duration(days: 365)),
-                includeRoomIDs:
-                    roomState.enabledValues().map((r) => r.id!).toSet(),
-                includeStatuses: Set.from(statusList))
-            .map((requests) =>
-                requests.where(requestFilter ?? (r) => true).toList());
-      }
+      Stream<List<Request>> requestStream = bookingRepo
+          .listRequests(
+              orgID: orgID,
+              startTime: DateTime.now(),
+              endTime: DateTime.now().add(const Duration(days: 365)),
+              includeRoomIDs:
+                  roomState.enabledValues().map((r) => r.id!).toSet(),
+              includeStatuses: Set.from(statusList))
+          .map((requests) =>
+              requests.where(requestFilter ?? (r) => true).toList());
       return StreamBuilder(
         stream: requestStream,
         builder: (context, snapshot) {

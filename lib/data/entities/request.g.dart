@@ -41,6 +41,7 @@ Request _$RequestFromJson(Map<String, dynamic> json) => Request(
         (k, e) => MapEntry(DateTime.parse(k),
             e == null ? null : Request.fromJson(e as Map<String, dynamic>)),
       ),
+      ignoreOverlaps: json['ignoreOverlaps'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$RequestToJson(Request instance) => <String, dynamic>{
@@ -52,6 +53,7 @@ Map<String, dynamic> _$RequestToJson(Request instance) => <String, dynamic>{
       'recurrancePattern': instance.recurrancePattern?.toJson(),
       'recurranceOverrides': instance.recurranceOverrides
           ?.map((k, e) => MapEntry(k.toIso8601String(), e?.toJson())),
+      'ignoreOverlaps': instance.ignoreOverlaps,
     };
 
 RecurrancePattern _$RecurrancePatternFromJson(Map<String, dynamic> json) =>

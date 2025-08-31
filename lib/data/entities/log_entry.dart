@@ -29,6 +29,7 @@ enum Action {
   reject,
   revisit,
   endRecurring,
+  ignoreOverlaps,
   update,
   delete,
 }

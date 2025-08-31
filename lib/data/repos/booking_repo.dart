@@ -126,6 +126,13 @@ class BookingRepo extends ChangeNotifier {
     await _log(orgID, requestID, "EndRecurring", Action.endRecurring);
   }
 
+  Future<void> ignoreOverlaps(String orgID, String requestID) async {
+    await _confirmedRequestsRef(orgID).doc(requestID).update({
+      "ignoreOverlaps": true,
+    });
+    await _log(orgID, requestID, "IgnoreOverlaps", Action.ignoreOverlaps);
+  }
+
   Stream<List<DecoratedLogEntry>> decorateLogs(
       String orgID, Stream<List<RequestLogEntry>> logStream) {
     return logStream.asyncMap((logEntries) async {
@@ -461,6 +468,9 @@ class BookingRepo extends ChangeNotifier {
       // Group requests by roomID
       var requestsByRoom = <String, List<Request>>{};
       for (var request in requests) {
+        if (request.ignoreOverlaps) {
+          continue;
+        }
         requestsByRoom
             .putIfAbsent(request.roomID, () => [])
             .addAll(request.expand(startTime, endTime));
