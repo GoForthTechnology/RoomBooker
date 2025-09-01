@@ -47,6 +47,35 @@ exports.onRequestDenied = functions.firestore
       logger.log(`Function finished for denial of ${bookingID}`);
     });
 
+exports.onBookingUpdated = functions.firestore
+    .document("orgs/{orgID}/confirmed-requests/{bookingID}")
+    .onUpdate(async (change, context) => {
+      const orgID = context.params.orgID;
+      const bookingID = context.params.bookingID;
+      const newValue = change.after.data(); // Data after the update
+      const previousValue = change.before.data(); // Data before the update
+      const details = await getRequestDetails(orgID, bookingID);
+      if (isFromAdmin(details)) {
+        // We don't want to spam the admins for actions they took themselves.
+        return;
+      }
+      updates = getUpdates(previousValue, newValue);
+      if (updates.length > 0) {
+        await sendEmail(
+            newValue.email,
+            "Booking Request Updated",
+            `Your booking ${details.eventName} has been updated.
+
+            ${updates.join("\n")}
+
+            Please reach out to the office with any questions.
+
+            God Bless,
+            Church of the Resurrection Parish Office
+            `);
+      }
+    });
+
 exports.onNewAdminRequest = functions.firestore
     .document("orgs/{orgID}/admin-requests/{requestID}")
     .onCreate(async (snap, context) => {
@@ -104,6 +133,80 @@ exports.onAdminRequestRevoked = functions.firestore
       );
       logger.log(`Function finished for admin removal ${requestID}`);
     });
+
+function getUpdates(oldValue, newValue) {
+  const updates = [];
+  if (oldValue.eventStartTime !== newValue.eventStartTime) {
+    updates.push(`Event Start Time: ${oldValue.eventStartTime} -> ${newValue.eventStartTime}`);
+  }
+  if (oldValue.eventEndTime !== newValue.eventEndTime) {
+    updates.push(`Event End Time: ${oldValue.eventEndTime} -> ${newValue.eventEndTime}`);
+  }
+  if (oldValue.roomName !== newValue.roomName) {
+    updates.push(`Room Name: ${oldValue.roomName} -> ${newValue.roomName}`);
+  }
+
+  const oldOverrides = oldValue.recurranceOverrides || {};
+  const newOverrides = newValue.recurranceOverrides || {};
+  const allOverrideKeys = new Set([...Object.keys(oldOverrides), ...Object.keys(newOverrides)]);
+
+  if (allOverrideKeys.size > 0) {
+    const formatDate = (isoString) => new Date(isoString).toISOString().split("T")[0];
+
+    for (const key of allOverrideKeys) {
+      const oldEntry = oldOverrides[key];
+      const newEntry = newOverrides[key];
+
+      // Use stringify for a simple deep-compare. For Firestore objects, this is generally safe,
+      // but a dedicated deep-equal function would be more robust against key-order changes.
+      if (JSON.stringify(oldEntry) === JSON.stringify(newEntry)) {
+        continue;
+      }
+
+      const dateStr = formatDate(key);
+
+      if (oldEntry === undefined) { // An override or cancellation was added
+        if (newEntry === null) {
+          updates.push(`Cancelled occurrence on ${dateStr}`);
+        } else {
+          updates.push(`Added override for ${dateStr}:`);
+          const details = [];
+          if (newEntry.roomName) details.push(`  - Room Name: ${newEntry.roomName}`);
+          if (newEntry.eventStartTime) details.push(`  - Event Start Time: ${newEntry.eventStartTime}`);
+          if (newEntry.eventEndTime) details.push(`  - Event End Time: ${newEntry.eventEndTime}`);
+          updates.push(...details);
+        }
+      } else if (newEntry === undefined) { // An override or cancellation was removed
+        if (oldEntry === null) {
+          updates.push(`Removed cancellation for ${dateStr}`);
+        } else {
+          updates.push(`Removed override for ${dateStr}`);
+        }
+      } else { // An override or cancellation was modified
+        if (oldEntry === null) { // Was cancelled, now an override
+          updates.push(`Updated occurrence on ${dateStr} (was cancelled):`);
+          const details = [];
+          if (newEntry.roomName) details.push(`  - Room Name: ${newEntry.roomName}`);
+          if (newEntry.eventStartTime) details.push(`  - Event Start Time: ${newEntry.eventStartTime}`);
+          if (newEntry.eventEndTime) details.push(`  - Event End Time: ${newEntry.eventEndTime}`);
+          updates.push(...details);
+        } else if (newEntry === null) { // Was an override, now cancelled
+          updates.push(`Cancelled occurrence on ${dateStr} (was an override)`);
+        } else { // Both are overrides, but different
+          const overrideUpdates = getUpdates(oldEntry, newEntry);
+          if (overrideUpdates.length > 0) {
+            updates.push(`Updated override for ${dateStr}:`);
+            overrideUpdates.forEach((u) => updates.push(`  - ${u}`));
+          }
+        }
+      }
+    }
+  }
+  return updates;
+}
+
+exports.getUpdates = getUpdates;
+
 
 /**
  * Retrieves the organization data for a given organization ID.
@@ -196,6 +299,8 @@ function bookingInfo(eventName, data) {
   Start Time: ${data.eventStartTime}
   End Time: ${data.eventEndTime}`;
 }
+
+exports.bookingInfo = bookingInfo;
 
 
 /**
