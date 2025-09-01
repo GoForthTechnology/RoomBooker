@@ -20,6 +20,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 bool useEmulator = true;
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );

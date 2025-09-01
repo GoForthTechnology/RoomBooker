@@ -7,12 +7,17 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:610453083826:android:0ef35aa24f49d96dd21bab",
+        "mobilesdk_app_id": "1:610453083826:android:6e7a6e6de92bd450d21bab",
         "android_client_info": {
-          "package_name": "org.goforthtech.roombooker"
+          "package_name": "com.example.roombooker"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "610453083826-vpbosjaqm1i70nujnrq76inrtt9lbvhh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAny3qKV-m0yHye_OBYph8pR-ULhtJHEoQ"
@@ -20,7 +25,55 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "610453083826-vpbosjaqm1i70nujnrq76inrtt9lbvhh.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "610453083826-m67onil0arc7o1k5agohf9eje4he2d4a.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.roomBooker"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:610453083826:android:0ef35aa24f49d96dd21bab",
+        "android_client_info": {
+          "package_name": "org.goforthtech.roombooker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "610453083826-vpbosjaqm1i70nujnrq76inrtt9lbvhh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAny3qKV-m0yHye_OBYph8pR-ULhtJHEoQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "610453083826-vpbosjaqm1i70nujnrq76inrtt9lbvhh.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "610453083826-m67onil0arc7o1k5agohf9eje4he2d4a.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.roomBooker"
+              }
+            }
+          ]
         }
       }
     }

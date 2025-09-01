@@ -21,25 +21,13 @@ class DefaultFirebaseOptions {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -60,6 +48,44 @@ class DefaultFirebaseOptions {
     authDomain: 'roombooker-5e947.firebaseapp.com',
     storageBucket: 'roombooker-5e947.firebasestorage.app',
     measurementId: 'G-MBM4WWN4VJ',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyBMRSVQIL26ognzn5vwGe1O0JokZBFl_VQ',
+    appId: '1:610453083826:ios:44cdd5026f0a5ad8d21bab',
+    messagingSenderId: '610453083826',
+    projectId: 'roombooker-5e947',
+    storageBucket: 'roombooker-5e947.firebasestorage.app',
+    iosClientId: '610453083826-m67onil0arc7o1k5agohf9eje4he2d4a.apps.googleusercontent.com',
+    iosBundleId: 'com.example.roomBooker',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyBMRSVQIL26ognzn5vwGe1O0JokZBFl_VQ',
+    appId: '1:610453083826:ios:44cdd5026f0a5ad8d21bab',
+    messagingSenderId: '610453083826',
+    projectId: 'roombooker-5e947',
+    storageBucket: 'roombooker-5e947.firebasestorage.app',
+    iosClientId: '610453083826-m67onil0arc7o1k5agohf9eje4he2d4a.apps.googleusercontent.com',
+    iosBundleId: 'com.example.roomBooker',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyAny3qKV-m0yHye_OBYph8pR-ULhtJHEoQ',
+    appId: '1:610453083826:android:6e7a6e6de92bd450d21bab',
+    messagingSenderId: '610453083826',
+    projectId: 'roombooker-5e947',
+    storageBucket: 'roombooker-5e947.firebasestorage.app',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyA1J8TlTq-1RGGxtEWcluwDfYsNOZwl68c',
+    appId: '1:610453083826:web:4395811ae52fbd53d21bab',
+    messagingSenderId: '610453083826',
+    projectId: 'roombooker-5e947',
+    authDomain: 'roombooker-5e947.firebaseapp.com',
+    storageBucket: 'roombooker-5e947.firebasestorage.app',
+    measurementId: 'G-ZPQWCHTBDQ',
   );
 
 }

@@ -1,5 +1,5 @@
-package com.example.room_booker
+package org.goforthtech.roombooker
 
 import io.flutter.embedding.android.FlutterActivity
 
-class MainActivity: FlutterActivity()
+class MainActivity : FlutterActivity()
