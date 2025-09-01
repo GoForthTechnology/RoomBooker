@@ -62,7 +62,7 @@ exports.onBookingUpdated = functions.firestore
       updates = getUpdates(previousValue, newValue);
       if (updates.length > 0) {
         await sendEmail(
-            newValue.email,
+            details.email,
             "Booking Request Updated",
             `Your booking ${details.eventName} has been updated.
 
