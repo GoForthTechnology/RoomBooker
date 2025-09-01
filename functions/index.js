@@ -59,7 +59,7 @@ exports.onBookingUpdated = functions.firestore
         // We don't want to spam the admins for actions they took themselves.
         return;
       }
-      updates = getUpdates(previousValue, newValue);
+      const updates = getUpdates(previousValue, newValue);
       if (updates.length > 0) {
         await sendEmail(
             details.email,
@@ -134,6 +134,17 @@ exports.onAdminRequestRevoked = functions.firestore
       logger.log(`Function finished for admin removal ${requestID}`);
     });
 
+/**
+ * Compares two versions of a booking request and generates a human-readable list of changes.
+ * It checks for modifications in basic fields like start time, end time, and room name.
+ * It also performs a deep comparison of the `recurranceOverrides` map to identify
+ * added, removed, or modified single-event overrides and cancellations.
+ *
+ * @param {object} oldValue - The booking data object before the update.
+ * @param {object} newValue - The booking data object after the update.
+ * @return {string[]} An array of strings, with each string describing a specific change.
+ *                    Returns an empty array if there are no differences.
+ */
 function getUpdates(oldValue, newValue) {
   const updates = [];
   if (oldValue.eventStartTime !== newValue.eventStartTime) {

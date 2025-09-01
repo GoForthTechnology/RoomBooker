@@ -1,4 +1,7 @@
-const {bookingInfo} = require("../index.js"); // Assuming bookingInfo is exported
+/* global describe, it, expect */
+
+const {bookingInfo} = require("../index.js");
+
 
 describe("bookingInfo", () => {
   it("should return correctly formatted booking information", () => {
@@ -29,7 +32,7 @@ describe("getUpdates", () => {
       eventEndTime: "11:00 AM",
       roomName: "Room A",
     };
-    const newValue = { ...oldValue }; // Create a deep copy
+    const newValue = {...oldValue}; // Create a deep copy
 
     const result = getUpdates(oldValue, newValue);
     expect(result).toEqual([]);
