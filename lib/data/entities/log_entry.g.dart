@@ -29,6 +29,7 @@ const _$ActionEnumMap = {
   Action.reject: 'reject',
   Action.revisit: 'revisit',
   Action.endRecurring: 'endRecurring',
+  Action.ignoreOverlaps: 'ignoreOverlaps',
   Action.update: 'update',
   Action.delete: 'delete',
 };
