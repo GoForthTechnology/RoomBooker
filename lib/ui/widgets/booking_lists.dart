@@ -278,7 +278,7 @@ class BookingList extends StatelessWidget {
         requests.map(
             (request) => bookingRepo.getRequestDetails(orgID, request.id!)),
         (detailsList) {
-      return List<RenderedRequest>.generate(
+      var renderedRequests = List<RenderedRequest>.generate(
         detailsList.length,
         (index) {
           var details = detailsList[index];
@@ -297,6 +297,10 @@ class BookingList extends StatelessWidget {
           );
         },
       );
+      renderedRequests.sort((a, b) => a.request.eventStartTime.compareTo(
+            b.request.eventStartTime,
+          ));
+      return renderedRequests;
     });
   }
 
