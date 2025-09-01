@@ -109,7 +109,7 @@ describe("getUpdates", () => {
 
     const result = getUpdates(oldValue, newValue);
     const expected = [
-      "Added override for 2024-01-01:",
+      "Added ocurrence on 2024-01-01:",
       "  - Room Name: Room B",
       "  - Event Start Time: 10:30 AM",
       "  - Event End Time: 11:30 AM",
@@ -157,7 +157,7 @@ describe("getUpdates", () => {
 
     const result = getUpdates(oldValue, newValue);
     const expected = [
-      "Updated override for 2024-01-01:",
+      "Updated ocurrence on 2024-01-01:",
       "  - Event Start Time: 10:30 AM -> 10:45 AM",
       "Updated occurrence on 2024-01-08 (was cancelled):",
       "  - Room Name: Room D",
@@ -189,7 +189,7 @@ describe("getUpdates", () => {
 
     const result = getUpdates(oldValue, newValue);
     const expected = [
-      "Removed override for 2024-01-01",
+      "Removed ocurrence on 2024-01-01",
       "Removed cancellation for 2024-01-08",
     ];
     expect(result.sort()).toEqual(expected.sort());

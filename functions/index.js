@@ -180,7 +180,7 @@ function getUpdates(oldValue, newValue) {
         if (newEntry === null) {
           updates.push(`Cancelled occurrence on ${dateStr}`);
         } else {
-          updates.push(`Added override for ${dateStr}:`);
+          updates.push(`Added ocurrence on ${dateStr}:`);
           const details = [];
           if (newEntry.roomName) details.push(`  - Room Name: ${newEntry.roomName}`);
           if (newEntry.eventStartTime) details.push(`  - Event Start Time: ${newEntry.eventStartTime}`);
@@ -191,7 +191,7 @@ function getUpdates(oldValue, newValue) {
         if (oldEntry === null) {
           updates.push(`Removed cancellation for ${dateStr}`);
         } else {
-          updates.push(`Removed override for ${dateStr}`);
+          updates.push(`Removed ocurrence on ${dateStr}`);
         }
       } else { // An override or cancellation was modified
         if (oldEntry === null) { // Was cancelled, now an override
@@ -206,7 +206,7 @@ function getUpdates(oldValue, newValue) {
         } else { // Both are overrides, but different
           const overrideUpdates = getUpdates(oldEntry, newEntry);
           if (overrideUpdates.length > 0) {
-            updates.push(`Updated override for ${dateStr}:`);
+            updates.push(`Updated ocurrence on ${dateStr}:`);
             overrideUpdates.forEach((u) => updates.push(`  - ${u}`));
           }
         }
