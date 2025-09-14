@@ -65,18 +65,21 @@ class _LandingScreenState extends State<LandingScreen> {
           ],
         ),
       ),
-      floatingActionButton: isLoggedIn
-          ? FloatingActionButton(
-              onPressed: () async {
-                var repo = Provider.of<OrgRepo>(context, listen: false);
-                var name = await promptForOrgName(context);
-                if (name != null) {
-                  await repo.addOrgForCurrentUser(name);
-                }
-              },
-              child: const Icon(Icons.add),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton(
+        tooltip: "Add an org",
+        onPressed: () async {
+          if (isLoggedIn) {
+            var repo = Provider.of<OrgRepo>(context, listen: false);
+            var name = await promptForOrgName(context);
+            if (name != null) {
+              await repo.addOrgForCurrentUser(name);
+            }
+          } else {
+            await AutoRouter.of(context).push(LoginRoute());
+          }
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
