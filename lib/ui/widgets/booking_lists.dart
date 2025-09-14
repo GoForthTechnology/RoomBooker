@@ -347,6 +347,9 @@ class BookingList extends StatelessWidget {
                 return const Placeholder();
               }
               var renderedRequests = detailsSnapshot.data ?? [];
+              if (renderedRequests.isEmpty) {
+                return Text(emptyText);
+              }
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
