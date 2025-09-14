@@ -254,7 +254,8 @@ class OrgList extends StatelessWidget {
         }
         var orgs = snapshot.data!;
         if (orgs.isEmpty) {
-          return const Text('No organizations found. Please add one.');
+          return const Text(
+              'No organizations found. Please sign in or sign up to add one.');
         }
         return ListView.builder(
           shrinkWrap: true,
