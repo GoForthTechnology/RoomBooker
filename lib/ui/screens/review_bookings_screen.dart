@@ -63,7 +63,6 @@ class ReviewBookingsScreen extends StatelessWidget {
                         child: Column(
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                          RoomCardSelector(),
                           const Heading("Pending"),
                           PendingBookings(
                             repo: bookingRepo,
