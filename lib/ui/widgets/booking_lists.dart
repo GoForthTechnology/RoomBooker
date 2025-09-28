@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:auto_route/auto_route.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -84,21 +85,18 @@ class ConflictingBookings extends StatelessWidget {
           return Container();
         }
         var conflicts = snapshot.data!;
-        Set<String> conflictingRequests = {};
+        Set<Request> conflictingRequests = {};
         for (var pair in conflicts) {
-          conflictingRequests.add(pair.first.id!);
-          conflictingRequests.add(pair.second.id!);
+          conflictingRequests.add(pair.first);
+          conflictingRequests.add(pair.second);
         }
         return BookingList(
           onFocusBooking: onFocusBooking,
           orgID: orgID,
           emptyText: "No conflicting bookings",
-          requestFilter: (r) => conflictingRequests.contains(r.id),
-          statusList: const [
-            RequestStatus.confirmed,
-          ],
-          /*overrideRequests: conflictingRequests
-              .sorted((a, b) => a.eventStartTime.compareTo(b.eventStartTime)),*/
+          statusList: const [],
+          overrideRequests: conflictingRequests
+              .sorted((l, r) => l.eventStartTime.compareTo(r.eventStartTime)),
           actions: [
             RequestAction(
                 text: "View",
@@ -319,16 +317,21 @@ class BookingList extends StatelessWidget {
   Widget build(BuildContext context) {
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
     return Consumer<RoomState>(builder: (context, roomState, child) {
-      Stream<List<Request>> requestStream = bookingRepo
-          .listRequests(
-              orgID: orgID,
-              startTime: DateTime.now(),
-              endTime: DateTime.now().add(const Duration(days: 365)),
-              includeRoomIDs:
-                  roomState.enabledValues().map((r) => r.id!).toSet(),
-              includeStatuses: Set.from(statusList))
-          .map((requests) =>
-              requests.where(requestFilter ?? (r) => true).toList());
+      Stream<List<Request>> requestStream;
+      if (overrideRequests != null) {
+        requestStream = Stream.value(overrideRequests!);
+      } else {
+        requestStream = bookingRepo
+            .listRequests(
+                orgID: orgID,
+                startTime: DateTime.now(),
+                endTime: DateTime.now().add(const Duration(days: 365)),
+                includeRoomIDs:
+                    roomState.enabledValues().map((r) => r.id!).toSet(),
+                includeStatuses: Set.from(statusList))
+            .map((requests) =>
+                requests.where(requestFilter ?? (r) => true).toList());
+      }
       return StreamBuilder(
         stream: requestStream,
         builder: (context, snapshot) {
