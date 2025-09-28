@@ -23,6 +23,9 @@ extension on Request {
       var roomName = roomState.getRoom(roomID)?.name ?? "Unknown Room";
       s += " ($roomName)";
     }
+    if (ignoreOverlaps) {
+      s += "\n(Ignoring Overlaps!)";
+    }
     return Appointment(
       subject: s,
       color: color,
