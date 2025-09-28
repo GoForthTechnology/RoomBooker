@@ -358,7 +358,7 @@ async function notifyRequesterOfPeningBooking(orgID, bookingID, data) {
         "Booking Request Received", `
         Dear ${details.name},
 
-        Thank you for your request has been received and we will be in touch shortly.
+        Your request has been received and we will be in touch shortly.
 
         ${bookingInfo(details.eventName, data)}
 
