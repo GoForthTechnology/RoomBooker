@@ -93,6 +93,13 @@ class ConflictingBookings extends StatelessWidget {
         return BookingList(
           onFocusBooking: onFocusBooking,
           orgID: orgID,
+          backgroundColorFn: (r) {
+            if (r.eventStartTime
+                .isBefore(DateTime.now().add(Duration(days: 7)))) {
+              return Color.fromRGBO(238, 205, 205, 1.0);
+            }
+            return null;
+          },
           emptyText: "No conflicting bookings",
           statusList: const [],
           overrideRequests: conflictingRequests
@@ -270,6 +277,7 @@ class BookingList extends StatelessWidget {
   final bool Function(Request)? requestFilter;
   final List<RequestAction> actions;
   final List<Request>? overrideRequests;
+  final Color? Function(Request)? backgroundColorFn;
 
   const BookingList(
       {super.key,
@@ -279,6 +287,7 @@ class BookingList extends StatelessWidget {
       required this.statusList,
       required this.emptyText,
       this.requestFilter,
+      this.backgroundColorFn,
       this.overrideRequests});
 
   Stream<List<RenderedRequest>> _renderedRequests(
@@ -387,6 +396,7 @@ class BookingList extends StatelessWidget {
                             details: renderedRequest.details,
                             onFocusBooking: onFocusBooking,
                             actions: actions,
+                            backgroundColorFn: backgroundColorFn,
                           );
                         },
                       );
@@ -411,6 +421,7 @@ class BookingTile extends StatelessWidget {
   final Function(Request) onFocusBooking;
   final Request request;
   final PrivateRequestDetails details;
+  final Color? Function(Request)? backgroundColorFn;
 
   const BookingTile({
     super.key,
@@ -419,13 +430,19 @@ class BookingTile extends StatelessWidget {
     required this.actions,
     required this.details,
     required this.orgID,
+    this.backgroundColorFn,
   });
 
   @override
   Widget build(BuildContext context) {
     var roomState = Provider.of<RoomState>(context, listen: false);
+    Color? color;
+    if (backgroundColorFn != null) {
+      color = backgroundColorFn!(request);
+    }
     return Card(
       elevation: 1,
+      color: color,
       child: ExpansionTile(
         title: Text("${details.eventName} for ${details.name}"),
         subtitle: _subtitle(context),
