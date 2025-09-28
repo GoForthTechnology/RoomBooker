@@ -13,6 +13,17 @@ import 'package:room_booker/ui/widgets/stateful_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
+class BookingSearchContext extends ChangeNotifier {
+  String searchQuery = "";
+
+  BookingSearchContext();
+
+  void updateQuery(String query) {
+    searchQuery = query;
+    notifyListeners();
+  }
+}
+
 class ConfirmedOneOffBookings extends StatelessWidget {
   final BookingRepo repo;
   final String orgID;
@@ -333,40 +344,50 @@ class BookingList extends StatelessWidget {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          return StreamBuilder(
-            stream: _renderedRequests(bookingRepo, orgID, snapshot.data ?? []),
-            builder: (context, detailsSnapshot) {
-              if (detailsSnapshot.hasError) {
-                log(detailsSnapshot.error.toString(),
-                    error: detailsSnapshot.error);
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: ${detailsSnapshot.error}')),
-                  );
-                });
-                return const Placeholder();
-              }
-              var renderedRequests = detailsSnapshot.data ?? [];
-              if (renderedRequests.isEmpty) {
-                return Text(emptyText);
-              }
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: renderedRequests.length,
-                itemBuilder: (context, index) {
-                  var renderedRequest = renderedRequests[index];
-                  return BookingTile(
-                    orgID: orgID,
-                    request: renderedRequest.request,
-                    details: renderedRequest.details,
-                    onFocusBooking: onFocusBooking,
-                    actions: actions,
-                  );
-                },
-              );
-            },
-          );
+          return Consumer<BookingSearchContext>(
+              builder: (context, searchContext, child) => StreamBuilder(
+                    stream: _renderedRequests(
+                        bookingRepo, orgID, snapshot.data ?? []),
+                    builder: (context, detailsSnapshot) {
+                      if (detailsSnapshot.hasError) {
+                        log(detailsSnapshot.error.toString(),
+                            error: detailsSnapshot.error);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content:
+                                    Text('Error: ${detailsSnapshot.error}')),
+                          );
+                        });
+                        return const Placeholder();
+                      }
+                      var renderedRequests = detailsSnapshot.data ?? [];
+                      if (renderedRequests.isEmpty) {
+                        return Text(emptyText);
+                      }
+                      renderedRequests = renderedRequests
+                          .where((r) => r.details.eventName
+                              .toLowerCase()
+                              .contains(
+                                  searchContext.searchQuery.toLowerCase()))
+                          .toList();
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: renderedRequests.length,
+                        itemBuilder: (context, index) {
+                          var renderedRequest = renderedRequests[index];
+                          return BookingTile(
+                            orgID: orgID,
+                            request: renderedRequest.request,
+                            details: renderedRequest.details,
+                            onFocusBooking: onFocusBooking,
+                            actions: actions,
+                          );
+                        },
+                      );
+                    },
+                  ));
         },
       );
     });
