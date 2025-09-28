@@ -369,9 +369,10 @@ class BookingList extends StatelessWidget {
                         return Text(emptyText);
                       }
                       renderedRequests = renderedRequests
-                          .where((r) => r.details.eventName
-                              .toLowerCase()
-                              .contains(
+                          .where((r) =>
+                              r.details.eventName.toLowerCase().contains(
+                                  searchContext.searchQuery.toLowerCase()) ||
+                              r.request.roomName.toLowerCase().contains(
                                   searchContext.searchQuery.toLowerCase()))
                           .toList();
                       return ListView.builder(
