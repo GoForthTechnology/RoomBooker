@@ -107,6 +107,12 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             value: state.isPublicEvent,
             onChanged: readOnly ? null : state.updatePublicEvent,
           ),
+          if (state.existingRequest?.ignoreOverlaps ?? false)
+            SwitchListTile(
+              title: Text("Ignore overlapping events"),
+              value: state.isIgnoreOverlaps,
+              onChanged: readOnly ? null : state.updateIgnoreOverlaps,
+            ),
           DateField(
             readOnly: readOnly,
             labelText: 'Event Date',
@@ -556,6 +562,7 @@ class RequestEditorState extends ChangeNotifier {
   bool _customRecurrencePattern = false;
   String _roomID = "";
   bool _publicEvent = false;
+  bool _ignoreOverlaps = false;
   final bool _isCurrenetUserAdmin;
 
   String? get roomID => _roomID;
@@ -570,6 +577,7 @@ class RequestEditorState extends ChangeNotifier {
   bool get isCustomRecurrencePattern => _customRecurrencePattern;
   bool get editingEnabled => _editingEnabled;
   bool get isPublicEvent => _publicEvent;
+  bool get isIgnoreOverlaps => _ignoreOverlaps;
 
   Request? get existingRequest => _existingRequest;
 
@@ -597,9 +605,15 @@ class RequestEditorState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateIgnoreOverlaps(bool value) {
+    _ignoreOverlaps = value;
+    notifyListeners();
+  }
+
   void showRequest(Request request, PrivateRequestDetails details,
       {bool updateListeners = true}) {
     _publicEvent = (request.publicName ?? "") != "";
+    _ignoreOverlaps = request.ignoreOverlaps;
     _existingRequest = request;
     _startTime = request.eventStartTime;
     _endTime = request.eventEndTime;
@@ -772,6 +786,7 @@ class RequestEditorState extends ChangeNotifier {
     return Request(
       id: _existingRequest?.id,
       publicName: _publicEvent ? _eventName : null,
+      ignoreOverlaps: _ignoreOverlaps,
       eventStartTime: _startTime!,
       eventEndTime: _endTime!,
       roomID: room.id!,
