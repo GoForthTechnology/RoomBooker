@@ -30,13 +30,16 @@ class BookingRepo extends ChangeNotifier {
   late final DetailCache _detailsCache;
 
   Future<void> _log(
-      String orgID, String requestID, String eventName, Action action) async {
+      String orgID, String requestID, String eventName, Action action,
+      {Request? before, Request? after}) async {
     try {
       await logRepo.addLogEntry(
         orgID: orgID,
         requestID: requestID,
         timestamp: DateTime.now(),
         action: action,
+        before: before,
+        after: after,
       );
       _analytics.logEvent(name: eventName, parameters: {
         "orgID": orgID,
@@ -69,35 +72,38 @@ class BookingRepo extends ChangeNotifier {
 
   Future<void> updateBooking(
     String orgID,
-    Request request,
+    Request originalRequest,
+    Request updatedRequest,
     PrivateRequestDetails privateDetails,
     RequestStatus status,
     RecurringBookingEditChoiceProvider choiceProvider,
   ) async {
-    validateRequest(request);
+    validateRequest(updatedRequest);
     await _db.runTransaction((t) async {
       try {
         switch (status) {
           case RequestStatus.pending:
-            var requestRef = _pendingBookingsRef(orgID).doc(request.id);
-            t.set(requestRef, request);
+            var requestRef = _pendingBookingsRef(orgID).doc(updatedRequest.id);
+            t.set(requestRef, updatedRequest);
             break;
           case RequestStatus.confirmed:
             await _updateConfirmedBooking(
-                t, request, privateDetails, orgID, choiceProvider);
+                t, updatedRequest, privateDetails, orgID, choiceProvider);
             break;
           case RequestStatus.unknown:
           case RequestStatus.denied:
             throw UnimplementedError();
         }
-        var privateDetailsRef = _privateRequestDetailsRef(orgID, request.id!);
+        var privateDetailsRef =
+            _privateRequestDetailsRef(orgID, updatedRequest.id!);
         t.set(privateDetailsRef, privateDetails);
       } catch (e, s) {
         log("Error updating booking", error: e, stackTrace: s);
         rethrow;
       }
     });
-    await _log(orgID, request.id!, "UpdateBooking", Action.update);
+    await _log(orgID, updatedRequest.id!, "UpdateBooking", Action.update,
+        before: originalRequest, after: updatedRequest);
   }
 
   Future<void> addBooking(String orgID, Request request,

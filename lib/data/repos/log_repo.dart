@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart' hide Action;
 import 'package:room_booker/data/entities/log_entry.dart';
+import 'package:room_booker/data/entities/request.dart';
 
 class LogRepo extends ChangeNotifier {
   final FirebaseFirestore db = FirebaseFirestore.instance;
@@ -11,12 +12,16 @@ class LogRepo extends ChangeNotifier {
     required String requestID,
     required DateTime timestamp,
     required Action action,
+    Request? before,
+    Request? after,
   }) async {
     RequestLogEntry entry = RequestLogEntry(
       requestID: requestID,
       timestamp: timestamp,
       action: action,
       adminEmail: FirebaseAuth.instance.currentUser?.email,
+      before: before,
+      after: after,
     );
     db
         .collection("orgs")

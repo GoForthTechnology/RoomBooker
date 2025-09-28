@@ -9,12 +9,16 @@ class RequestLogEntry {
   final DateTime timestamp;
   final String? adminEmail;
   final Action action;
+  final Request? before;
+  final Request? after;
 
   RequestLogEntry({
     required this.requestID,
     required this.timestamp,
     required this.action,
     this.adminEmail,
+    this.before,
+    this.after,
   });
 
   factory RequestLogEntry.fromJson(Map<String, dynamic> json) =>

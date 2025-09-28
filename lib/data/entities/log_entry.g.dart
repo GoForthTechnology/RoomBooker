@@ -12,6 +12,12 @@ RequestLogEntry _$RequestLogEntryFromJson(Map<String, dynamic> json) =>
       timestamp: DateTime.parse(json['timestamp'] as String),
       action: $enumDecode(_$ActionEnumMap, json['action']),
       adminEmail: json['adminEmail'] as String?,
+      before: json['before'] == null
+          ? null
+          : Request.fromJson(json['before'] as Map<String, dynamic>),
+      after: json['after'] == null
+          ? null
+          : Request.fromJson(json['after'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$RequestLogEntryToJson(RequestLogEntry instance) =>
@@ -20,6 +26,8 @@ Map<String, dynamic> _$RequestLogEntryToJson(RequestLogEntry instance) =>
       'timestamp': instance.timestamp.toIso8601String(),
       'adminEmail': instance.adminEmail,
       'action': _$ActionEnumMap[instance.action]!,
+      'before': instance.before?.toJson(),
+      'after': instance.after?.toJson(),
     };
 
 const _$ActionEnumMap = {

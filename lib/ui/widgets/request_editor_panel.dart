@@ -338,6 +338,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                 try {
                   await repo.updateBooking(
                       widget.orgID,
+                      state.existingRequest!,
                       state.getRequest(roomState)!,
                       state.getPrivateDetails(),
                       state.getStatus(),
