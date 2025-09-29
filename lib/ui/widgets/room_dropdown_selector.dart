@@ -54,7 +54,7 @@ class _RoomField extends StatelessWidget {
     var selectedRoom = rooms.firstWhere((room) => room.id == initialRoomID,
         orElse: () => rooms.first);
     var field = DropdownButtonFormField<Room>(
-      value: selectedRoom,
+      initialValue: selectedRoom,
       decoration: const InputDecoration(
         labelText: 'Room',
         border: OutlineInputBorder(),

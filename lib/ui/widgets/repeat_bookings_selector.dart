@@ -74,7 +74,7 @@ class RepeatBookingsSelector extends StatelessWidget {
     var patterns = getRecurringBookingOptions(startTime);
     return DropdownButtonFormField<Frequency>(
       isExpanded: true,
-      value: frequency,
+      initialValue: frequency,
       decoration: const InputDecoration(
         labelText: 'Repeats',
         border: OutlineInputBorder(),
@@ -108,7 +108,7 @@ class RepeatBookingsSelector extends StatelessWidget {
       "Monthly on the $monthlyOccurrence $weekdayName",
     ];
     return DropdownButtonFormField<String>(
-      value: options.first,
+      initialValue: options.first,
       decoration: const InputDecoration(
         labelText: 'Repeats',
         border: OutlineInputBorder(),
