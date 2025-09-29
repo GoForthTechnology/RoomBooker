@@ -104,25 +104,57 @@ class ConflictingBookings extends StatelessWidget {
           statusList: const [],
           overrideRequests: conflictingRequests
               .sorted((l, r) => l.eventStartTime.compareTo(r.eventStartTime)),
-          actions: [
-            RequestAction(
-                text: "View",
-                onClick: (request) => AutoRouter.of(context).push(
-                    ViewBookingsRoute(
-                        orgID: orgID,
-                        requestID: request.id!,
-                        view: CalendarView.day.name,
-                        targetDate: request.eventStartTime))),
-            RequestAction(
-                text: "Ignore",
-                onClick: (request) async {
-                  await repo.ignoreOverlaps(orgID, request.id!);
-                })
-          ],
+          actions: [],
+          actionBuilder: (request) {
+            bool canIgnore = !request.isRepeating();
+            return [
+              RequestAction(
+                  text: "View",
+                  onClick: (request) => AutoRouter.of(context).push(
+                      ViewBookingsRoute(
+                          orgID: orgID,
+                          requestID: request.id!,
+                          view: CalendarView.day.name,
+                          targetDate: request.eventStartTime))),
+              RequestAction(
+                  text: "Ignore",
+                  disableText: canIgnore ? "" : "This booking is recurring",
+                  onClick: !canIgnore
+                      ? null
+                      : (request) async {
+                          bool shouldIgnore =
+                              await _confirmIgnore(context, request);
+                          if (!shouldIgnore) {
+                            return Future.value();
+                          }
+                          await repo.ignoreOverlaps(orgID, request.id!);
+                        })
+            ];
+          },
         );
       },
     );
   }
+}
+
+Future<bool> _confirmIgnore(BuildContext context, Request request) async {
+  return await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+            title: const Text("Ignore Conflict?"),
+            content: const Text(
+                "Are you sure you want to ignore this conflict? This can potentially lead to a double booking."),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text("Confirm"),
+              ),
+            ],
+          ));
 }
 
 class ConfirmedRepeatingBookings extends StatelessWidget {
@@ -278,6 +310,7 @@ class BookingList extends StatelessWidget {
   final List<RequestAction> actions;
   final List<Request>? overrideRequests;
   final Color? Function(Request)? backgroundColorFn;
+  final List<RequestAction> Function(Request)? actionBuilder;
 
   const BookingList(
       {super.key,
@@ -288,6 +321,7 @@ class BookingList extends StatelessWidget {
       required this.emptyText,
       this.requestFilter,
       this.backgroundColorFn,
+      this.actionBuilder,
       this.overrideRequests});
 
   Stream<List<RenderedRequest>> _renderedRequests(
@@ -390,6 +424,10 @@ class BookingList extends StatelessWidget {
                         itemCount: renderedRequests.length,
                         itemBuilder: (context, index) {
                           var renderedRequest = renderedRequests[index];
+                          List<RequestAction> actions = this.actions;
+                          if (actionBuilder != null) {
+                            actions = actionBuilder!(renderedRequest.request);
+                          }
                           return BookingTile(
                             orgID: orgID,
                             request: renderedRequest.request,
@@ -410,9 +448,10 @@ class BookingList extends StatelessWidget {
 
 class RequestAction {
   final String text;
-  final Function(Request) onClick;
+  final Function(Request)? onClick;
+  final String? disableText;
 
-  RequestAction({required this.text, required this.onClick});
+  RequestAction({required this.text, required this.onClick, this.disableText});
 }
 
 class BookingTile extends StatelessWidget {
@@ -476,12 +515,20 @@ class BookingTile extends StatelessWidget {
   Widget? _trailing() {
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: actions
-          .map(
-            (a) => ElevatedButton(
-                onPressed: () => a.onClick(request), child: Text(a.text)),
-          )
-          .toList(),
+      children: actions.map(
+        (a) {
+          Widget button = ElevatedButton(
+              onPressed: a.onClick == null ? null : () => a.onClick!(request),
+              child: Text(a.text));
+          if ((a.disableText ?? "") != "") {
+            button = Tooltip(
+              message: a.disableText!,
+              child: button,
+            );
+          }
+          return button;
+        },
+      ).toList(),
     );
   }
 
