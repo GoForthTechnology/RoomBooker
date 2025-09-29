@@ -7,7 +7,11 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
+import 'package:room_booker/ui/widgets/confirmed_bookings.dart';
+import 'package:room_booker/ui/widgets/conflicting_bookings.dart';
 import 'package:room_booker/ui/widgets/heading.dart';
+import 'package:room_booker/ui/widgets/pending_bookings.dart';
+import 'package:room_booker/ui/widgets/rejected_bookings.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:room_booker/ui/widgets/booking_lists.dart';
 
@@ -54,7 +58,6 @@ class _ReviewBookingsScreenState extends State<ReviewBookingsScreen> {
                 Consumer<RoomState>(builder: (context, roomState, child) {
                   return Scaffold(
                       appBar: AppBar(
-                        // TODO: Add search bar here
                         title: Text('Booking Requests for ${org.name}'),
                         leading: BackButton(
                           onPressed: () {
@@ -96,32 +99,27 @@ class _ReviewBookingsScreenState extends State<ReviewBookingsScreen> {
                               const Heading("Pending"),
                               PendingBookings(
                                 repo: bookingRepo,
-                                onFocusBooking: (r) {}, // TODO: Implement focus
                                 orgID: widget.orgID,
                               ),
                               const Heading("Conflicts"),
                               ConflictingBookings(
                                 repo: bookingRepo,
-                                onFocusBooking: (r) {}, // TODO: Implement focus
                                 orgID: widget.orgID,
                               ),
                               const Heading("Confirmed"),
                               const Subheading("One-offs"),
                               ConfirmedOneOffBookings(
                                 repo: bookingRepo,
-                                onFocusBooking: (r) {}, // TODO: Implement focus
                                 orgID: widget.orgID,
                               ),
                               const Subheading("Recurring"),
                               ConfirmedRepeatingBookings(
                                 repo: bookingRepo,
-                                onFocusBooking: (r) {}, // TODO: Implement focus
                                 orgID: widget.orgID,
                               ),
                               const Heading("Denied"),
                               RejectedBookings(
                                 repo: bookingRepo,
-                                onFocusBooking: (r) {}, // TODO: Implement focus
                                 orgID: widget.orgID,
                               ),
                             ])),
