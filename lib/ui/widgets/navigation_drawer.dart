@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
+import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 
@@ -39,6 +40,9 @@ class MyDrawer extends StatelessWidget {
               TextButton(
                 child: Text("Close Calendar"),
                 onPressed: () {
+                  var prefRepo =
+                      Provider.of<PreferencesRepo>(context, listen: false);
+                  prefRepo.setLastOpenedOrgId(null);
                   var router = AutoRouter.of(context);
                   router.popUntilRoot();
                   router.replace(const LandingRoute());

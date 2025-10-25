@@ -26,19 +26,40 @@ class _LandingScreenState extends State<LandingScreen> {
   StreamSubscription<User?>? subscription;
 
   @override
-  initState() {
+  void initState() {
+    super.initState();
+    var prefsRepo = Provider.of<PreferencesRepo>(context, listen: false);
+    if (prefsRepo.isLoaded) {
+      _handleInitialNavigation(prefsRepo);
+    } else {
+      prefsRepo.addListener(() {
+        if (prefsRepo.isLoaded) {
+          _handleInitialNavigation(prefsRepo);
+        }
+      });
+    }
+
     subscription = FirebaseAuth.instance.authStateChanges().listen((user) {
       setState(() {
         isLoggedIn = user != null;
       });
     });
-    super.initState();
   }
 
   @override
   void dispose() {
     subscription?.cancel();
     super.dispose();
+  }
+
+  void _handleInitialNavigation(PreferencesRepo prefsRepo) {
+    final orgId = prefsRepo.lastOpenedOrgId;
+    if (orgId != null && context.mounted) {
+      // Use a post-frame callback to ensure the widget tree is built.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AutoRouter.of(context).replace(ViewBookingsRoute(orgID: orgId));
+      });
+    }
   }
 
   @override
@@ -302,8 +323,18 @@ class OrgTile extends StatelessWidget {
               leading: const Icon(Icons.business),
               title: Text(org.name),
               subtitle: subtitle != null ? Text(subtitle) : null,
-              onTap: () => AutoRouter.of(context).replace(ViewBookingsRoute(
-                  orgID: org.id!, view: defaultCalendarView.name)),
+              trailing: IconButton(
+                icon: Icon(Icons.settings),
+                onPressed: () {
+                  AutoRouter.of(context).push(OrgSettingsRoute(orgID: org.id!));
+                },
+              ),
+              onTap: () {
+                Provider.of<PreferencesRepo>(context, listen: false)
+                    .setLastOpenedOrgId(org.id!);
+                AutoRouter.of(context).replace(ViewBookingsRoute(
+                    orgID: org.id!, view: defaultCalendarView.name));
+              },
             ),
           );
         });
