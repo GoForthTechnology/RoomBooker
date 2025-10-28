@@ -44,11 +44,7 @@ jobs:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
 
       - name: Update Remote Config Parameter
-<<<<<<< HEAD
-        uses: lirlia/firebase-remote-config-actions
-=======
         uses: lirlia/firebase-remote-config-actions@v0
->>>>>>> caafcfa (Integrate build number into github workflow.)
         with:
           firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROOMBOOKER_5E947 }}
           project-id: roombooker-5e947
