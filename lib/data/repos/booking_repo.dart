@@ -323,7 +323,7 @@ class BookingRepo extends ChangeNotifier {
   Future<void> confirmRequest(String orgID, String requestID) async {
     var requestRef = _pendingBookingsRef(orgID).doc(requestID);
     var confirmedRef = _confirmedRequestsRef(orgID).doc(requestID);
-    return _db.runTransaction((t) async {
+    await _db.runTransaction((t) async {
       var request = await t.get(requestRef);
       var data = request.data();
       if (data == null) {
@@ -331,10 +331,8 @@ class BookingRepo extends ChangeNotifier {
       }
       t.set(confirmedRef, data);
       t.delete(requestRef);
-    }).then((value) => _analytics.logEvent(name: "ConfirmRequest", parameters: {
-          "orgID": orgID,
-          "requestID": requestID,
-        }));
+    });
+    await _log(orgID, requestID, "ConfirmRequest", Action.approve);
   }
 
   Future<void> denyRequest(String orgID, String requestID) async {
