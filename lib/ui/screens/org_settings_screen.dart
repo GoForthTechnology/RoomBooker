@@ -1,11 +1,13 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/router.dart';
+import 'package:universal_html/html.dart' as universal_html;
 
 import 'package:room_booker/ui/widgets/admin_widget.dart';
 import 'package:room_booker/ui/widgets/heading.dart';
@@ -38,6 +40,15 @@ class OrgSettingsScreen extends StatelessWidget {
               }
             },
           ),
+          actions: [
+            if (kIsWeb)
+              IconButton(
+                onPressed: () {
+                  universal_html.window.location.reload();
+                },
+                icon: Icon(Icons.refresh),
+              )
+          ],
         ),
         body: Consumer<OrgRepo>(
           builder: (context, repo, child) => StreamBuilder(
