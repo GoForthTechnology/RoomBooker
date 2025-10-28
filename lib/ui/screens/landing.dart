@@ -10,6 +10,7 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
+import 'package:room_booker/ui/widgets/app_info.dart';
 import 'package:room_booker/ui/widgets/org_details.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
@@ -69,7 +70,11 @@ class _LandingScreenState extends State<LandingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Room Booker"),
-        actions: [SettingsAction(), AuthAction(isSignedIn: isLoggedIn)],
+        actions: [
+          AppInfoAction(),
+          SettingsAction(),
+          AuthAction(isSignedIn: isLoggedIn)
+        ],
       ),
       body: Center(
         child: Column(
@@ -102,6 +107,23 @@ class _LandingScreenState extends State<LandingScreen> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+}
+
+class AppInfoAction extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: "App Info",
+      child: IconButton(
+          onPressed: () => _showDialog(context), icon: Icon(Icons.info)),
+    );
+  }
+
+  void _showDialog(BuildContext context) {
+    showDialog(
+        context: context,
+        builder: (context) => AlertDialog(content: AppInfoWidget()));
   }
 }
 

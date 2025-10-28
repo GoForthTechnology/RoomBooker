@@ -7,6 +7,7 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/router.dart';
+import 'package:room_booker/ui/widgets/app_info.dart';
 import 'package:universal_html/html.dart' as universal_html;
 
 import 'package:room_booker/ui/widgets/admin_widget.dart';
@@ -70,6 +71,8 @@ class OrgSettingsScreen extends StatelessWidget {
                     NotificationWidget(org: snapshot.data!, repo: repo),
                     const Divider(),
                     AdminWidget(org: snapshot.data!, repo: repo),
+                    const Divider(),
+                    AppInfoWidget(),
                     const Divider(),
                     OrgActions(org: snapshot.data!, repo: repo),
                   ],
