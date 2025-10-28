@@ -38,8 +38,8 @@ class EmbedScreen extends StatelessWidget {
                   onTapRequest: (request) {},
                   showDatePickerButton: false,
                   includePrivateBookings: false,
-                  showNavigationArrow: false,
-                  showTodayButton: false,
+                  showNavigationArrow: true,
+                  showTodayButton: true,
                   appendRoomName: true,
                   allowedViews: [],
                 );

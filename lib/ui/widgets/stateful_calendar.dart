@@ -255,6 +255,11 @@ class StatefulCalendar extends StatelessWidget {
     var calendarState = Provider.of<CalendarState>(context, listen: false);
     calendarState.controller.view = view;
     return SfCalendar(
+      // Bizarre things happen when you shink the screen which makes this
+      // necessary...
+      minDate: calendarState.controller.view == CalendarView.schedule
+          ? DateTime.now()
+          : null,
       controller: calendarState.controller,
       showNavigationArrow: showNavigationArrow,
       showTodayButton: showTodayButton,
