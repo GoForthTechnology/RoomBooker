@@ -1,10 +1,12 @@
 import 'dart:developer';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Action;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/data/entities/log_entry.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -22,8 +24,10 @@ class BookingSearchContext extends ChangeNotifier {
 class RenderedRequest {
   final Request request;
   final PrivateRequestDetails details;
+  final List<RequestLogEntry> logEntries;
 
-  RenderedRequest({required this.request, required this.details});
+  RenderedRequest(
+      {required this.request, required this.details, required this.logEntries});
 }
 
 class BookingList extends StatelessWidget {
@@ -47,12 +51,23 @@ class BookingList extends StatelessWidget {
       this.actionBuilder,
       this.overrideRequests});
 
-  Stream<List<RenderedRequest>> _renderedRequests(
-      BookingRepo bookingRepo, String orgID, List<Request> requests) {
-    return Rx.combineLatest(
+  Stream<List<RenderedRequest>> _renderedRequests(BookingRepo bookingRepo,
+      LogRepo logRepo, String orgID, List<Request> requests) {
+    var detailStream = Rx.combineLatest(
         requests.map(
             (request) => bookingRepo.getRequestDetails(orgID, request.id!)),
-        (detailsList) {
+        (l) => l);
+    var logEntryStream = Rx.combineLatest(
+        requests.map((request) =>
+            logRepo.getLogEntries(orgID, requestIDs: {request.id!})),
+        (l) => l).map((lofl) => lofl.expand((l) => l).toList());
+    return Rx.combineLatest2(detailStream, logEntryStream,
+        (detailsList, logEntries) {
+      Map<String, List<RequestLogEntry>> logEntryIndex = {};
+      for (var logEntry in logEntries) {
+        logEntryIndex.putIfAbsent(logEntry.requestID, () => []);
+        logEntryIndex[logEntry.requestID]!.add(logEntry);
+      }
       var renderedRequests = List<RenderedRequest>.generate(
         detailsList.length,
         (index) {
@@ -69,6 +84,7 @@ class BookingList extends StatelessWidget {
           return RenderedRequest(
             request: requests[index],
             details: details,
+            logEntries: logEntryIndex[details.id!] ?? [],
           );
         },
       );
@@ -82,6 +98,7 @@ class BookingList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
+    var logRepo = Provider.of<LogRepo>(context, listen: false);
     return Consumer<RoomState>(builder: (context, roomState, child) {
       Stream<List<Request>> requestStream;
       if (overrideRequests != null) {
@@ -116,7 +133,7 @@ class BookingList extends StatelessWidget {
           return Consumer<BookingSearchContext>(
               builder: (context, searchContext, child) => StreamBuilder(
                     stream: _renderedRequests(
-                        bookingRepo, orgID, snapshot.data ?? []),
+                        bookingRepo, logRepo, orgID, snapshot.data ?? []),
                     builder: (context, detailsSnapshot) {
                       if (detailsSnapshot.hasError) {
                         log(detailsSnapshot.error.toString(),
@@ -156,6 +173,7 @@ class BookingList extends StatelessWidget {
                             request: renderedRequest.request,
                             details: renderedRequest.details,
                             actions: actions,
+                            logEntries: renderedRequest.logEntries,
                             backgroundColorFn: backgroundColorFn,
                           );
                         },
@@ -181,6 +199,7 @@ class BookingTile extends StatelessWidget {
   final List<RequestAction> actions;
   final Request request;
   final PrivateRequestDetails details;
+  final List<RequestLogEntry> logEntries;
   final Color? Function(Request)? backgroundColorFn;
 
   const BookingTile({
@@ -190,6 +209,7 @@ class BookingTile extends StatelessWidget {
     required this.details,
     required this.orgID,
     this.backgroundColorFn,
+    required this.logEntries,
   });
 
   @override
@@ -226,7 +246,14 @@ class BookingTile extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 )),
           ),
-          _detailTable(request, details),
+          Wrap(
+            spacing: 16.0, // gap between adjacent chips
+            runSpacing: 8.0, // gap between lines
+            children: [
+              _DetailTable(booking: request, details: details),
+              _LogTable(logEntries: logEntries),
+            ],
+          ),
         ],
       ),
     );
@@ -276,8 +303,18 @@ class BookingTile extends StatelessWidget {
   }
 }
 
-Widget _detailTable(Request booking, PrivateRequestDetails details) {
-  return Padding(
+class _DetailTable extends StatelessWidget {
+  final Request booking;
+  final PrivateRequestDetails details;
+
+  const _DetailTable({
+    required this.booking,
+    required this.details,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
       padding: const EdgeInsets.only(left: 20),
       child: Table(
         defaultColumnWidth: const FixedColumnWidth(200),
@@ -286,7 +323,36 @@ Widget _detailTable(Request booking, PrivateRequestDetails details) {
           _bookingField('Email', details.email),
           _bookingField('Message', details.message),
         ],
-      ));
+      ),
+    );
+  }
+}
+
+class _LogTable extends StatelessWidget {
+  final List<RequestLogEntry> logEntries;
+
+  const _LogTable({required this.logEntries});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 20),
+      child: Table(
+        defaultColumnWidth: const FixedColumnWidth(200),
+        children: _logRows(logEntries),
+      ),
+    );
+  }
+}
+
+List<TableRow> _logRows(List<RequestLogEntry> logEntries) {
+  logEntries.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+  var widgets = <TableRow>[];
+  for (var entry in logEntries) {
+    widgets.add(_bookingField(
+        entry.action.name.toUpperCase(), entry.timestamp.toString()));
+  }
+  return widgets;
 }
 
 TableRow _bookingField(String label, String value) {
