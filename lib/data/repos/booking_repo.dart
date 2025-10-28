@@ -202,6 +202,7 @@ class BookingRepo extends ChangeNotifier {
   }
 
   Stream<Request?> getRequest(String orgID, String requestID) {
+    debugPrint("Getting request: $requestID");
     return _confirmedRequestsRef(orgID)
         .doc(requestID)
         .snapshots()
@@ -235,6 +236,7 @@ class BookingRepo extends ChangeNotifier {
       required DateTime endTime,
       Set<RequestStatus>? includeStatuses,
       Set<String>? includeRoomIDs}) {
+    debugPrint("Listing requests for org: $orgID");
     List<Query<Request>> queries = [];
     var hasConfirmed = includeStatuses == null ||
         includeStatuses.contains(RequestStatus.confirmed);

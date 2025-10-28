@@ -183,6 +183,7 @@ class OrgRepo extends ChangeNotifier {
   }
 
   Stream<Organization?> getOrg(String orgID) async* {
+    debugPrint("Getting org: $orgID");
     yield* _db.collection("orgs").doc(orgID).snapshots().map((s) {
       if (!s.exists) {
         return null;
@@ -194,6 +195,7 @@ class OrgRepo extends ChangeNotifier {
   }
 
   Stream<List<Organization>> getOrgs({bool excludeOwned = false}) async* {
+    debugPrint("Listing orgs");
     Set<String> ownedOrgs = {};
     var user = FirebaseAuth.instance.currentUser;
     if (excludeOwned && user != null) {
@@ -217,6 +219,7 @@ class OrgRepo extends ChangeNotifier {
   }
 
   Stream<List<Organization>> getOrgsForCurrentUser() async* {
+    debugPrint("Listing orgs for current user");
     var user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       log("foo");

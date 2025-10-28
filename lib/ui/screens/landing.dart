@@ -24,6 +24,7 @@ class LandingScreen extends StatefulWidget {
 
 class _LandingScreenState extends State<LandingScreen> {
   bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
+  bool isRedirecting = false;
   StreamSubscription<User?>? subscription;
 
   @override
@@ -31,11 +32,11 @@ class _LandingScreenState extends State<LandingScreen> {
     super.initState();
     var prefsRepo = Provider.of<PreferencesRepo>(context, listen: false);
     if (prefsRepo.isLoaded) {
-      _handleInitialNavigation(prefsRepo);
+      isRedirecting = _handleInitialNavigation(prefsRepo);
     } else {
       prefsRepo.addListener(() {
         if (prefsRepo.isLoaded) {
-          _handleInitialNavigation(prefsRepo);
+          isRedirecting = _handleInitialNavigation(prefsRepo);
         }
       });
     }
@@ -53,18 +54,26 @@ class _LandingScreenState extends State<LandingScreen> {
     super.dispose();
   }
 
-  void _handleInitialNavigation(PreferencesRepo prefsRepo) {
+  bool _handleInitialNavigation(PreferencesRepo prefsRepo) {
     final orgId = prefsRepo.lastOpenedOrgId;
     if (orgId != null && context.mounted) {
+      debugPrint("Redirecting to view bookings screen");
       // Use a post-frame callback to ensure the widget tree is built.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         AutoRouter.of(context).replace(ViewBookingsRoute(orgID: orgId));
       });
+      return true;
     }
+    return false;
   }
 
   @override
   Widget build(BuildContext context) {
+    if (isRedirecting) {
+      // Preempt rendering the landing page if we're about to redirect
+      return Container();
+    }
+    debugPrint("Building LandingScreen");
     FirebaseAnalytics.instance.logScreenView(screenName: "Landing");
     var orgRepo = Provider.of<OrgRepo>(context, listen: false);
     return Scaffold(
