@@ -225,7 +225,7 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
   }
 
   bool _isSmallView(BuildContext context) {
-    return MediaQuery.sizeOf(context).width < 600;
+    return MediaQuery.sizeOf(context).width < 650;
   }
 
   Widget _buildCalendar(BuildContext context, Request? existingRequest) {
