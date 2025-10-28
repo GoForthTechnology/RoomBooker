@@ -42,11 +42,3 @@ jobs:
           projectId: roombooker-5e947
         env:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
-
-      - name: Update Remote Config Parameter
-        uses: lirlia/firebase-remote-config-actions@v0.0.12
-        with:
-          firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROOMBOOKER_5E947 }}
-          project-id: roombooker-5e947
-          parameter-name: build_version
-          parameter-value: steps.flutter_version.outputs.build_number
