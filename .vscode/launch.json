@@ -12,7 +12,6 @@
       "args": [
         "-d",
         "chrome",
-        "--pwa-strategy=none"
       ]
     }
   ]
