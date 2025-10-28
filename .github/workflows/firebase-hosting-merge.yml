@@ -13,6 +13,12 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@v4
 
+      - name: Get Package Info 
+        id: flutter_version
+        uses: bungabear/flutter_version_read@main
+        with:
+          file: ./pubspec.yaml
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -36,3 +42,11 @@ jobs:
           projectId: roombooker-5e947
         env:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
+
+      - name: Update Remote Config Parameter
+        uses: lirlia/firebase-remote-config-actions
+        with:
+          firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROOMBOOKER_5E947 }}
+          project-id: roombooker-5e947
+          parameter-name: build_version
+          parameter-value: steps.flutter_version.outputs.build_number
