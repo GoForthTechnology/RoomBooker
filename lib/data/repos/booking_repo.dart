@@ -257,12 +257,14 @@ class BookingRepo extends ChangeNotifier {
         .map((q) => q.where("eventStartTime",
             isGreaterThanOrEqualTo: startTime.toString()))
         .toList();
+    // BEGIN spooky hack to get around DST shennanigans...
+    var endDateStr = endTime.add(Duration(hours: 1)).toString();
+    // END spooky hack that should not be necessary...
     queries = queries
-        .map((q) =>
-            q.where("eventEndTime", isLessThanOrEqualTo: endTime.toString()))
+        .map((q) => q.where("eventEndTime", isLessThanOrEqualTo: endDateStr))
         .toList();
     // Add this one after the queries that are bound to the current time window
-    if (hasConfirmed) {
+    /*if (hasConfirmed) {
       final endPath = FieldPath(["recurrancePattern", "end"]);
       queries.add(_confirmedRequestsRef(orgID)
           .where(frequencyPath, isNotEqualTo: "never")
@@ -270,12 +272,12 @@ class BookingRepo extends ChangeNotifier {
             Filter(endPath, isNull: true),
             Filter(endPath, isGreaterThanOrEqualTo: startTime.toString()),
           )));
-    }
-    if (includeRoomIDs != null) {
+    }*/
+    /*if (includeRoomIDs != null) {
       queries = queries
           .map((q) => q.where("roomID", whereIn: includeRoomIDs))
           .toList();
-    }
+    }*/
     var streams = queries
         .map((q) =>
             q.snapshots().map((s) => s.docs.map((d) => d.data()).toList()))
