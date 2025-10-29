@@ -5,6 +5,8 @@ part 'log_entry.g.dart';
 
 @JsonSerializable(explicitToJson: true)
 class RequestLogEntry {
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String? id;
   final String requestID;
   final DateTime timestamp;
   final String? adminEmail;
@@ -19,7 +21,20 @@ class RequestLogEntry {
     this.adminEmail,
     this.before,
     this.after,
+    this.id,
   });
+
+  RequestLogEntry copyWith({String? id}) {
+    return RequestLogEntry(
+      requestID: requestID,
+      timestamp: timestamp,
+      action: action,
+      adminEmail: adminEmail,
+      before: before,
+      after: after,
+      id: id ?? this.id,
+    );
+  }
 
   factory RequestLogEntry.fromJson(Map<String, dynamic> json) =>
       _$RequestLogEntryFromJson(json);

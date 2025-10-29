@@ -61,13 +61,14 @@ class BookingRepo extends ChangeNotifier {
   Future<void> submitBookingRequest(String orgID, Request request,
       PrivateRequestDetails privateDetails) async {
     validateRequest(request);
-    await _db.runTransaction((t) async {
+    var id = await _db.runTransaction((t) async {
       var requestRef = _pendingBookingsRef(orgID).doc();
       t.set(requestRef, request);
       var privateDetailsRef = _privateRequestDetailsRef(orgID, requestRef.id);
       t.set(privateDetailsRef, privateDetails);
+      return requestRef.id;
     });
-    await _log(orgID, request.id ?? "", "SubmitBookingRequest", Action.create);
+    await _log(orgID, id, "SubmitBookingRequest", Action.create);
   }
 
   Future<void> updateBooking(
@@ -143,11 +144,23 @@ class BookingRepo extends ChangeNotifier {
       String orgID, Stream<List<RequestLogEntry>> logStream) {
     return logStream.asyncMap((logEntries) async {
       var requests = await Future.wait(logEntries.map((e) async {
-        var request = await getRequest(orgID, e.requestID).first;
+        Request? request;
+        try {
+          request = await getRequest(orgID, e.requestID).first;
+        } catch (exception) {
+          throw Exception(
+              "Error fetching request for log entry ${e.id}: $exception");
+        }
         if (request == null) {
           return null;
         }
-        var details = await getRequestDetails(orgID, e.requestID).first;
+        PrivateRequestDetails? details;
+        try {
+          details = await getRequestDetails(orgID, e.requestID).first;
+        } catch (exception) {
+          throw Exception(
+              "Error fetching request details for log entry ${e.id}: $exception");
+        }
         if (details == null) {
           return null;
         }
@@ -202,6 +215,12 @@ class BookingRepo extends ChangeNotifier {
   }
 
   Stream<Request?> getRequest(String orgID, String requestID) {
+    if (orgID.isEmpty) {
+      return Stream.error("Org ID cannot be empty.");
+    }
+    if (requestID.isEmpty) {
+      return Stream.error("Request ID cannot be empty.");
+    }
     debugPrint("Getting request: $requestID");
     return _confirmedRequestsRef(orgID)
         .doc(requestID)

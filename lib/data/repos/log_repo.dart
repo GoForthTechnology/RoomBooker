@@ -51,7 +51,8 @@ class LogRepo extends ChangeNotifier {
     }
     return query.snapshots().map((snapshot) {
       return snapshot.docs
-          .map((doc) => RequestLogEntry.fromJson(doc.data()))
+          .map((doc) =>
+              RequestLogEntry.fromJson(doc.data()).copyWith(id: doc.id))
           .toList();
     });
   }
