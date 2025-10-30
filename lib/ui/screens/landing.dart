@@ -2,99 +2,105 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
-import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
+import 'package:room_booker/ui/screens/landing_viewmodel.dart';
 import 'package:room_booker/ui/widgets/app_info.dart';
 import 'package:room_booker/ui/widgets/org_details.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()
-class LandingScreen extends StatefulWidget {
+class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
 
   @override
-  State<LandingScreen> createState() => _LandingScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => LandingViewModel(
+        auth: FirebaseAuth.instance,
+        prefsRepo: context.read<PreferencesRepo>(),
+        orgRepo: context.read(),
+        analyticsService: context.read<FirebaseAnalyticsService>(),
+      )..init(),
+      child: const LandingScreenView(),
+    );
+  }
 }
 
-class _LandingScreenState extends State<LandingScreen> {
-  bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
-  bool isRedirecting = false;
-  StreamSubscription<User?>? subscription;
+class LandingScreenView extends StatefulWidget {
+  const LandingScreenView({super.key});
 
   @override
-  void initState() {
-    super.initState();
-    var prefsRepo = Provider.of<PreferencesRepo>(context, listen: false);
-    if (prefsRepo.isLoaded) {
-      isRedirecting = _handleInitialNavigation(prefsRepo);
-    } else {
-      prefsRepo.addListener(() {
-        if (prefsRepo.isLoaded) {
-          isRedirecting = _handleInitialNavigation(prefsRepo);
+  State<LandingScreenView> createState() => LandingScreenViewState();
+}
+
+class LandingScreenViewState extends State<LandingScreenView> {
+  StreamSubscription? _navSubscription;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _listenToNavigationEvents();
+  }
+
+  void _listenToNavigationEvents() {
+    if (_navSubscription == null) {
+      final viewModel = context.read<LandingViewModel>();
+      _navSubscription = viewModel.navigationEvents.listen((event) {
+        if (event.replace) {
+          AutoRouter.of(context).replace(event.route);
+        } else {
+          AutoRouter.of(context).push(event.route);
         }
       });
     }
-
-    subscription = FirebaseAuth.instance.authStateChanges().listen((user) {
-      setState(() {
-        isLoggedIn = user != null;
-      });
-    });
   }
 
   @override
   void dispose() {
-    subscription?.cancel();
+    _navSubscription?.cancel();
     super.dispose();
-  }
-
-  bool _handleInitialNavigation(PreferencesRepo prefsRepo) {
-    final orgId = prefsRepo.lastOpenedOrgId;
-    if (orgId != null && context.mounted) {
-      debugPrint("Redirecting to view bookings screen");
-      // Use a post-frame callback to ensure the widget tree is built.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        AutoRouter.of(context).replace(ViewBookingsRoute(orgID: orgId));
-      });
-      return true;
-    }
-    return false;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isRedirecting) {
-      // Preempt rendering the landing page if we're about to redirect
-      return Container();
+    final viewModel = context.watch<LandingViewModel>();
+
+    if (viewModel.shouldShowRedirecting) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    debugPrint("Building LandingScreen");
-    FirebaseAnalytics.instance.logScreenView(screenName: "Landing");
-    var orgRepo = Provider.of<OrgRepo>(context, listen: false);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Room Booker"),
         actions: [
-          AppInfoAction(),
-          SettingsAction(),
-          AuthAction(isSignedIn: isLoggedIn)
+          const AppInfoAction(),
+          const SettingsAction(),
+          AuthAction(
+              isSignedIn: viewModel.isLoggedIn,
+              onSignOut: viewModel.signOut,
+              onSignIn: viewModel.navigateToLogin),
         ],
       ),
       body: Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            YourOrgs(orgRepo: orgRepo, isLoggedIn: isLoggedIn),
-            Heading("All Organizations"),
-            Consumer<PreferencesRepo>(
-              builder: (context, settingsProvider, child) => OrgList(
-                orgStream: orgRepo.getOrgs(excludeOwned: true),
-                defaultCalendarView: settingsProvider.defaultCalendarView,
+            if (viewModel.isLoggedIn) ...[
+              const Heading("Your Organizations"),
+              Expanded(
+                child: OrgList(orgStream: viewModel.ownedOrgsStream),
+              ),
+            ],
+            const Heading("All Organizations"),
+            Expanded(
+              child: OrgList(
+                orgStream: viewModel.otherOrgsStream,
               ),
             ),
           ],
@@ -103,14 +109,13 @@ class _LandingScreenState extends State<LandingScreen> {
       floatingActionButton: FloatingActionButton(
         tooltip: "Add an org",
         onPressed: () async {
-          if (isLoggedIn) {
-            var repo = Provider.of<OrgRepo>(context, listen: false);
+          if (viewModel.isLoggedIn) {
             var name = await promptForOrgName(context);
             if (name != null) {
-              await repo.addOrgForCurrentUser(name);
+              await viewModel.createOrg(name);
             }
           } else {
-            await AutoRouter.of(context).push(LoginRoute());
+            viewModel.navigateToLogin();
           }
         },
         child: const Icon(Icons.add),
@@ -120,6 +125,8 @@ class _LandingScreenState extends State<LandingScreen> {
 }
 
 class AppInfoAction extends StatelessWidget {
+  const AppInfoAction({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Tooltip(
@@ -216,10 +223,11 @@ class SettingsAction extends StatelessWidget {
 }
 
 class YourOrgs extends StatelessWidget {
-  final OrgRepo orgRepo;
+  final Stream<List<Organization>> orgStream;
   final bool isLoggedIn;
 
-  const YourOrgs({super.key, required this.orgRepo, required this.isLoggedIn});
+  const YourOrgs(
+      {super.key, required this.orgStream, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -229,12 +237,9 @@ class YourOrgs extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Heading("Your Organizations"),
-        Consumer<PreferencesRepo>(
-          builder: (context, prefsRepo, child) => OrgList(
-            orgStream: orgRepo.getOrgsForCurrentUser(),
-            defaultCalendarView: prefsRepo.defaultCalendarView,
-          ),
+        const Heading("Your Organizations"),
+        OrgList(
+          orgStream: orgStream,
         ),
       ],
     );
@@ -260,8 +265,14 @@ class Heading extends StatelessWidget {
 
 class AuthAction extends StatelessWidget {
   final bool isSignedIn;
+  final VoidCallback onSignOut;
+  final VoidCallback onSignIn;
 
-  const AuthAction({super.key, required this.isSignedIn});
+  const AuthAction(
+      {super.key,
+      required this.isSignedIn,
+      required this.onSignOut,
+      required this.onSignIn});
 
   @override
   Widget build(BuildContext context) {
@@ -270,9 +281,7 @@ class AuthAction extends StatelessWidget {
         message: "Sign out",
         child: IconButton(
           icon: const Icon(Icons.logout),
-          onPressed: () {
-            FirebaseAuth.instance.signOut();
-          },
+          onPressed: onSignOut,
         ),
       );
     } else {
@@ -280,9 +289,7 @@ class AuthAction extends StatelessWidget {
         message: "Sign in",
         child: IconButton(
           icon: const Icon(Icons.login),
-          onPressed: () {
-            AutoRouter.of(context).push(LoginRoute());
-          },
+          onPressed: onSignIn,
         ),
       );
     }
@@ -291,36 +298,37 @@ class AuthAction extends StatelessWidget {
 
 class OrgList extends StatelessWidget {
   final Stream<List<Organization>> orgStream;
-  final CalendarView defaultCalendarView;
-  const OrgList(
-      {super.key, required this.orgStream, required this.defaultCalendarView});
+  const OrgList({super.key, required this.orgStream});
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: orgStream,
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          log(snapshot.error.toString(), error: snapshot.error);
-          return const Text('Error loading organizations');
-        }
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
-        }
-        var orgs = snapshot.data!;
-        if (orgs.isEmpty) {
-          return const Text(
-              'No organizations found. Please sign in or sign up to add one.');
-        }
-        return ListView.builder(
-          shrinkWrap: true,
-          itemCount: orgs.length,
-          itemBuilder: (context, index) {
-            return OrgTile(
-                org: orgs[index], defaultCalendarView: defaultCalendarView);
-          },
-        );
-      },
+    return Consumer<PreferencesRepo>(
+      builder: (context, prefs, child) => StreamBuilder(
+        stream: orgStream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            log(snapshot.error.toString(), error: snapshot.error);
+            return const Text('Error loading organizations');
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const CircularProgressIndicator();
+          }
+          var orgs = snapshot.data!;
+          if (orgs.isEmpty) {
+            return const Text(
+                'No organizations found. Please sign in or sign up to add one.');
+          }
+          return ListView.builder(
+            shrinkWrap: true,
+            itemCount: orgs.length,
+            itemBuilder: (context, index) {
+              return OrgTile(
+                  org: orgs[index],
+                  defaultCalendarView: prefs.defaultCalendarView);
+            },
+          );
+        },
+      ),
     );
   }
 }
@@ -334,6 +342,7 @@ class OrgTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final viewModel = context.read<LandingViewModel>();
     return OrgDetailsProvider(
         orgID: org.id!,
         builder: (context, details) {
@@ -355,16 +364,13 @@ class OrgTile extends StatelessWidget {
               title: Text(org.name),
               subtitle: subtitle != null ? Text(subtitle) : null,
               trailing: IconButton(
-                icon: Icon(Icons.settings),
+                icon: const Icon(Icons.settings),
                 onPressed: () {
                   AutoRouter.of(context).push(OrgSettingsRoute(orgID: org.id!));
                 },
               ),
               onTap: () {
-                Provider.of<PreferencesRepo>(context, listen: false)
-                    .setLastOpenedOrgId(org.id!);
-                AutoRouter.of(context).replace(ViewBookingsRoute(
-                    orgID: org.id!, view: defaultCalendarView.name));
+                viewModel.onOrgTapped(org.id!, defaultCalendarView.name);
               },
             ),
           );
