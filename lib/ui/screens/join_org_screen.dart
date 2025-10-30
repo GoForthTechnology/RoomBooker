@@ -1,8 +1,10 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
+import 'package:room_booker/ui/screens/join_org_view.dart';
+import 'package:room_booker/ui/screens/join_org_viewmodel.dart';
 
 @RoutePage()
 class JoinOrgScreen extends StatelessWidget {
@@ -12,54 +14,46 @@ class JoinOrgScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    FirebaseAnalytics.instance.logScreenView(
-        screenName: "Join Organization", parameters: {"orgID": orgID});
+    return ChangeNotifierProvider(
+      create: (context) => JoinOrgViewModel(
+        orgRepo: context.read<OrgRepo>(),
+        analyticsService: FirebaseAnalyticsService(),
+        orgID: orgID,
+      ),
+      child: const JoinOrgScreenView(),
+    );
+  }
+}
+
+class JoinOrgScreenView extends StatelessWidget {
+  const JoinOrgScreenView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Join Organization'),
       ),
-      body: Consumer<OrgRepo>(
-        builder: (context, repo, child) => StreamBuilder(
-          stream: repo.getOrg(orgID),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              FirebaseAnalytics.instance.logEvent(name: "Org Load Error");
-              return const Text('Error loading organization');
-            }
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            }
-            var org = snapshot.data!;
-            if (!org.acceptingAdminRequests) {
-              FirebaseAnalytics.instance
-                  .logEvent(name: "Org not accepting new members");
-              return const Text(
-                  'This organization is not accepting new members');
-            }
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Join ${org.name}?'),
-                  ElevatedButton(
-                    onPressed: () async {
-                      var messenger = ScaffoldMessenger.of(context);
-                      await repo.addAdminRequestForCurrentUser(orgID);
-                      FirebaseAnalytics.instance
-                          .logEvent(name: "Join request submitted");
-                      messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text('Request has been submitted'),
-                        ),
-                      );
-                    },
-                    child: const Text('Join'),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+      body: Consumer<JoinOrgViewModel>(
+        builder: (context, viewModel, child) {
+          return StreamBuilder(
+            stream: viewModel.orgStream,
+            builder: (context, snapshot) {
+              return JoinOrgView(
+                snapshot: snapshot,
+                onJoin: () async {
+                  await viewModel.joinOrganization();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Request has been submitted')),
+                    );
+                  }
+                },
+              );
+            },
+          );
+        },
       ),
     );
   }
