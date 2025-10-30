@@ -17,7 +17,7 @@ class JoinOrgScreen extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => JoinOrgViewModel(
         orgRepo: context.read<OrgRepo>(),
-        analyticsService: FirebaseAnalyticsService(),
+        analyticsService: context.read<AnalyticsService>(),
         orgID: orgID,
       ),
       child: const JoinOrgScreenView(),
