@@ -37,17 +37,6 @@ class CalendarStateProvider extends StatelessWidget {
   }
 }
 
-class CalendarData {
-  final List<Request> existingRequests;
-  final List<BlackoutWindow> blackoutWindows;
-  final List<PrivateRequestDetails>? privateDetails;
-
-  CalendarData(
-      {this.privateDetails,
-      required this.existingRequests,
-      required this.blackoutWindows});
-}
-
 class CalendarState extends ChangeNotifier {
   final CalendarController _controller = CalendarController();
   bool initialized = false;
