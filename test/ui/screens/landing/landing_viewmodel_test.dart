@@ -7,7 +7,7 @@ import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
-import 'package:room_booker/ui/screens/landing_viewmodel.dart';
+import 'package:room_booker/ui/screens/landing/landing_viewmodel.dart';
 
 // Mocks
 class MockFirebaseAuth extends Mock implements FirebaseAuth {}

@@ -5,7 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
-import 'package:room_booker/ui/screens/join_org_viewmodel.dart';
+import 'package:room_booker/ui/screens/join_org/join_org_viewmodel.dart';
 
 // Mocks
 class MockOrgRepo extends Mock implements OrgRepo {}
@@ -27,15 +27,16 @@ void main() {
         screenName: any(named: 'screenName'),
         parameters: any(named: 'parameters'))).thenAnswer((_) {});
     when(() => mockAnalyticsService.logEvent(
-      name: any(named: 'name'),
-      parameters: any(named: 'parameters'),
-    )).thenAnswer((_) {});
+          name: any(named: 'name'),
+          parameters: any(named: 'parameters'),
+        )).thenAnswer((_) {});
   });
 
   group('JoinOrgViewModel', () {
     test('constructor logs screen view', () {
       // Arrange
-      when(() => mockOrgRepo.getOrg(any())).thenAnswer((_) => const Stream.empty());
+      when(() => mockOrgRepo.getOrg(any()))
+          .thenAnswer((_) => const Stream.empty());
 
       // Act
       sut = JoinOrgViewModel(
@@ -55,7 +56,11 @@ void main() {
         'logs accepting members when stream provides org that is accepting requests',
         () {
       // Arrange
-      final org = Organization(id: orgId, name: 'Test Org', ownerID: 'test-owner-id', acceptingAdminRequests: true);
+      final org = Organization(
+          id: orgId,
+          name: 'Test Org',
+          ownerID: 'test-owner-id',
+          acceptingAdminRequests: true);
       when(() => mockOrgRepo.getOrg(orgId))
           .thenAnswer((_) => Stream.value(org));
 
@@ -68,7 +73,9 @@ void main() {
 
       // Assert
       sut.orgStream.listen(expectAsync1((_) {
-        verify(() => mockAnalyticsService.logEvent(name: 'Org_Accepting_Members')).called(1);
+        verify(() =>
+                mockAnalyticsService.logEvent(name: 'Org_Accepting_Members'))
+            .called(1);
       }));
     });
 
@@ -76,7 +83,11 @@ void main() {
         'logs not accepting members when stream provides org that is not accepting requests',
         () {
       // Arrange
-      final org = Organization(id: orgId, name: 'Test Org', ownerID: 'test-owner-id', acceptingAdminRequests: false);
+      final org = Organization(
+          id: orgId,
+          name: 'Test Org',
+          ownerID: 'test-owner-id',
+          acceptingAdminRequests: false);
       when(() => mockOrgRepo.getOrg(orgId))
           .thenAnswer((_) => Stream.value(org));
 
@@ -89,13 +100,15 @@ void main() {
 
       // Assert
       sut.orgStream.listen(expectAsync1((_) {
-        verify(() => mockAnalyticsService.logEvent(name: 'Org_Not_Accepting_Members')).called(1);
+        verify(() => mockAnalyticsService.logEvent(
+            name: 'Org_Not_Accepting_Members')).called(1);
       }));
     });
 
     test('logs not found when stream provides null', () {
       // Arrange
-      when(() => mockOrgRepo.getOrg(orgId)).thenAnswer((_) => Stream.value(null));
+      when(() => mockOrgRepo.getOrg(orgId))
+          .thenAnswer((_) => Stream.value(null));
 
       // Act
       sut = JoinOrgViewModel(
@@ -106,7 +119,8 @@ void main() {
 
       // Assert
       sut.orgStream.listen(expectAsync1((_) {
-        verify(() => mockAnalyticsService.logEvent(name: 'Org_Not_Found')).called(1);
+        verify(() => mockAnalyticsService.logEvent(name: 'Org_Not_Found'))
+            .called(1);
       }));
     });
 
@@ -124,13 +138,15 @@ void main() {
 
       // Assert
       sut.orgStream.listen(null, onError: expectAsync2((error, stackTrace) {
-        verify(() => mockAnalyticsService.logEvent(name: 'Org_Load_Error')).called(1);
+        verify(() => mockAnalyticsService.logEvent(name: 'Org_Load_Error'))
+            .called(1);
       }));
     });
 
     test('joinOrganization calls repo and logs event', () async {
       // Arrange
-      when(() => mockOrgRepo.getOrg(any())).thenAnswer((_) => const Stream.empty());
+      when(() => mockOrgRepo.getOrg(any()))
+          .thenAnswer((_) => const Stream.empty());
       when(() => mockOrgRepo.addAdminRequestForCurrentUser(orgId))
           .thenAnswer((_) async => {});
 
@@ -145,7 +161,9 @@ void main() {
 
       // Assert
       verify(() => mockOrgRepo.addAdminRequestForCurrentUser(orgId)).called(1);
-      verify(() => mockAnalyticsService.logEvent(name: 'Join_Request_Submitted')).called(1);
+      verify(() =>
+              mockAnalyticsService.logEvent(name: 'Join_Request_Submitted'))
+          .called(1);
     });
   });
 }

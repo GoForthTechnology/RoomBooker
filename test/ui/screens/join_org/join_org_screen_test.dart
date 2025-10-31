@@ -5,9 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
-import 'package:room_booker/ui/screens/join_org_screen.dart';
-import 'package:room_booker/ui/screens/join_org_view.dart';
-import 'package:room_booker/ui/screens/join_org_viewmodel.dart';
+import 'package:room_booker/ui/screens/join_org/join_org_screen.dart';
+import 'package:room_booker/ui/screens/join_org/join_org_view.dart';
+import 'package:room_booker/ui/screens/join_org/join_org_viewmodel.dart';
 
 class MockJoinOrgViewModel extends Mock implements JoinOrgViewModel {}
 
@@ -31,9 +31,13 @@ void main() {
     testWidgets('displays JoinOrgView with data from stream', (tester) async {
       // Arrange
       final org = Organization(
-          id: 'test-org-id', name: 'Test Org', ownerID: 'owner', acceptingAdminRequests: true);
+          id: 'test-org-id',
+          name: 'Test Org',
+          ownerID: 'owner',
+          acceptingAdminRequests: true);
       final streamController = StreamController<Organization?>();
-      when(() => mockViewModel.orgStream).thenAnswer((_) => streamController.stream);
+      when(() => mockViewModel.orgStream)
+          .thenAnswer((_) => streamController.stream);
 
       // Act
       await tester.pumpWidget(createWidgetUnderTest());
@@ -49,9 +53,11 @@ void main() {
       streamController.close();
     });
 
-    testWidgets('shows loading indicator when stream has no data', (tester) async {
+    testWidgets('shows loading indicator when stream has no data',
+        (tester) async {
       // Arrange
-      when(() => mockViewModel.orgStream).thenAnswer((_) => const Stream.empty());
+      when(() => mockViewModel.orgStream)
+          .thenAnswer((_) => const Stream.empty());
 
       // Act
       await tester.pumpWidget(createWidgetUnderTest());
@@ -65,7 +71,10 @@ void main() {
         (tester) async {
       // Arrange
       final org = Organization(
-          id: 'test-org-id', name: 'Test Org', ownerID: 'owner', acceptingAdminRequests: true);
+          id: 'test-org-id',
+          name: 'Test Org',
+          ownerID: 'owner',
+          acceptingAdminRequests: true);
       when(() => mockViewModel.orgStream).thenAnswer((_) => Stream.value(org));
       when(() => mockViewModel.joinOrganization()).thenAnswer((_) async {});
 

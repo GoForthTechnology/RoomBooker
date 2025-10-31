@@ -1,7 +1,7 @@
 import 'dart:developer';
 
 import 'package:json_annotation/json_annotation.dart';
-import 'package:room_booker/ui/screens/review_bookings_screen.dart';
+import 'package:room_booker/ui/screens/review_bookings/review_bookings_screen.dart';
 
 part 'request.g.dart';
 

@@ -8,8 +8,8 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
-import 'package:room_booker/ui/screens/landing.dart';
-import 'package:room_booker/ui/screens/landing_viewmodel.dart';
+import 'package:room_booker/ui/screens/landing/landing.dart';
+import 'package:room_booker/ui/screens/landing/landing_viewmodel.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 // Mocks

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
-import 'package:room_booker/ui/screens/join_org_view.dart';
-import 'package:room_booker/ui/screens/join_org_viewmodel.dart';
+import 'package:room_booker/ui/screens/join_org/join_org_view.dart';
+import 'package:room_booker/ui/screens/join_org/join_org_viewmodel.dart';
 
 @RoutePage()
 class JoinOrgScreen extends StatelessWidget {

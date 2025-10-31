@@ -9,7 +9,7 @@ import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
-import 'package:room_booker/ui/screens/landing_viewmodel.dart';
+import 'package:room_booker/ui/screens/landing/landing_viewmodel.dart';
 import 'package:room_booker/ui/widgets/app_info.dart';
 import 'package:room_booker/ui/widgets/org_details.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
