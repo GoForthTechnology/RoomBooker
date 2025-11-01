@@ -43,10 +43,8 @@ class CalendarViewModel extends ChangeNotifier {
       StreamController.broadcast();
   final BehaviorSubject<VisibleWindow> _visibleWindowController =
       BehaviorSubject();
-  final StreamController<CalendarViewState> _viewStateController =
-      StreamController.broadcast();
-  final StreamController<Map<Appointment, Request>> _appointments =
-      StreamController.broadcast();
+  final BehaviorSubject<Map<Appointment, Request>> _appointments =
+      BehaviorSubject();
 
   final bool appendRoomName;
   final bool includePrivateBookings;
@@ -59,6 +57,9 @@ class CalendarViewModel extends ChangeNotifier {
   final Stream<Appointment?> _newAppointment;
 
   bool initialized = false;
+
+  final BookingRepo _bookingRepo;
+  final OrgState _orgState;
 
   CalendarViewModel({
     required OrgState orgState,
@@ -80,6 +81,8 @@ class CalendarViewModel extends ChangeNotifier {
     ],
   })  : _allowAppointmentResize = allowAppointmentResize,
         _allowDragAndDrop = allowDragAndDrop,
+        _bookingRepo = bookingRepo,
+        _orgState = orgState,
         _newAppointment =
             (newAppointment ?? Stream.value(null)).asBroadcastStream() {
     controller.view = CalendarView.day;
@@ -92,13 +95,12 @@ class CalendarViewModel extends ChangeNotifier {
     controller.addPropertyChangedListener(_handlePropertyChange);
     _appointments
         .addStream(_buildAppointmentStream(bookingRepo, orgState, roomState));
-    _viewStateController.addStream(_viewStateStream(bookingRepo, orgState));
   }
 
   Stream<CalendarViewState> _viewStateStream(
       BookingRepo bookingRepo, OrgState orgState) {
     return Rx.combineLatest3(
-        _newAppointment,
+        _newAppointment.startWith(null),
         _appointments.stream.startWith(const {}),
         bookingRepo
             .listBlackoutWindows(orgState.org, startOfView, endOfView)
@@ -121,17 +123,18 @@ class CalendarViewModel extends ChangeNotifier {
   Stream<Map<Appointment, Request>> _buildAppointmentStream(
       BookingRepo bookingRepo, OrgState orgState, RoomState roomState) {
     return Rx.combineLatest2(
-        _visibleWindowController.stream,
-        _newAppointment,
-        (window, newAppointment) => bookingRepo
-            .listRequests(
-                orgID: orgState.org.id!,
-                startTime: window.start,
-                endTime: window.end)
-            .flatMap((requests) =>
-                _detailStream(orgState, requests, bookingRepo).map((details) =>
-                    _convertRequests(requests, details, window, roomState,
-                        newAppointment)))).flatMap((s) => s);
+            _visibleWindowController.stream,
+            _newAppointment,
+            (window, newAppointment) => bookingRepo
+                .listRequests(
+                    orgID: orgState.org.id!,
+                    startTime: window.start,
+                    endTime: window.end)
+                .flatMap((requests) =>
+                    _detailStream(orgState, requests, bookingRepo)
+                        .startWith([]).map((details) => _convertRequests(
+                            requests, details, window, roomState, newAppointment))))
+        .flatMap((s) => s);
   }
 
   Map<Appointment, Request> _convertRequests(
@@ -235,7 +238,7 @@ class CalendarViewModel extends ChangeNotifier {
   Stream<Request> get requestTapStream => _requestTapController.stream;
 
   Stream<CalendarViewState> calendarViewState() {
-    return _viewStateController.stream;
+    return _viewStateStream(_bookingRepo, _orgState);
   }
 
   // Bizarre things happen when you shink the screen which makes this
@@ -277,11 +280,7 @@ class CalendarViewModel extends ChangeNotifier {
       case CalendarView.day:
         return start.add(Duration(days: 1));
       case CalendarView.week:
-        var date = start;
-        while (getWeekday(date) != Weekday.saturday) {
-          date = date.add(Duration(days: 1));
-        }
-        return start.add(Duration(days: 7));
+        return startOfView.add(Duration(days: 7));
       case CalendarView.month:
         var date = DateTime(start.year, start.month + 1, 1)
             .subtract(Duration(days: 1));
@@ -348,11 +347,12 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   void _handleRequestTap(CalendarTapDetails details) {
-    _appointments.stream.listen((appointments) {
+    _appointments.stream.first.then((appointments) {
       for (var appointment in details.appointments ?? []) {
         var request = appointments[appointment];
         if (request == null) {
-          throw Exception("Appointment not found in state");
+          log("Appointment not found in state");
+          return;
         }
         _requestTapController.add(request);
         break;
