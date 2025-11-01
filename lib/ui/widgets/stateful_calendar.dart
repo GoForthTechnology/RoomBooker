@@ -74,20 +74,7 @@ class CalendarState extends ChangeNotifier {
     });
   }
 
-  void focusDay(DateTime date) {
-    _controller.view = CalendarView.day;
-    var displayDate = _controller.displayDate?.stripTime();
-    if (displayDate != date.stripTime()) {
-      _controller.displayDate = date;
-    }
-    notifyListeners();
-  }
-
-  void setView(CalendarView view) {
-    _controller.view = view;
-    notifyListeners();
-  }
-
+  // Moved
   DateTime startOfView() {
     var displayDate = _controller.displayDate!;
     switch (_controller.view) {
@@ -116,6 +103,7 @@ class CalendarState extends ChangeNotifier {
     }
   }
 
+  // Moved
   DateTime endOfView() {
     var start = controller.displayDate!;
     switch (_controller.view) {
@@ -313,6 +301,7 @@ class _DataSource extends CalendarDataSource {
   }
 }
 
+// Moved
 DateTime stripTime(DateTime date) {
   return DateTime(date.year, date.month, date.day);
 }
