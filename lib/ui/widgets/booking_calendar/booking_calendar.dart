@@ -4,14 +4,14 @@ import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class BookingCalendar extends StatelessWidget {
-  final CalendarViewModel viewModel;
+  final CalendarViewModel Function() createViewModel;
 
-  const BookingCalendar({super.key, required this.viewModel});
+  const BookingCalendar({super.key, required this.createViewModel});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => viewModel,
+      create: (context) => createViewModel(),
       child: BookingCalendarView(),
     );
   }

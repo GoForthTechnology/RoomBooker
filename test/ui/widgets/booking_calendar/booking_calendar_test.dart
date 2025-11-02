@@ -57,7 +57,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: BookingCalendar(
-          viewModel: mockViewModel,
+          createViewModel: () => mockViewModel,
         ),
       ),
     );
@@ -90,7 +90,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: BookingCalendar(
-          viewModel: mockViewModel,
+          createViewModel: () => mockViewModel,
         ),
       ),
     );

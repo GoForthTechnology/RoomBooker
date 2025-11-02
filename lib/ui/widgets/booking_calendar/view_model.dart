@@ -65,6 +65,7 @@ class CalendarViewModel extends ChangeNotifier {
     required OrgState orgState,
     required BookingRepo bookingRepo,
     required RoomState roomState,
+    CalendarView defaultView = CalendarView.week,
     bool allowAppointmentResize = false,
     bool allowDragAndDrop = false,
     Stream<Appointment?>? newAppointment,
@@ -85,7 +86,7 @@ class CalendarViewModel extends ChangeNotifier {
         _orgState = orgState,
         _newAppointment =
             (newAppointment ?? Stream.value(null)).asBroadcastStream() {
-    controller.view = CalendarView.day;
+    controller.view = defaultView;
     controller.displayDate = DateTime.now();
     var currentWindow = VisibleWindow(
       start: startOfView,
@@ -123,18 +124,21 @@ class CalendarViewModel extends ChangeNotifier {
   Stream<Map<Appointment, Request>> _buildAppointmentStream(
       BookingRepo bookingRepo, OrgState orgState, RoomState roomState) {
     return Rx.combineLatest2(
-            _visibleWindowController.stream,
-            _newAppointment,
-            (window, newAppointment) => bookingRepo
-                .listRequests(
-                    orgID: orgState.org.id!,
-                    startTime: window.start,
-                    endTime: window.end)
-                .flatMap((requests) =>
-                    _detailStream(orgState, requests, bookingRepo)
-                        .startWith([]).map((details) => _convertRequests(
-                            requests, details, window, roomState, newAppointment))))
-        .flatMap((s) => s);
+        _visibleWindowController.stream,
+        _newAppointment,
+        (window, newAppointment) => bookingRepo
+            .listRequests(
+                orgID: orgState.org.id!,
+                startTime: window.start,
+                endTime: window.end)
+            .flatMap((requests) =>
+                _detailStream(orgState, requests, bookingRepo)
+                    .startWith([]).map((details) => _convertRequests(
+                        requests,
+                        details,
+                        window,
+                        roomState,
+                        newAppointment)))).flatMap((s) => s);
   }
 
   Map<Appointment, Request> _convertRequests(
