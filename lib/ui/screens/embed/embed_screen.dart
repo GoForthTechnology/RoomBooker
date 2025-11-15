@@ -1,11 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
-import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
-import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
+import 'package:room_booker/ui/widgets/current_bookings_calendar.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
-import 'package:room_booker/ui/widgets/room_selector.dart';
+import 'package:room_booker/ui/widgets/stateful_calendar.dart';
+import 'package:room_booker/ui/widgets/request_editor_panel.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()
@@ -21,29 +20,31 @@ class EmbedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var defaultView =
-        CalendarView.values.firstWhere((v) => v.name == (view ?? 'week'));
+    String defaultView = view ?? 'week';
     return OrgStateProvider(
         orgID: orgID,
         child: Consumer<OrgState>(
-          builder: (context, orgState, child) => RoomStateProvider(
-            org: orgState.org,
-            builder: (context, child) {
-              var bookingRepo = context.read<BookingRepo>();
-              var roomState = context.read<RoomState>();
-              return BookingCalendar(
-                createViewModel: () => CalendarViewModel(
-                  defaultView: defaultView,
-                  orgState: orgState,
-                  bookingRepo: bookingRepo,
-                  roomState: roomState,
-                  showDatePickerButton: true,
-                  showNavigationArrow: true,
+          builder: (context, orgState, child) => RequestStateProvider(
+            orgState: orgState,
+            enableAllRooms: true,
+            child: CalendarStateProvider(
+              initialView: CalendarView.values
+                  .firstWhere((element) => element.name == defaultView),
+              focusDate: DateTime.now(),
+              builder: (context, child) {
+                return CurrentBookingsCalendar(
+                  orgID: orgID,
+                  onTap: (details) {},
+                  onTapRequest: (request) {},
+                  showDatePickerButton: false,
                   includePrivateBookings: false,
+                  showNavigationArrow: true,
+                  showTodayButton: true,
                   appendRoomName: true,
-                ),
-              );
-            },
+                  allowedViews: [],
+                );
+              },
+            ),
           ),
         ));
   }
