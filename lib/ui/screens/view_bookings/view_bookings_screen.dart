@@ -238,6 +238,7 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
     var roomState = Provider.of<RoomState>(context, listen: false);
     return CurrentBookingsCalendar(
       includePrivateBookings: widget.showPrivateBookings,
+      showIgnoringOverlaps: !widget.readOnlyMode,
       orgID: widget.orgID,
       allowedViews: [
         CalendarView.day,

@@ -14,7 +14,10 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 extension on Request {
   Appointment toAppointment(RoomState roomState,
-      {String? subject, bool diminish = false, bool appendRoomName = false}) {
+      {String? subject,
+      bool diminish = false,
+      bool appendRoomName = false,
+      bool showIgnoringOverlaps = false}) {
     var alphaLevel = diminish || status == RequestStatus.pending ? 128 : 255;
     var color = roomState.color(roomID).withAlpha(alphaLevel);
     var s =
@@ -23,7 +26,7 @@ extension on Request {
       var roomName = roomState.getRoom(roomID)?.name ?? "Unknown Room";
       s += " ($roomName)";
     }
-    if (ignoreOverlaps) {
+    if (ignoreOverlaps && showIgnoringOverlaps) {
       s += "\n(Ignoring Overlaps!)";
     }
     return Appointment(
@@ -46,6 +49,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
   final bool showTodayButton;
   final bool includePrivateBookings;
   final bool appendRoomName;
+  final bool showIgnoringOverlaps;
   final List<CalendarView>? allowedViews;
 
   const CurrentBookingsCalendar(
@@ -59,6 +63,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
       this.showTodayButton = true,
       this.existingRequest,
       this.allowedViews,
+      this.showIgnoringOverlaps = false,
       this.appendRoomName = false});
 
   @override
@@ -104,6 +109,7 @@ class CurrentBookingsCalendar extends StatelessWidget {
                   roomState,
                   subject: details.eventName,
                   appendRoomName: appendRoomName,
+                  showIgnoringOverlaps: showIgnoringOverlaps,
                 );
               }
               Map<Appointment, Request> appointments = {};
