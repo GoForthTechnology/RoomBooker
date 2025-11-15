@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'package:intl/intl.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -268,34 +269,84 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
                 requestPanelState.showPanel();
               }
             },
-      onTapRequest: widget.readOnlyMode
-          ? null
-          : (request) async {
-              if (FirebaseAuth.instance.currentUser == null) {
-                return;
-              }
-              var isSmallView = _isSmallView(context);
-              var details =
-                  await Provider.of<BookingRepo>(context, listen: false)
-                      .getRequestDetails(widget.orgID, request.id!)
-                      .first;
-              if (details == null) {
-                return;
-              }
-              requestEditorState.showRequest(request, details);
-              if (isSmallView && context.mounted) {
-                _showPannelAsDialog(context);
-              } else {
-                requestPanelState.showPanel();
-              }
-              SystemNavigator.routeInformationUpdated(
-                  uri: Uri(
-                      path: "/view/${widget.orgID}?requestID=${request.id}"));
-              FirebaseAnalytics.instance
-                  .logEvent(name: "Start creating request");
-            },
+      onTapRequest: (request) => _onTapBooking(request, context),
       showDatePickerButton: true,
     );
+  }
+
+  void _onTapBookingRO(Request request) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(request.publicName ?? "Private Event"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Text(_getFormattedBookingRange(request)),
+            ),
+            Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: Text('Room: ${request.roomName}')),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getFormattedBookingRange(Request request) {
+    final start = request.eventStartTime.toLocal();
+    final end = request.eventEndTime.toLocal();
+    final isSameDay = start.year == end.year &&
+        start.month == end.month &&
+        start.day == end.day;
+    if (isSameDay) {
+      return '${DateFormat.yMMMMEEEEd().format(start)} ⋅ ${DateFormat.jm().format(start)} - ${DateFormat.jm().format(end)}';
+    }
+    return '${DateFormat.yMd().add_jm().format(start)} - ${DateFormat.yMd().add_jm().format(end)}';
+  }
+
+  void _onTapBookingRW(Request request, BuildContext context) async {
+    var requestEditorState =
+        Provider.of<RequestEditorState>(context, listen: false);
+    var requestPanelState =
+        Provider.of<RequestPanelSate>(context, listen: false);
+
+    if (FirebaseAuth.instance.currentUser == null) {
+      return;
+    }
+    var isSmallView = _isSmallView(context);
+    var details = await Provider.of<BookingRepo>(context, listen: false)
+        .getRequestDetails(widget.orgID, request.id!)
+        .first;
+    if (details == null) {
+      return;
+    }
+    requestEditorState.showRequest(request, details);
+    if (isSmallView && context.mounted) {
+      _showPannelAsDialog(context);
+    } else {
+      requestPanelState.showPanel();
+    }
+    SystemNavigator.routeInformationUpdated(
+        uri: Uri(path: "/view/${widget.orgID}?requestID=${request.id}"));
+    FirebaseAnalytics.instance.logEvent(name: "Start creating request");
+  }
+
+  void _onTapBooking(Request request, BuildContext context) async {
+    if (widget.readOnlyMode) {
+      return _onTapBookingRO(request);
+    } else {
+      return _onTapBookingRW(request, context);
+    }
   }
 
   void _showPannelAsDialog(BuildContext context) {
