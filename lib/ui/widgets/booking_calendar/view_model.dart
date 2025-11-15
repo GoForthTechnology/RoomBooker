@@ -103,8 +103,10 @@ class CalendarViewModel extends ChangeNotifier {
     return Rx.combineLatest3(
         _newAppointment.startWith(null),
         _appointments.stream.startWith(const {}),
-        bookingRepo
-            .listBlackoutWindows(orgState.org, startOfView, endOfView)
+        _visibleWindowController.stream
+            .switchMap((window) => bookingRepo
+                .listBlackoutWindows(orgState.org, window.start, window.end)
+                .startWith(const []))
             .startWith(const []),
         (newAppointment, appointments, blackoutWindows) {
       List<Appointment> out = [];
@@ -125,20 +127,21 @@ class CalendarViewModel extends ChangeNotifier {
       BookingRepo bookingRepo, OrgState orgState, RoomState roomState) {
     return Rx.combineLatest2(
         _visibleWindowController.stream,
-        _newAppointment,
+        _newAppointment.startWith(null),
         (window, newAppointment) => bookingRepo
             .listRequests(
                 orgID: orgState.org.id!,
                 startTime: window.start,
                 endTime: window.end)
-            .flatMap((requests) =>
+            .switchMap((requests) =>
                 _detailStream(orgState, requests, bookingRepo)
-                    .startWith([]).map((details) => _convertRequests(
+                    .startWith([])
+                    .map((details) => _convertRequests(
                         requests,
                         details,
                         window,
                         roomState,
-                        newAppointment)))).flatMap((s) => s);
+                        newAppointment)))).switchMap((s) => s);
   }
 
   Map<Appointment, Request> _convertRequests(
