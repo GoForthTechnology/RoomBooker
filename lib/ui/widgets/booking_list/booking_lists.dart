@@ -72,17 +72,14 @@ class BookingList extends StatelessWidget {
 
                   return Consumer<BookingFilterViewModel>(
                     builder: (context, filterViewModel, child) {
-                      renderedRequests = renderedRequests
-                          .where(
-                            (r) =>
-                                r.details.eventName.toLowerCase().contains(
-                                  filterViewModel.searchQuery.toLowerCase(),
-                                ) ||
-                                r.request.roomName.toLowerCase().contains(
-                                  filterViewModel.searchQuery.toLowerCase(),
-                                ),
-                          )
-                          .toList();
+                      var query = filterViewModel.searchQuery.toLowerCase();
+                      renderedRequests = renderedRequests.where((r) {
+                        return query.isEmpty ||
+                            r.details.eventName.toLowerCase().contains(query) ||
+                            r.request.roomName.toLowerCase().contains(query) ||
+                            r.details.name.toLowerCase().contains(query) ||
+                            r.details.email.toLowerCase().contains(query);
+                      }).toList();
 
                       return ListView.builder(
                         shrinkWrap: true,
