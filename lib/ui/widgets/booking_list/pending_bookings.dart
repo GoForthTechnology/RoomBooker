@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/router.dart';
-import 'package:room_booker/ui/widgets/booking_lists.dart';
+import 'package:room_booker/ui/widgets/booking_list/booking_lists.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class PendingBookings extends StatelessWidget {
@@ -20,19 +20,27 @@ class PendingBookings extends StatelessWidget {
       emptyText: "No Pending Requests",
       actions: [
         RequestAction(
+          icon: Icons.visibility,
           text: "View",
-          onClick: (request) => AutoRouter.of(context).push(ViewBookingsRoute(
+          onClick: (request) => AutoRouter.of(context).push(
+            ViewBookingsRoute(
               orgID: orgID,
               requestID: request.id!,
               view: CalendarView.day.name,
-              targetDate: request.eventStartTime)),
+              targetDate: request.eventStartTime,
+            ),
+          ),
         ),
         RequestAction(
-            text: "Approve",
-            onClick: (request) => repo.confirmRequest(orgID, request.id!)),
+          icon: Icons.check_circle,
+          text: "Approve",
+          onClick: (request) => repo.confirmRequest(orgID, request.id!),
+        ),
         RequestAction(
-            text: "Deny",
-            onClick: (request) => repo.denyRequest(orgID, request.id!)),
+          icon: Icons.block,
+          text: "Deny",
+          onClick: (request) => repo.denyRequest(orgID, request.id!),
+        ),
       ],
     );
   }

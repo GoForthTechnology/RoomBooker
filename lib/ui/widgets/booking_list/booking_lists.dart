@@ -7,31 +7,9 @@ import 'package:room_booker/data/entities/log_entry.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
+import 'package:room_booker/ui/widgets/booking_list/booking_filter_view_model.dart';
+import 'package:room_booker/ui/widgets/booking_list/booking_list_view_model.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
-import 'package:rxdart/rxdart.dart';
-
-class BookingSearchContext extends ChangeNotifier {
-  String searchQuery = "";
-
-  BookingSearchContext();
-
-  void updateQuery(String query) {
-    searchQuery = query;
-    notifyListeners();
-  }
-}
-
-class RenderedRequest {
-  final Request request;
-  final PrivateRequestDetails details;
-  final List<RequestLogEntry> logEntries;
-
-  RenderedRequest({
-    required this.request,
-    required this.details,
-    required this.logEntries,
-  });
-}
 
 class BookingList extends StatelessWidget {
   final String orgID;
@@ -55,163 +33,83 @@ class BookingList extends StatelessWidget {
     this.overrideRequests,
   });
 
-  Stream<List<RenderedRequest>> _renderedRequests(
-    BookingRepo bookingRepo,
-    LogRepo logRepo,
-    String orgID,
-    List<Request> requests,
-  ) {
-    var detailStream = Rx.combineLatest(
-      requests.map(
-        (request) => bookingRepo.getRequestDetails(orgID, request.id!),
-      ),
-      (l) => l,
-    );
-    var logEntryStream = Rx.combineLatest(
-      requests.map(
-        (request) => logRepo.getLogEntries(orgID, requestIDs: {request.id!}),
-      ),
-      (l) => l,
-    ).map((lofl) => lofl.expand((l) => l).toList());
-    return Rx.combineLatest2(detailStream, logEntryStream, (
-      detailsList,
-      logEntries,
-    ) {
-      Map<String, List<RequestLogEntry>> logEntryIndex = {};
-      for (var logEntry in logEntries) {
-        logEntryIndex.putIfAbsent(logEntry.requestID, () => []);
-        logEntryIndex[logEntry.requestID]!.add(logEntry);
-      }
-      var renderedRequests = List<RenderedRequest>.generate(
-        detailsList.length,
-        (index) {
-          var details = detailsList[index];
-          if (details == null) {
-            log("No details found for request ${requests[index].id}");
-            details = PrivateRequestDetails(
-              name: "Unknown",
-              email: "Unknown",
-              phone: "Unknown",
-              eventName: "Unknown",
-            );
-          }
-          return RenderedRequest(
-            request: requests[index],
-            details: details,
-            logEntries: logEntryIndex[details.id!] ?? [],
-          );
-        },
-      );
-      renderedRequests.sort(
-        (a, b) => a.request.eventStartTime.compareTo(b.request.eventStartTime),
-      );
-      return renderedRequests;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
-    var logRepo = Provider.of<LogRepo>(context, listen: false);
     return Consumer<RoomState>(
       builder: (context, roomState, child) {
-        Stream<List<Request>> requestStream;
-        if (overrideRequests != null) {
-          requestStream = Stream.value(overrideRequests!);
-        } else {
-          requestStream = bookingRepo
-              .listRequests(
-                orgID: orgID,
-                startTime: DateTime.now(),
-                endTime: DateTime.now().add(const Duration(days: 365)),
-                includeRoomIDs: roomState
-                    .enabledValues()
-                    .map((r) => r.id!)
-                    .toSet(),
-                includeStatuses: Set.from(statusList),
-              )
-              .map(
-                (requests) =>
-                    requests.where(requestFilter ?? (r) => true).toList(),
-              );
-        }
-        return StreamBuilder(
-          stream: requestStream,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              log(snapshot.error.toString(), error: snapshot.error);
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: ${snapshot.error}')),
-                );
-              });
-              return const Placeholder();
-            }
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            return Consumer<BookingSearchContext>(
-              builder: (context, searchContext, child) => StreamBuilder(
-                stream: _renderedRequests(
-                  bookingRepo,
-                  logRepo,
-                  orgID,
-                  snapshot.data ?? [],
-                ),
-                builder: (context, detailsSnapshot) {
-                  if (detailsSnapshot.hasError) {
-                    log(
-                      detailsSnapshot.error.toString(),
-                      error: detailsSnapshot.error,
-                    );
+        return ChangeNotifierProvider(
+          create: (context) => BookingListViewModel(
+            bookingRepo: Provider.of<BookingRepo>(context, listen: false),
+            logRepo: Provider.of<LogRepo>(context, listen: false),
+            orgID: orgID,
+            statusList: statusList,
+            roomState: roomState,
+            requestFilter: requestFilter,
+            overrideRequests: overrideRequests,
+          ),
+          child: Consumer<BookingListViewModel>(
+            builder: (context, viewModel, child) {
+              return StreamBuilder<List<RenderedRequest>>(
+                stream: viewModel.renderedRequests,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    log(snapshot.error.toString(), error: snapshot.error);
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: ${detailsSnapshot.error}'),
-                        ),
+                        SnackBar(content: Text('Error: ${snapshot.error}')),
                       );
                     });
                     return const Placeholder();
                   }
-                  var renderedRequests = detailsSnapshot.data ?? [];
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  var renderedRequests = snapshot.data ?? [];
                   if (renderedRequests.isEmpty) {
                     return Text(emptyText);
                   }
-                  renderedRequests = renderedRequests
-                      .where(
-                        (r) =>
-                            r.details.eventName.toLowerCase().contains(
-                              searchContext.searchQuery.toLowerCase(),
-                            ) ||
-                            r.request.roomName.toLowerCase().contains(
-                              searchContext.searchQuery.toLowerCase(),
-                            ),
-                      )
-                      .toList();
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: renderedRequests.length,
-                    itemBuilder: (context, index) {
-                      var renderedRequest = renderedRequests[index];
-                      List<RequestAction> actions = this.actions;
-                      if (actionBuilder != null) {
-                        actions = actionBuilder!(renderedRequest.request);
-                      }
-                      return BookingTile(
-                        orgID: orgID,
-                        request: renderedRequest.request,
-                        details: renderedRequest.details,
-                        actions: actions,
-                        logEntries: renderedRequest.logEntries,
-                        backgroundColorFn: backgroundColorFn,
+
+                  return Consumer<BookingFilterViewModel>(
+                    builder: (context, filterViewModel, child) {
+                      renderedRequests = renderedRequests
+                          .where(
+                            (r) =>
+                                r.details.eventName.toLowerCase().contains(
+                                  filterViewModel.searchQuery.toLowerCase(),
+                                ) ||
+                                r.request.roomName.toLowerCase().contains(
+                                  filterViewModel.searchQuery.toLowerCase(),
+                                ),
+                          )
+                          .toList();
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: renderedRequests.length,
+                        itemBuilder: (context, index) {
+                          var renderedRequest = renderedRequests[index];
+                          List<RequestAction> actions = this.actions;
+                          if (actionBuilder != null) {
+                            actions = actionBuilder!(renderedRequest.request);
+                          }
+                          return BookingTile(
+                            orgID: orgID,
+                            request: renderedRequest.request,
+                            details: renderedRequest.details,
+                            actions: actions,
+                            logEntries: renderedRequest.logEntries,
+                            backgroundColorFn: backgroundColorFn,
+                          );
+                        },
                       );
                     },
                   );
                 },
-              ),
-            );
-          },
+              );
+            },
+          ),
         );
       },
     );
@@ -219,11 +117,17 @@ class BookingList extends StatelessWidget {
 }
 
 class RequestAction {
+  final IconData icon;
   final String text;
   final Function(Request)? onClick;
   final String? disableText;
 
-  RequestAction({required this.text, required this.onClick, this.disableText});
+  RequestAction({
+    required this.icon,
+    required this.text,
+    required this.onClick,
+    this.disableText,
+  });
 }
 
 class BookingTile extends StatelessWidget {
@@ -296,10 +200,11 @@ class BookingTile extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: actions.map((a) {
-        Widget button = ElevatedButton(
+        Widget button = IconButton(
+          icon: Icon(a.icon),
           onPressed: a.onClick == null ? null : () => a.onClick!(request),
-          child: Text(a.text),
         );
+        button = Tooltip(message: a.text, child: button);
         if ((a.disableText ?? "") != "") {
           button = Tooltip(message: a.disableText!, child: button);
         }

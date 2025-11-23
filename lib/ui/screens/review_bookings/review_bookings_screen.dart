@@ -7,20 +7,22 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
-import 'package:room_booker/ui/widgets/confirmed_bookings.dart';
-import 'package:room_booker/ui/widgets/conflicting_bookings.dart';
+import 'package:room_booker/ui/widgets/booking_list/confirmed_bookings.dart';
+import 'package:room_booker/ui/widgets/booking_list/conflicting_bookings.dart';
 import 'package:room_booker/ui/widgets/heading.dart';
-import 'package:room_booker/ui/widgets/pending_bookings.dart';
-import 'package:room_booker/ui/widgets/rejected_bookings.dart';
+import 'package:room_booker/ui/widgets/booking_list/pending_bookings.dart';
+import 'package:room_booker/ui/widgets/booking_list/rejected_bookings.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
-import 'package:room_booker/ui/widgets/booking_lists.dart';
+import 'package:room_booker/ui/widgets/booking_list/booking_filter_view_model.dart';
 
 @RoutePage()
 class ReviewBookingsScreen extends StatefulWidget {
   final String orgID;
 
-  const ReviewBookingsScreen(
-      {super.key, @PathParam("orgID") required this.orgID});
+  const ReviewBookingsScreen({
+    super.key,
+    @PathParam("orgID") required this.orgID,
+  });
 
   @override
   State<ReviewBookingsScreen> createState() => _ReviewBookingsScreenState();
@@ -32,7 +34,9 @@ class _ReviewBookingsScreenState extends State<ReviewBookingsScreen> {
   @override
   Widget build(BuildContext context) {
     FirebaseAnalytics.instance.logScreenView(
-        screenName: "Review Bookings", parameters: {"orgID": widget.orgID});
+      screenName: "Review Bookings",
+      parameters: {"orgID": widget.orgID},
+    );
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
     var orgRepo = Provider.of<OrgRepo>(context, listen: false);
     return StreamBuilder(
@@ -41,9 +45,9 @@ class _ReviewBookingsScreenState extends State<ReviewBookingsScreen> {
         if (snapshot.hasError) {
           log(snapshot.error.toString(), error: snapshot.error);
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error: ${snapshot.error}')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Error: ${snapshot.error}')));
           });
           return const Placeholder();
         }
@@ -52,48 +56,46 @@ class _ReviewBookingsScreenState extends State<ReviewBookingsScreen> {
         }
         var org = snapshot.data;
         return RoomStateProvider(
-            enableAllRooms: true,
-            org: org!,
-            builder: (context, child) =>
-                Consumer<RoomState>(builder: (context, roomState, child) {
-                  return Scaffold(
-                      appBar: AppBar(
-                        title: Text('Booking Requests for ${org.name}'),
-                        leading: BackButton(
-                          onPressed: () {
-                            var router = AutoRouter.of(context);
-                            if (router.canPop()) {
-                              router.pop();
-                            } else {
-                              router.replace(LandingRoute());
-                            }
-                          },
-                        ),
-                      ),
-                      body: ChangeNotifierProvider.value(
-                        value: BookingSearchContext(),
-                        builder: (context, child) => SingleChildScrollView(
-                            child: Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
+          enableAllRooms: true,
+          org: org!,
+          builder: (context, child) => Consumer<RoomState>(
+            builder: (context, roomState, child) {
+              return Scaffold(
+                appBar: AppBar(
+                  title: Text('Booking Requests for ${org.name}'),
+                  leading: BackButton(
+                    onPressed: () {
+                      var router = AutoRouter.of(context);
+                      if (router.canPop()) {
+                        router.pop();
+                      } else {
+                        router.replace(LandingRoute());
+                      }
+                    },
+                  ),
+                ),
+                body: ChangeNotifierProvider(
+                  create: (context) => BookingFilterViewModel(),
+                  child: Consumer<BookingFilterViewModel>(
+                    builder: (context, viewModel, child) =>
+                        SingleChildScrollView(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
                               SearchBar(
                                 leading: Icon(Icons.search),
                                 hintText: "Search",
                                 controller: searchBarController,
                                 onChanged: (v) =>
-                                    Provider.of<BookingSearchContext>(context,
-                                            listen: false)
-                                        .updateQuery(v),
+                                    viewModel.updateSearchQuery(v),
                                 trailing: [
                                   IconButton(
                                     icon: Icon(Icons.clear),
                                     onPressed: () {
                                       searchBarController.text = "";
-                                      Provider.of<BookingSearchContext>(context,
-                                              listen: false)
-                                          .updateQuery("");
+                                      viewModel.updateSearchQuery("");
                                     },
-                                  )
+                                  ),
                                 ],
                               ),
                               const Heading("Pending"),
@@ -122,9 +124,15 @@ class _ReviewBookingsScreenState extends State<ReviewBookingsScreen> {
                                 repo: bookingRepo,
                                 orgID: widget.orgID,
                               ),
-                            ])),
-                      ));
-                }));
+                            ],
+                          ),
+                        ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
       },
     );
   }

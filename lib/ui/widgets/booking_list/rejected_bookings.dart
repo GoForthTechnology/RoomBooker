@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
-import 'package:room_booker/ui/widgets/booking_lists.dart';
+import 'package:room_booker/ui/widgets/booking_list/booking_lists.dart';
 
 class RejectedBookings extends StatelessWidget {
   final BookingRepo repo;
@@ -14,13 +14,13 @@ class RejectedBookings extends StatelessWidget {
     return BookingList(
       orgID: orgID,
       emptyText: "No confirmed bookings",
-      statusList: const [
-        RequestStatus.denied,
-      ],
+      statusList: const [RequestStatus.denied],
       actions: [
         RequestAction(
-            text: "Revisit",
-            onClick: (request) => repo.revisitBookingRequest(orgID, request))
+          icon: Icons.assignment_return,
+          text: "Revisit",
+          onClick: (request) => repo.revisitBookingRequest(orgID, request),
+        ),
       ],
     );
   }
