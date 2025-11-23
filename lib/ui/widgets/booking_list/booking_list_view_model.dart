@@ -7,6 +7,7 @@ import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
+import 'package:room_booker/ui/widgets/booking_list/booking_filter_view_model.dart';
 import 'package:rxdart/rxdart.dart';
 
 class RenderedRequest {
@@ -19,6 +20,16 @@ class RenderedRequest {
     required this.details,
     required this.logEntries,
   });
+
+  String searchTerms() {
+    List<String> terms = [
+      details.eventName,
+      details.name,
+      details.email,
+      request.roomName,
+    ];
+    return terms.join(" ");
+  }
 }
 
 class BookingListViewModel extends ChangeNotifier {
@@ -29,6 +40,7 @@ class BookingListViewModel extends ChangeNotifier {
   final bool Function(Request)? _requestFilter;
   final List<Request>? _overrideRequests;
   final RoomState _roomState;
+  final BookingFilterViewModel _filterViewModel;
 
   late Stream<List<RenderedRequest>> renderedRequests;
 
@@ -38,6 +50,7 @@ class BookingListViewModel extends ChangeNotifier {
     required String orgID,
     required List<RequestStatus> statusList,
     required RoomState roomState,
+    required BookingFilterViewModel filterViewModel,
     bool Function(Request)? requestFilter,
     List<Request>? overrideRequests,
   }) : _bookingRepo = bookingRepo,
@@ -46,8 +59,20 @@ class BookingListViewModel extends ChangeNotifier {
        _statusList = statusList,
        _requestFilter = requestFilter,
        _overrideRequests = overrideRequests,
-       _roomState = roomState {
+       _roomState = roomState,
+       _filterViewModel = filterViewModel {
     _initializeStream();
+    _filterViewModel.addListener(_onFilterChanged);
+  }
+
+  void _onFilterChanged() {
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _filterViewModel.removeListener(_onFilterChanged);
+    super.dispose();
   }
 
   void _initializeStream() {
@@ -72,12 +97,21 @@ class BookingListViewModel extends ChangeNotifier {
           );
     }
 
-    renderedRequests = requestStream.switchMap((requests) {
-      if (requests.isEmpty) {
-        return Stream.value([]);
-      }
-      return _renderedRequests(_bookingRepo, _logRepo, _orgID, requests);
-    });
+    renderedRequests = requestStream
+        .switchMap((requests) {
+          if (requests.isEmpty) {
+            return Stream.value([]);
+          }
+          return _renderedRequests(_bookingRepo, _logRepo, _orgID, requests);
+        })
+        .map<List<RenderedRequest>>((requests) {
+          var query = _filterViewModel.searchQuery.toLowerCase();
+          var filtered = requests.where(
+            (r) =>
+                query.isEmpty || r.searchTerms().toLowerCase().contains(query),
+          );
+          return List<RenderedRequest>.from(filtered);
+        });
   }
 
   Stream<List<RenderedRequest>> _renderedRequests(

@@ -44,6 +44,7 @@ class BookingList extends StatelessWidget {
             orgID: orgID,
             statusList: statusList,
             roomState: roomState,
+            filterViewModel: Provider.of<BookingFilterViewModel>(context, listen: false),
             requestFilter: requestFilter,
             overrideRequests: overrideRequests,
           ),
@@ -70,36 +71,23 @@ class BookingList extends StatelessWidget {
                     return Text(emptyText);
                   }
 
-                  return Consumer<BookingFilterViewModel>(
-                    builder: (context, filterViewModel, child) {
-                      var query = filterViewModel.searchQuery.toLowerCase();
-                      renderedRequests = renderedRequests.where((r) {
-                        return query.isEmpty ||
-                            r.details.eventName.toLowerCase().contains(query) ||
-                            r.request.roomName.toLowerCase().contains(query) ||
-                            r.details.name.toLowerCase().contains(query) ||
-                            r.details.email.toLowerCase().contains(query);
-                      }).toList();
-
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: renderedRequests.length,
-                        itemBuilder: (context, index) {
-                          var renderedRequest = renderedRequests[index];
-                          List<RequestAction> actions = this.actions;
-                          if (actionBuilder != null) {
-                            actions = actionBuilder!(renderedRequest.request);
-                          }
-                          return BookingTile(
-                            orgID: orgID,
-                            request: renderedRequest.request,
-                            details: renderedRequest.details,
-                            actions: actions,
-                            logEntries: renderedRequest.logEntries,
-                            backgroundColorFn: backgroundColorFn,
-                          );
-                        },
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: renderedRequests.length,
+                    itemBuilder: (context, index) {
+                      var renderedRequest = renderedRequests[index];
+                      List<RequestAction> actions = this.actions;
+                      if (actionBuilder != null) {
+                        actions = actionBuilder!(renderedRequest.request);
+                      }
+                      return BookingTile(
+                        orgID: orgID,
+                        request: renderedRequest.request,
+                        details: renderedRequest.details,
+                        actions: actions,
+                        logEntries: renderedRequest.logEntries,
+                        backgroundColorFn: backgroundColorFn,
                       );
                     },
                   );
