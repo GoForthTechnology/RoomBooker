@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/analytics_service.dart';
+import 'package:room_booker/data/logging_service.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
@@ -18,13 +19,11 @@ import 'package:room_booker/auth.dart';
 import 'firebase_options.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-bool useEmulator = true;
+bool useEmulator = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   if (useEmulator && kDebugMode) {
     try {
@@ -40,25 +39,23 @@ void main() async {
     debugPrint('App is running in debug mode, not initializing Sentry');
     runApp(MyApp());
   } else {
-    await SentryFlutter.init(
-      (options) {
-        options.dsn =
-            'https://c5ed84ffedec25c193d642e9a8e6ba0f@o4509504243630080.ingest.us.sentry.io/4509504245071872';
-        // Adds request headers and IP for users, for more info visit:
-        // https://docs.sentry.io/platforms/dart/guides/flutter/data-management/data-collected/
-        options.sendDefaultPii = true;
-        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-        // We recommend adjusting this value in production.
-        options.tracesSampleRate = 1.0;
-        // The sampling rate for profiling is relative to tracesSampleRate
-        // Setting to 1.0 will profile 100% of sampled transactions:
-        options.profilesSampleRate = 1.0;
-        options.attachScreenshot = true;
-        options.replay.sessionSampleRate = 1.0;
-        options.replay.onErrorSampleRate = 1.0;
-      },
-      appRunner: () => runApp(SentryWidget(child: MyApp())),
-    );
+    await SentryFlutter.init((options) {
+      options.enableLogs = true;
+      options.dsn =
+          'https://c5ed84ffedec25c193d642e9a8e6ba0f@o4509504243630080.ingest.us.sentry.io/4509504245071872';
+      // Adds request headers and IP for users, for more info visit:
+      // https://docs.sentry.io/platforms/dart/guides/flutter/data-management/data-collected/
+      options.sendDefaultPii = true;
+      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
+      // We recommend adjusting this value in production.
+      options.tracesSampleRate = 1.0;
+      // The sampling rate for profiling is relative to tracesSampleRate
+      // Setting to 1.0 will profile 100% of sampled transactions:
+      options.profilesSampleRate = 1.0;
+      options.attachScreenshot = true;
+      options.replay.sessionSampleRate = 1.0;
+      options.replay.onErrorSampleRate = 1.0;
+    }, appRunner: () => runApp(SentryWidget(child: MyApp())));
   }
 }
 
@@ -69,16 +66,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    FirebaseAnalytics.instance.logAppOpen();
-    FirebaseUIAuth.configureProviders(providers);
-    var logRepo = LogRepo();
-    var bookingRepo = BookingRepo(logRepo: logRepo);
-    var roomRepo = RoomRepo();
-    var userRepo = UserRepo();
-    var prefsRepo = PreferencesRepo();
-    var orgRepo = OrgRepo(userRepo: userRepo, roomRepo: roomRepo);
-    var analyticsService = FirebaseAnalyticsService();
-    return MultiProvider(
+    var loggingService = SentryLoggingService();
+    try {
+      FirebaseAnalytics.instance.logAppOpen();
+      FirebaseUIAuth.configureProviders(providers);
+      var logRepo = LogRepo();
+      var bookingRepo = BookingRepo(logRepo: logRepo);
+      var roomRepo = RoomRepo();
+      var userRepo = UserRepo();
+      var prefsRepo = PreferencesRepo();
+      var orgRepo = OrgRepo(userRepo: userRepo, roomRepo: roomRepo);
+      var analyticsService = FirebaseAnalyticsService();
+      return MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => bookingRepo),
           ChangeNotifierProvider(create: (_) => userRepo),
@@ -87,6 +86,7 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => logRepo),
           ChangeNotifierProvider(create: (_) => prefsRepo),
           ChangeNotifierProvider(create: (_) => analyticsService),
+          ChangeNotifierProvider(create: (_) => loggingService),
         ],
         child: MaterialApp.router(
           title: 'Room Booker',
@@ -95,6 +95,11 @@ class MyApp extends StatelessWidget {
             useMaterial3: true,
           ),
           routerConfig: _appRouter.config(),
-        ));
+        ),
+      );
+    } catch (e) {
+      loggingService.error("Error initializing MyApp: $e");
+      return Text("Error initializing app");
+    }
   }
 }
