@@ -7,9 +7,9 @@ part of 'organization.dart';
 // **************************************************************************
 
 AdminEntry _$AdminEntryFromJson(Map<String, dynamic> json) => AdminEntry(
-      email: json['email'] as String,
-      lastUpdated: DateTime.parse(json['lastUpdated'] as String),
-    );
+  email: json['email'] as String,
+  lastUpdated: DateTime.parse(json['lastUpdated'] as String),
+);
 
 Map<String, dynamic> _$AdminEntryToJson(AdminEntry instance) =>
     <String, dynamic>{
@@ -18,16 +18,17 @@ Map<String, dynamic> _$AdminEntryToJson(AdminEntry instance) =>
     };
 
 Organization _$OrganizationFromJson(Map<String, dynamic> json) => Organization(
-      name: json['name'] as String,
-      ownerID: json['ownerID'] as String,
-      acceptingAdminRequests: json['acceptingAdminRequests'] as bool,
-      globalRoomID: json['globalRoomID'] as String?,
-      notificationSettings: json['notificationSettings'] == null
-          ? null
-          : NotificationSettings.fromJson(
-              json['notificationSettings'] as Map<String, dynamic>),
-      publiclyVisible: json['publiclyVisible'] as bool?,
-    );
+  name: json['name'] as String,
+  ownerID: json['ownerID'] as String,
+  acceptingAdminRequests: json['acceptingAdminRequests'] as bool,
+  globalRoomID: json['globalRoomID'] as String?,
+  notificationSettings: json['notificationSettings'] == null
+      ? null
+      : NotificationSettings.fromJson(
+          json['notificationSettings'] as Map<String, dynamic>,
+        ),
+  publiclyVisible: json['publiclyVisible'] as bool?,
+);
 
 Map<String, dynamic> _$OrganizationToJson(Organization instance) =>
     <String, dynamic>{
@@ -40,21 +41,22 @@ Map<String, dynamic> _$OrganizationToJson(Organization instance) =>
     };
 
 NotificationSettings _$NotificationSettingsFromJson(
-        Map<String, dynamic> json) =>
-    NotificationSettings(
-      notificationTargets:
-          (json['notificationTargets'] as Map<String, dynamic>).map(
+  Map<String, dynamic> json,
+) => NotificationSettings(
+  notificationTargets: (json['notificationTargets'] as Map<String, dynamic>)
+      .map(
         (k, e) =>
             MapEntry($enumDecode(_$NotificationEventEnumMap, k), e as String),
       ),
-    );
+);
 
 Map<String, dynamic> _$NotificationSettingsToJson(
-        NotificationSettings instance) =>
-    <String, dynamic>{
-      'notificationTargets': instance.notificationTargets
-          .map((k, e) => MapEntry(_$NotificationEventEnumMap[k]!, e)),
-    };
+  NotificationSettings instance,
+) => <String, dynamic>{
+  'notificationTargets': instance.notificationTargets.map(
+    (k, e) => MapEntry(_$NotificationEventEnumMap[k]!, e),
+  ),
+};
 
 const _$NotificationEventEnumMap = {
   NotificationEvent.bookingCreated: 'bookingCreated',
@@ -66,13 +68,13 @@ const _$NotificationEventEnumMap = {
 };
 
 Room _$RoomFromJson(Map<String, dynamic> json) => Room(
-      name: json['name'] as String,
-      colorHex: json['colorHex'] as String?,
-      orderKey: (json['orderKey'] as num?)?.toInt(),
-    );
+  name: json['name'] as String,
+  colorHex: json['colorHex'] as String?,
+  orderKey: (json['orderKey'] as num?)?.toInt(),
+);
 
 Map<String, dynamic> _$RoomToJson(Room instance) => <String, dynamic>{
-      'name': instance.name,
-      'colorHex': instance.colorHex,
-      'orderKey': instance.orderKey,
-    };
+  'name': instance.name,
+  'colorHex': instance.colorHex,
+  'orderKey': instance.orderKey,
+};

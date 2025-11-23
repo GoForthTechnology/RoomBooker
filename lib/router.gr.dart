@@ -14,7 +14,7 @@ part of 'router.dart';
 /// [EmailVerifyScreen]
 class EmailVerifyRoute extends PageRouteInfo<void> {
   const EmailVerifyRoute({List<PageRouteInfo>? children})
-      : super(EmailVerifyRoute.name, initialChildren: children);
+    : super(EmailVerifyRoute.name, initialChildren: children);
 
   static const String name = 'EmailVerifyRoute';
 
@@ -35,12 +35,12 @@ class EmbedRoute extends PageRouteInfo<EmbedRouteArgs> {
     required String orgID,
     List<PageRouteInfo>? children,
   }) : super(
-          EmbedRoute.name,
-          args: EmbedRouteArgs(key: key, view: view, orgID: orgID),
-          rawPathParams: {'orgID': orgID},
-          rawQueryParams: {'v': view},
-          initialChildren: children,
-        );
+         EmbedRoute.name,
+         args: EmbedRouteArgs(key: key, view: view, orgID: orgID),
+         rawPathParams: {'orgID': orgID},
+         rawQueryParams: {'v': view},
+         initialChildren: children,
+       );
 
   static const String name = 'EmbedRoute';
 
@@ -89,12 +89,12 @@ class EmbedRouteArgs {
 /// [JoinOrgScreen]
 class JoinOrgRoute extends PageRouteInfo<JoinOrgRouteArgs> {
   JoinOrgRoute({Key? key, required String orgID, List<PageRouteInfo>? children})
-      : super(
-          JoinOrgRoute.name,
-          args: JoinOrgRouteArgs(key: key, orgID: orgID),
-          rawPathParams: {'orgID': orgID},
-          initialChildren: children,
-        );
+    : super(
+        JoinOrgRoute.name,
+        args: JoinOrgRouteArgs(key: key, orgID: orgID),
+        rawPathParams: {'orgID': orgID},
+        initialChildren: children,
+      );
 
   static const String name = 'JoinOrgRoute';
 
@@ -137,7 +137,7 @@ class JoinOrgRouteArgs {
 /// [LandingScreen]
 class LandingRoute extends PageRouteInfo<void> {
   const LandingRoute({List<PageRouteInfo>? children})
-      : super(LandingRoute.name, initialChildren: children);
+    : super(LandingRoute.name, initialChildren: children);
 
   static const String name = 'LandingRoute';
 
@@ -153,12 +153,12 @@ class LandingRoute extends PageRouteInfo<void> {
 /// [LoginScreen]
 class LoginRoute extends PageRouteInfo<LoginRouteArgs> {
   LoginRoute({Key? key, String? orgID, List<PageRouteInfo>? children})
-      : super(
-          LoginRoute.name,
-          args: LoginRouteArgs(key: key, orgID: orgID),
-          rawPathParams: {'orgID': orgID},
-          initialChildren: children,
-        );
+    : super(
+        LoginRoute.name,
+        args: LoginRouteArgs(key: key, orgID: orgID),
+        rawPathParams: {'orgID': orgID},
+        initialChildren: children,
+      );
 
   static const String name = 'LoginRoute';
 
@@ -205,11 +205,11 @@ class OrgSettingsRoute extends PageRouteInfo<OrgSettingsRouteArgs> {
     required String orgID,
     List<PageRouteInfo>? children,
   }) : super(
-          OrgSettingsRoute.name,
-          args: OrgSettingsRouteArgs(key: key, orgID: orgID),
-          rawPathParams: {'orgID': orgID},
-          initialChildren: children,
-        );
+         OrgSettingsRoute.name,
+         args: OrgSettingsRouteArgs(key: key, orgID: orgID),
+         rawPathParams: {'orgID': orgID},
+         initialChildren: children,
+       );
 
   static const String name = 'OrgSettingsRoute';
 
@@ -257,11 +257,11 @@ class ReviewBookingsRoute extends PageRouteInfo<ReviewBookingsRouteArgs> {
     required String orgID,
     List<PageRouteInfo>? children,
   }) : super(
-          ReviewBookingsRoute.name,
-          args: ReviewBookingsRouteArgs(key: key, orgID: orgID),
-          rawPathParams: {'orgID': orgID},
-          initialChildren: children,
-        );
+         ReviewBookingsRoute.name,
+         args: ReviewBookingsRouteArgs(key: key, orgID: orgID),
+         rawPathParams: {'orgID': orgID},
+         initialChildren: children,
+       );
 
   static const String name = 'ReviewBookingsRoute';
 
@@ -315,26 +315,26 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
     String? view,
     List<PageRouteInfo>? children,
   }) : super(
-          ViewBookingsRoute.name,
-          args: ViewBookingsRouteArgs(
-            key: key,
-            orgID: orgID,
-            requestID: requestID,
-            showPrivateBookings: showPrivateBookings,
-            readOnlyMode: readOnlyMode,
-            createRequest: createRequest,
-            targetDate: targetDate,
-            view: view,
-          ),
-          rawPathParams: {'orgID': orgID},
-          rawQueryParams: {
-            'rid': requestID,
-            'spb': showPrivateBookings,
-            'ro': readOnlyMode,
-            'v': view,
-          },
-          initialChildren: children,
-        );
+         ViewBookingsRoute.name,
+         args: ViewBookingsRouteArgs(
+           key: key,
+           orgID: orgID,
+           requestID: requestID,
+           showPrivateBookings: showPrivateBookings,
+           readOnlyMode: readOnlyMode,
+           createRequest: createRequest,
+           targetDate: targetDate,
+           view: view,
+         ),
+         rawPathParams: {'orgID': orgID},
+         rawQueryParams: {
+           'rid': requestID,
+           'spb': showPrivateBookings,
+           'ro': readOnlyMode,
+           'v': view,
+         },
+         initialChildren: children,
+       );
 
   static const String name = 'ViewBookingsRoute';
 

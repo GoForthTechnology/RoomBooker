@@ -7,11 +7,8 @@ part of 'user_profile.dart';
 // **************************************************************************
 
 UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => UserProfile(
-      orgIDs:
-          (json['orgIDs'] as List<dynamic>).map((e) => e as String).toList(),
-    );
+  orgIDs: (json['orgIDs'] as List<dynamic>).map((e) => e as String).toList(),
+);
 
 Map<String, dynamic> _$UserProfileToJson(UserProfile instance) =>
-    <String, dynamic>{
-      'orgIDs': instance.orgIDs,
-    };
+    <String, dynamic>{'orgIDs': instance.orgIDs};
