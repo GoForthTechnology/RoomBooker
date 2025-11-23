@@ -26,8 +26,11 @@ class RenderedRequest {
   final PrivateRequestDetails details;
   final List<RequestLogEntry> logEntries;
 
-  RenderedRequest(
-      {required this.request, required this.details, required this.logEntries});
+  RenderedRequest({
+    required this.request,
+    required this.details,
+    required this.logEntries,
+  });
 }
 
 class BookingList extends StatelessWidget {
@@ -40,29 +43,40 @@ class BookingList extends StatelessWidget {
   final Color? Function(Request)? backgroundColorFn;
   final List<RequestAction> Function(Request)? actionBuilder;
 
-  const BookingList(
-      {super.key,
-      required this.orgID,
-      required this.actions,
-      required this.statusList,
-      required this.emptyText,
-      this.requestFilter,
-      this.backgroundColorFn,
-      this.actionBuilder,
-      this.overrideRequests});
+  const BookingList({
+    super.key,
+    required this.orgID,
+    required this.actions,
+    required this.statusList,
+    required this.emptyText,
+    this.requestFilter,
+    this.backgroundColorFn,
+    this.actionBuilder,
+    this.overrideRequests,
+  });
 
-  Stream<List<RenderedRequest>> _renderedRequests(BookingRepo bookingRepo,
-      LogRepo logRepo, String orgID, List<Request> requests) {
+  Stream<List<RenderedRequest>> _renderedRequests(
+    BookingRepo bookingRepo,
+    LogRepo logRepo,
+    String orgID,
+    List<Request> requests,
+  ) {
     var detailStream = Rx.combineLatest(
-        requests.map(
-            (request) => bookingRepo.getRequestDetails(orgID, request.id!)),
-        (l) => l);
+      requests.map(
+        (request) => bookingRepo.getRequestDetails(orgID, request.id!),
+      ),
+      (l) => l,
+    );
     var logEntryStream = Rx.combineLatest(
-        requests.map((request) =>
-            logRepo.getLogEntries(orgID, requestIDs: {request.id!})),
-        (l) => l).map((lofl) => lofl.expand((l) => l).toList());
-    return Rx.combineLatest2(detailStream, logEntryStream,
-        (detailsList, logEntries) {
+      requests.map(
+        (request) => logRepo.getLogEntries(orgID, requestIDs: {request.id!}),
+      ),
+      (l) => l,
+    ).map((lofl) => lofl.expand((l) => l).toList());
+    return Rx.combineLatest2(detailStream, logEntryStream, (
+      detailsList,
+      logEntries,
+    ) {
       Map<String, List<RequestLogEntry>> logEntryIndex = {};
       for (var logEntry in logEntries) {
         logEntryIndex.putIfAbsent(logEntry.requestID, () => []);
@@ -88,9 +102,9 @@ class BookingList extends StatelessWidget {
           );
         },
       );
-      renderedRequests.sort((a, b) => a.request.eventStartTime.compareTo(
-            b.request.eventStartTime,
-          ));
+      renderedRequests.sort(
+        (a, b) => a.request.eventStartTime.compareTo(b.request.eventStartTime),
+      );
       return renderedRequests;
     });
   }
@@ -99,90 +113,108 @@ class BookingList extends StatelessWidget {
   Widget build(BuildContext context) {
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
     var logRepo = Provider.of<LogRepo>(context, listen: false);
-    return Consumer<RoomState>(builder: (context, roomState, child) {
-      Stream<List<Request>> requestStream;
-      if (overrideRequests != null) {
-        requestStream = Stream.value(overrideRequests!);
-      } else {
-        requestStream = bookingRepo
-            .listRequests(
+    return Consumer<RoomState>(
+      builder: (context, roomState, child) {
+        Stream<List<Request>> requestStream;
+        if (overrideRequests != null) {
+          requestStream = Stream.value(overrideRequests!);
+        } else {
+          requestStream = bookingRepo
+              .listRequests(
                 orgID: orgID,
                 startTime: DateTime.now(),
                 endTime: DateTime.now().add(const Duration(days: 365)),
-                includeRoomIDs:
-                    roomState.enabledValues().map((r) => r.id!).toSet(),
-                includeStatuses: Set.from(statusList))
-            .map((requests) =>
-                requests.where(requestFilter ?? (r) => true).toList());
-      }
-      return StreamBuilder(
-        stream: requestStream,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            log(snapshot.error.toString(), error: snapshot.error);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: ${snapshot.error}')),
+                includeRoomIDs: roomState
+                    .enabledValues()
+                    .map((r) => r.id!)
+                    .toSet(),
+                includeStatuses: Set.from(statusList),
+              )
+              .map(
+                (requests) =>
+                    requests.where(requestFilter ?? (r) => true).toList(),
               );
-            });
-            return const Placeholder();
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return Consumer<BookingSearchContext>(
+        }
+        return StreamBuilder(
+          stream: requestStream,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              log(snapshot.error.toString(), error: snapshot.error);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: ${snapshot.error}')),
+                );
+              });
+              return const Placeholder();
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return Consumer<BookingSearchContext>(
               builder: (context, searchContext, child) => StreamBuilder(
-                    stream: _renderedRequests(
-                        bookingRepo, logRepo, orgID, snapshot.data ?? []),
-                    builder: (context, detailsSnapshot) {
-                      if (detailsSnapshot.hasError) {
-                        log(detailsSnapshot.error.toString(),
-                            error: detailsSnapshot.error);
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content:
-                                    Text('Error: ${detailsSnapshot.error}')),
-                          );
-                        });
-                        return const Placeholder();
+                stream: _renderedRequests(
+                  bookingRepo,
+                  logRepo,
+                  orgID,
+                  snapshot.data ?? [],
+                ),
+                builder: (context, detailsSnapshot) {
+                  if (detailsSnapshot.hasError) {
+                    log(
+                      detailsSnapshot.error.toString(),
+                      error: detailsSnapshot.error,
+                    );
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: ${detailsSnapshot.error}'),
+                        ),
+                      );
+                    });
+                    return const Placeholder();
+                  }
+                  var renderedRequests = detailsSnapshot.data ?? [];
+                  if (renderedRequests.isEmpty) {
+                    return Text(emptyText);
+                  }
+                  renderedRequests = renderedRequests
+                      .where(
+                        (r) =>
+                            r.details.eventName.toLowerCase().contains(
+                              searchContext.searchQuery.toLowerCase(),
+                            ) ||
+                            r.request.roomName.toLowerCase().contains(
+                              searchContext.searchQuery.toLowerCase(),
+                            ),
+                      )
+                      .toList();
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: renderedRequests.length,
+                    itemBuilder: (context, index) {
+                      var renderedRequest = renderedRequests[index];
+                      List<RequestAction> actions = this.actions;
+                      if (actionBuilder != null) {
+                        actions = actionBuilder!(renderedRequest.request);
                       }
-                      var renderedRequests = detailsSnapshot.data ?? [];
-                      if (renderedRequests.isEmpty) {
-                        return Text(emptyText);
-                      }
-                      renderedRequests = renderedRequests
-                          .where((r) =>
-                              r.details.eventName.toLowerCase().contains(
-                                  searchContext.searchQuery.toLowerCase()) ||
-                              r.request.roomName.toLowerCase().contains(
-                                  searchContext.searchQuery.toLowerCase()))
-                          .toList();
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: renderedRequests.length,
-                        itemBuilder: (context, index) {
-                          var renderedRequest = renderedRequests[index];
-                          List<RequestAction> actions = this.actions;
-                          if (actionBuilder != null) {
-                            actions = actionBuilder!(renderedRequest.request);
-                          }
-                          return BookingTile(
-                            orgID: orgID,
-                            request: renderedRequest.request,
-                            details: renderedRequest.details,
-                            actions: actions,
-                            logEntries: renderedRequest.logEntries,
-                            backgroundColorFn: backgroundColorFn,
-                          );
-                        },
+                      return BookingTile(
+                        orgID: orgID,
+                        request: renderedRequest.request,
+                        details: renderedRequest.details,
+                        actions: actions,
+                        logEntries: renderedRequest.logEntries,
+                        backgroundColorFn: backgroundColorFn,
                       );
                     },
-                  ));
-        },
-      );
-    });
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }
 
@@ -233,18 +265,19 @@ class BookingTile extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: GestureDetector(
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: request.id!));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Request ID copied to clipboard'),
-                    ),
-                  );
-                },
-                child: Text(
-                  "Request ID: ${request.id}",
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                )),
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: request.id!));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Request ID copied to clipboard'),
+                  ),
+                );
+              },
+              child: Text(
+                "Request ID: ${request.id}",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
           Wrap(
             spacing: 16.0, // gap between adjacent chips
@@ -262,20 +295,16 @@ class BookingTile extends StatelessWidget {
   Widget? _trailing() {
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: actions.map(
-        (a) {
-          Widget button = ElevatedButton(
-              onPressed: a.onClick == null ? null : () => a.onClick!(request),
-              child: Text(a.text));
-          if ((a.disableText ?? "") != "") {
-            button = Tooltip(
-              message: a.disableText!,
-              child: button,
-            );
-          }
-          return button;
-        },
-      ).toList(),
+      children: actions.map((a) {
+        Widget button = ElevatedButton(
+          onPressed: a.onClick == null ? null : () => a.onClick!(request),
+          child: Text(a.text),
+        );
+        if ((a.disableText ?? "") != "") {
+          button = Tooltip(message: a.disableText!, child: button);
+        }
+        return button;
+      }).toList(),
     );
   }
 
@@ -283,17 +312,16 @@ class BookingTile extends StatelessWidget {
     if (request.status == RequestStatus.pending) {
       return null;
     }
-    return Icon(
-      Icons.event,
-      color: color,
-    );
+    return Icon(Icons.event, color: color);
   }
 
   Widget _subtitle(BuildContext context) {
-    var startTimeStr =
-        TimeOfDay.fromDateTime(request.eventStartTime).format(context);
-    var endTimeStr =
-        TimeOfDay.fromDateTime(request.eventEndTime).format(context);
+    var startTimeStr = TimeOfDay.fromDateTime(
+      request.eventStartTime,
+    ).format(context);
+    var endTimeStr = TimeOfDay.fromDateTime(
+      request.eventEndTime,
+    ).format(context);
     var subtitle =
         '${request.roomName} on ${_formatDate(request.eventStartTime)} from $startTimeStr to $endTimeStr';
     if (request.isRepeating()) {
@@ -307,10 +335,7 @@ class _DetailTable extends StatelessWidget {
   final Request booking;
   final PrivateRequestDetails details;
 
-  const _DetailTable({
-    required this.booking,
-    required this.details,
-  });
+  const _DetailTable({required this.booking, required this.details});
 
   @override
   Widget build(BuildContext context) {
@@ -347,23 +372,32 @@ class _LogTable extends StatelessWidget {
 
 List<TableRow> _logRows(List<RequestLogEntry> logEntries) {
   logEntries.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-  var widgets = <TableRow>[];
-  for (var entry in logEntries) {
-    widgets.add(_bookingField(
-        entry.action.name.toUpperCase(), entry.timestamp.toString()));
-  }
-  return widgets;
+  return logEntries.map(_bookingRow).toList();
+}
+
+TableRow _bookingRow(RequestLogEntry entry) {
+  return TableRow(
+    children: [
+      TableCell(
+        child: Text(
+          "${entry.action.name.toUpperCase()} on ${_formatDate(entry.timestamp)}",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      TableCell(child: Text(entry.render())),
+    ],
+  );
 }
 
 TableRow _bookingField(String label, String value) {
-  return TableRow(children: [
-    TableCell(
-      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-    ),
-    TableCell(
-      child: Text(value),
-    ),
-  ]);
+  return TableRow(
+    children: [
+      TableCell(
+        child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+      ),
+      TableCell(child: Text(value)),
+    ],
+  );
 }
 
 String _formatDate(DateTime dateTime) {
