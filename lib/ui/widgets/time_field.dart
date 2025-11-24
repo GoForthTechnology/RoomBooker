@@ -74,7 +74,12 @@ class TimeField extends StatelessWidget {
   TimeOfDay roundToNearest15Minutes(TimeOfDay time) {
     final int minute = time.minute;
     final int mod = minute % 15;
-    final int roundedMinute = mod < 8 ? minute - mod : minute + (15 - mod);
-    return TimeOfDay(hour: time.hour, minute: roundedMinute);
+    int roundedMinute = mod < 8 ? minute - mod : minute + (15 - mod);
+    int hour = time.hour;
+    if (roundedMinute == 60) {
+      roundedMinute = 0;
+      hour = (hour + 1) % 24;
+    }
+    return TimeOfDay(hour: hour, minute: roundedMinute);
   }
 }
