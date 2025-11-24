@@ -10,8 +10,8 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/screens/landing/landing_viewmodel.dart';
-import 'package:room_booker/ui/widgets/app_info.dart';
-import 'package:room_booker/ui/widgets/org_details.dart';
+import 'package:room_booker/ui/widgets/org_settings/app_info.dart';
+import 'package:room_booker/ui/widgets/org_settings/org_details.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()
@@ -82,9 +82,10 @@ class LandingScreenViewState extends State<LandingScreenView> {
           const AppInfoAction(),
           const SettingsAction(),
           AuthAction(
-              isSignedIn: viewModel.isLoggedIn,
-              onSignOut: viewModel.signOut,
-              onSignIn: viewModel.navigateToLogin),
+            isSignedIn: viewModel.isLoggedIn,
+            onSignOut: viewModel.signOut,
+            onSignIn: viewModel.navigateToLogin,
+          ),
         ],
       ),
       body: Center(
@@ -93,16 +94,10 @@ class LandingScreenViewState extends State<LandingScreenView> {
           children: [
             if (viewModel.isLoggedIn) ...[
               const Heading("Your Organizations"),
-              Expanded(
-                child: OrgList(orgStream: viewModel.ownedOrgsStream),
-              ),
+              Expanded(child: OrgList(orgStream: viewModel.ownedOrgsStream)),
             ],
             const Heading("All Organizations"),
-            Expanded(
-              child: OrgList(
-                orgStream: viewModel.otherOrgsStream,
-              ),
-            ),
+            Expanded(child: OrgList(orgStream: viewModel.otherOrgsStream)),
           ],
         ),
       ),
@@ -132,14 +127,17 @@ class AppInfoAction extends StatelessWidget {
     return Tooltip(
       message: "App Info",
       child: IconButton(
-          onPressed: () => _showDialog(context), icon: Icon(Icons.info)),
+        onPressed: () => _showDialog(context),
+        icon: Icon(Icons.info),
+      ),
     );
   }
 
   void _showDialog(BuildContext context) {
     showDialog(
-        context: context,
-        builder: (context) => AlertDialog(content: AppInfoWidget()));
+      context: context,
+      builder: (context) => AlertDialog(content: AppInfoWidget()),
+    );
   }
 }
 
@@ -163,29 +161,32 @@ class SettingsAction extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('Settings'),
         content: Consumer<PreferencesRepo>(
-            builder: (context, prefsRepo, child) => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Default Calendar View:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+          builder: (context, prefsRepo, child) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Default Calendar View:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              ...CalendarView.values
+                  .where((view) => _isValidCalendarView(view))
+                  .map(
+                    (view) => RadioListTile<CalendarView>(
+                      title: Text(_getCalendarViewDisplayName(view)),
+                      value: view,
+                      groupValue: prefsRepo.defaultCalendarView,
+                      onChanged: (CalendarView? value) {
+                        if (value != null) {
+                          prefsRepo.setDefaultCalendarView(value);
+                        }
+                      },
                     ),
-                    const SizedBox(height: 16),
-                    ...CalendarView.values
-                        .where((view) => _isValidCalendarView(view))
-                        .map((view) => RadioListTile<CalendarView>(
-                              title: Text(_getCalendarViewDisplayName(view)),
-                              value: view,
-                              groupValue: prefsRepo.defaultCalendarView,
-                              onChanged: (CalendarView? value) {
-                                if (value != null) {
-                                  prefsRepo.setDefaultCalendarView(value);
-                                }
-                              },
-                            )),
-                  ],
-                )),
+                  ),
+            ],
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -226,8 +227,11 @@ class YourOrgs extends StatelessWidget {
   final Stream<List<Organization>> orgStream;
   final bool isLoggedIn;
 
-  const YourOrgs(
-      {super.key, required this.orgStream, required this.isLoggedIn});
+  const YourOrgs({
+    super.key,
+    required this.orgStream,
+    required this.isLoggedIn,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -238,9 +242,7 @@ class YourOrgs extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Heading("Your Organizations"),
-        OrgList(
-          orgStream: orgStream,
-        ),
+        OrgList(orgStream: orgStream),
       ],
     );
   }
@@ -268,29 +270,24 @@ class AuthAction extends StatelessWidget {
   final VoidCallback onSignOut;
   final VoidCallback onSignIn;
 
-  const AuthAction(
-      {super.key,
-      required this.isSignedIn,
-      required this.onSignOut,
-      required this.onSignIn});
+  const AuthAction({
+    super.key,
+    required this.isSignedIn,
+    required this.onSignOut,
+    required this.onSignIn,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (isSignedIn) {
       return Tooltip(
         message: "Sign out",
-        child: IconButton(
-          icon: const Icon(Icons.logout),
-          onPressed: onSignOut,
-        ),
+        child: IconButton(icon: const Icon(Icons.logout), onPressed: onSignOut),
       );
     } else {
       return Tooltip(
         message: "Sign in",
-        child: IconButton(
-          icon: const Icon(Icons.login),
-          onPressed: onSignIn,
-        ),
+        child: IconButton(icon: const Icon(Icons.login), onPressed: onSignIn),
       );
     }
   }
@@ -316,15 +313,17 @@ class OrgList extends StatelessWidget {
           var orgs = snapshot.data!;
           if (orgs.isEmpty) {
             return const Text(
-                'No organizations found. Please sign in or sign up to add one.');
+              'No organizations found. Please sign in or sign up to add one.',
+            );
           }
           return ListView.builder(
             shrinkWrap: true,
             itemCount: orgs.length,
             itemBuilder: (context, index) {
               return OrgTile(
-                  org: orgs[index],
-                  defaultCalendarView: prefs.defaultCalendarView);
+                org: orgs[index],
+                defaultCalendarView: prefs.defaultCalendarView,
+              );
             },
           );
         },
@@ -337,74 +336,79 @@ class OrgTile extends StatelessWidget {
   final Organization org;
   final CalendarView defaultCalendarView;
 
-  const OrgTile(
-      {super.key, required this.org, required this.defaultCalendarView});
+  const OrgTile({
+    super.key,
+    required this.org,
+    required this.defaultCalendarView,
+  });
 
   @override
   Widget build(BuildContext context) {
     final viewModel = context.read<LandingViewModel>();
     return OrgDetailsProvider(
-        orgID: org.id!,
-        builder: (context, details) {
-          String? subtitle;
-          if (details != null) {
-            subtitle = "${details.numPendingRequests} pending bookings";
-            if (details.numAdminRequests > 0) {
-              subtitle += ", ${details.numAdminRequests} admin requests";
-            }
-            if (details.numConflictingRequests > 0) {
-              subtitle +=
-                  ", ${details.numConflictingRequests} overlapping bookings";
-            }
+      orgID: org.id!,
+      builder: (context, details) {
+        String? subtitle;
+        if (details != null) {
+          subtitle = "${details.numPendingRequests} pending bookings";
+          if (details.numAdminRequests > 0) {
+            subtitle += ", ${details.numAdminRequests} admin requests";
           }
-          return Card(
-            elevation: 1,
-            child: ListTile(
-              leading: const Icon(Icons.business),
-              title: Text(org.name),
-              subtitle: subtitle != null ? Text(subtitle) : null,
-              trailing: IconButton(
-                icon: const Icon(Icons.settings),
-                onPressed: () {
-                  AutoRouter.of(context).push(OrgSettingsRoute(orgID: org.id!));
-                },
-              ),
-              onTap: () {
-                viewModel.onOrgTapped(org.id!, defaultCalendarView.name);
+          if (details.numConflictingRequests > 0) {
+            subtitle +=
+                ", ${details.numConflictingRequests} overlapping bookings";
+          }
+        }
+        return Card(
+          elevation: 1,
+          child: ListTile(
+            leading: const Icon(Icons.business),
+            title: Text(org.name),
+            subtitle: subtitle != null ? Text(subtitle) : null,
+            trailing: IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                AutoRouter.of(context).push(OrgSettingsRoute(orgID: org.id!));
               },
             ),
-          );
-        });
+            onTap: () {
+              viewModel.onOrgTapped(org.id!, defaultCalendarView.name);
+            },
+          ),
+        );
+      },
+    );
   }
 }
 
 Future<String?> promptForOrgName(BuildContext context) async {
   var controller = TextEditingController();
   var name = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-            title: const Text('Create New Organization'),
-            content: TextFormField(
-              autofocus: true,
-              controller: controller,
-              decoration: const InputDecoration(
-                hintText: 'Enter the name of your organization',
-              ),
-              onFieldSubmitted: (value) {
-                Navigator.of(context).pop(value);
-              },
-              textInputAction: TextInputAction.search,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(null),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(controller.text),
-                child: const Text('OK'),
-              ),
-            ],
-          ));
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Create New Organization'),
+      content: TextFormField(
+        autofocus: true,
+        controller: controller,
+        decoration: const InputDecoration(
+          hintText: 'Enter the name of your organization',
+        ),
+        onFieldSubmitted: (value) {
+          Navigator.of(context).pop(value);
+        },
+        textInputAction: TextInputAction.search,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(null),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(controller.text),
+          child: const Text('OK'),
+        ),
+      ],
+    ),
+  );
   return name;
 }

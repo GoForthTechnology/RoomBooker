@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/ui/widgets/heading.dart';
 
-import 'action_button.dart';
+import '../action_button.dart';
 
 class OrgActions extends StatelessWidget {
   final Organization org;
@@ -16,16 +15,17 @@ class OrgActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-        padding: const EdgeInsets.only(top: 12),
-        child: Column(
-          children: [
-            const Heading('Danger Zone'),
-            const Text("These action have consequences!"),
-            _publishButton(context),
-            _adminRegistrationButton(context),
-            _removeOrgButton(context)
-          ],
-        ));
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        children: [
+          const Heading('Danger Zone'),
+          const Text("These action have consequences!"),
+          _publishButton(context),
+          _adminRegistrationButton(context),
+          _removeOrgButton(context),
+        ],
+      ),
+    );
   }
 
   Widget _publishButton(BuildContext context) {
@@ -76,7 +76,6 @@ class OrgActions extends StatelessWidget {
       isDangerous: true,
       text: 'Remove Organization',
       onPressed: () async {
-        var repo = Provider.of<OrgRepo>(context, listen: false);
         var router = AutoRouter.of(context);
         var confirmed = await confirmOrgDeletion(context);
         if (confirmed == true) {
@@ -90,24 +89,24 @@ class OrgActions extends StatelessWidget {
 
 Future<bool?> confirmOrgDeletion(BuildContext context) {
   return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-            title: const Text('Delete Organization?'),
-            content: const Text(
-                'Are you sure you want to delete this organization?'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(false);
-                },
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(true);
-                },
-                child: const Text('Delete'),
-              ),
-            ],
-          ));
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Delete Organization?'),
+      content: const Text('Are you sure you want to delete this organization?'),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(false);
+          },
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(true);
+          },
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
 }

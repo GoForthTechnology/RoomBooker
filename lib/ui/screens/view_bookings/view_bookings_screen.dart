@@ -14,7 +14,7 @@ import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/widgets/current_bookings_calendar.dart';
 import 'package:room_booker/ui/widgets/navigation_drawer.dart';
-import 'package:room_booker/ui/widgets/org_details.dart';
+import 'package:room_booker/ui/widgets/org_settings/org_details.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor_panel.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
@@ -33,18 +33,18 @@ class ViewBookingsScreen extends StatefulWidget {
   final String? requestID;
   final bool showPrivateBookings;
 
-  ViewBookingsScreen(
-      {super.key,
-      @PathParam('orgID') required this.orgID,
-      @QueryParam('rid') this.requestID,
-      @QueryParam('spb') this.showPrivateBookings = true,
-      @QueryParam('ro') this.readOnlyMode = false,
-      this.createRequest = false,
-      this.targetDate,
-      @QueryParam('v') String? view})
-      : view = (targetDate != null || requestID != null
-            ? CalendarView.day.name
-            : view);
+  ViewBookingsScreen({
+    super.key,
+    @PathParam('orgID') required this.orgID,
+    @QueryParam('rid') this.requestID,
+    @QueryParam('spb') this.showPrivateBookings = true,
+    @QueryParam('ro') this.readOnlyMode = false,
+    this.createRequest = false,
+    this.targetDate,
+    @QueryParam('v') String? view,
+  }) : view = (targetDate != null || requestID != null
+           ? CalendarView.day.name
+           : view);
 
   @override
   State<ViewBookingsScreen> createState() => _ViewBookingsScreenState();
@@ -88,7 +88,9 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
   @override
   Widget build(BuildContext context) {
     FirebaseAnalytics.instance.logScreenView(
-        screenName: "View Bookings", parameters: {"orgID": widget.orgID});
+      screenName: "View Bookings",
+      parameters: {"orgID": widget.orgID},
+    );
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
     if (widget.requestID == null) {
       return _content(context, null, null);
@@ -101,8 +103,10 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
       ),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          log("Error fetching request details: ${snapshot.error}",
-              error: snapshot.error);
+          log(
+            "Error fetching request details: ${snapshot.error}",
+            error: snapshot.error,
+          );
           return const Placeholder();
         }
         if (!snapshot.hasData) {
@@ -116,7 +120,10 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
   }
 
   Widget _content(
-      BuildContext context, Request? request, PrivateRequestDetails? details) {
+    BuildContext context,
+    Request? request,
+    PrivateRequestDetails? details,
+  ) {
     var defaultView = widget.view;
     if (defaultView == null) {
       var prefRepo = Provider.of<PreferencesRepo>(context, listen: false);
@@ -132,8 +139,9 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
           initialDetails: details,
           requestStartTime: widget.createRequest ? widget.targetDate : null,
           child: CalendarStateProvider(
-            initialView: CalendarView.values
-                .firstWhere((element) => element.name == defaultView),
+            initialView: CalendarView.values.firstWhere(
+              (element) => element.name == defaultView,
+            ),
             focusDate:
                 widget.targetDate ?? request?.eventEndTime ?? DateTime.now(),
             builder: (context, child) {
@@ -175,10 +183,9 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
                         Flexible(
                           flex: 1,
                           child: SingleChildScrollView(
-                              child: NewRequestPanel(
-                            orgID: widget.orgID,
-                          )),
-                        )
+                            child: NewRequestPanel(orgID: widget.orgID),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -209,20 +216,29 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
     }
 
     var eventTime = await showTimePicker(
-        context: context,
-        helpText: "Select start time",
-        initialTime: TimeOfDay.fromDateTime(targetDate));
+      context: context,
+      helpText: "Select start time",
+      initialTime: TimeOfDay.fromDateTime(targetDate),
+    );
     if (eventTime == null) {
       return;
     }
 
-    var startTime = DateTime(targetDate.year, targetDate.month, targetDate.day,
-        eventTime.hour, eventTime.minute);
-    router.push(ViewBookingsRoute(
+    var startTime = DateTime(
+      targetDate.year,
+      targetDate.month,
+      targetDate.day,
+      eventTime.hour,
+      eventTime.minute,
+    );
+    router.push(
+      ViewBookingsRoute(
         orgID: widget.orgID,
         view: CalendarView.day.name,
         targetDate: startTime,
-        createRequest: true));
+        createRequest: true,
+      ),
+    );
   }
 
   bool _isSmallView(BuildContext context) {
@@ -230,10 +246,14 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
   }
 
   Widget _buildCalendar(BuildContext context, Request? existingRequest) {
-    var requestEditorState =
-        Provider.of<RequestEditorState>(context, listen: false);
-    var requestPanelState =
-        Provider.of<RequestPanelSate>(context, listen: false);
+    var requestEditorState = Provider.of<RequestEditorState>(
+      context,
+      listen: false,
+    );
+    var requestPanelState = Provider.of<RequestPanelSate>(
+      context,
+      listen: false,
+    );
     var calendarState = Provider.of<CalendarState>(context, listen: false);
     var roomState = Provider.of<RoomState>(context, listen: false);
     return CurrentBookingsCalendar(
@@ -252,18 +272,21 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
               var targetDate = details.date!;
               var currentView = calendarState.controller.view;
               if (currentView == CalendarView.month) {
-                AutoRouter.of(context).push(ViewBookingsRoute(
-                  orgID: widget.orgID,
-                  view: CalendarView.day.name,
-                  targetDate: targetDate,
-                ));
+                AutoRouter.of(context).push(
+                  ViewBookingsRoute(
+                    orgID: widget.orgID,
+                    view: CalendarView.day.name,
+                    targetDate: targetDate,
+                  ),
+                );
                 return;
               }
               requestEditorState.clearAppointment();
               requestEditorState.createRequest(
-                  details.date!,
-                  details.date!.add(const Duration(hours: 1)),
-                  roomState.enabledValue()!);
+                details.date!,
+                details.date!.add(const Duration(hours: 1)),
+                roomState.enabledValue()!,
+              );
               if (_isSmallView(context)) {
                 _showPannelAsDialog(context);
               } else {
@@ -289,8 +312,9 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
               child: Text(_getFormattedBookingRange(request)),
             ),
             Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: Text('Room: ${request.roomName}')),
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Text('Room: ${request.roomName}'),
+            ),
           ],
         ),
         actions: [
@@ -306,7 +330,8 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
   String _getFormattedBookingRange(Request request) {
     final start = request.eventStartTime.toLocal();
     final end = request.eventEndTime.toLocal();
-    final isSameDay = start.year == end.year &&
+    final isSameDay =
+        start.year == end.year &&
         start.month == end.month &&
         start.day == end.day;
     if (isSameDay) {
@@ -316,18 +341,23 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
   }
 
   void _onTapBookingRW(Request request, BuildContext context) async {
-    var requestEditorState =
-        Provider.of<RequestEditorState>(context, listen: false);
-    var requestPanelState =
-        Provider.of<RequestPanelSate>(context, listen: false);
+    var requestEditorState = Provider.of<RequestEditorState>(
+      context,
+      listen: false,
+    );
+    var requestPanelState = Provider.of<RequestPanelSate>(
+      context,
+      listen: false,
+    );
 
     if (FirebaseAuth.instance.currentUser == null) {
       return;
     }
     var isSmallView = _isSmallView(context);
-    var details = await Provider.of<BookingRepo>(context, listen: false)
-        .getRequestDetails(widget.orgID, request.id!)
-        .first;
+    var details = await Provider.of<BookingRepo>(
+      context,
+      listen: false,
+    ).getRequestDetails(widget.orgID, request.id!).first;
     if (details == null) {
       return;
     }
@@ -338,7 +368,8 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
       requestPanelState.showPanel();
     }
     SystemNavigator.routeInformationUpdated(
-        uri: Uri(path: "/view/${widget.orgID}?requestID=${request.id}"));
+      uri: Uri(path: "/view/${widget.orgID}?requestID=${request.id}"),
+    );
     FirebaseAnalytics.instance.logEvent(name: "Start creating request");
   }
 
@@ -351,23 +382,29 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
   }
 
   void _showPannelAsDialog(BuildContext context) {
-    var requestEditorState =
-        Provider.of<RequestEditorState>(context, listen: false);
-    var requestPanelState =
-        Provider.of<RequestPanelSate>(context, listen: false);
+    var requestEditorState = Provider.of<RequestEditorState>(
+      context,
+      listen: false,
+    );
+    var requestPanelState = Provider.of<RequestPanelSate>(
+      context,
+      listen: false,
+    );
     var roomState = Provider.of<RoomState>(context, listen: false);
     var orgState = Provider.of<OrgState>(context, listen: false);
     showDialog(
-        context: context,
-        builder: (context) => MultiProvider(
-                providers: [
-                  ChangeNotifierProvider.value(value: requestEditorState),
-                  ChangeNotifierProvider.value(value: roomState),
-                  ChangeNotifierProvider.value(value: requestPanelState),
-                  ChangeNotifierProvider.value(value: orgState),
-                ],
-                builder: (context, child) => Dialog.fullscreen(
-                    child: NewRequestPanel(orgID: widget.orgID))));
+      context: context,
+      builder: (context) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: requestEditorState),
+          ChangeNotifierProvider.value(value: roomState),
+          ChangeNotifierProvider.value(value: requestPanelState),
+          ChangeNotifierProvider.value(value: orgState),
+        ],
+        builder: (context, child) =>
+            Dialog.fullscreen(child: NewRequestPanel(orgID: widget.orgID)),
+      ),
+    );
   }
 
   List<Widget> _actions(BuildContext context, OrgState orgState) {
@@ -375,14 +412,17 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
       var privilegedActions = <Widget>[];
       if (orgState.currentUserIsAdmin()) {
         privilegedActions.add(ReviewBookingsAction(orgID: widget.orgID));
-        privilegedActions.add(Tooltip(
-          message: "Settings",
-          child: IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => AutoRouter.of(context)
-                .push(OrgSettingsRoute(orgID: widget.orgID)),
+        privilegedActions.add(
+          Tooltip(
+            message: "Settings",
+            child: IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () => AutoRouter.of(
+                context,
+              ).push(OrgSettingsRoute(orgID: widget.orgID)),
+            ),
           ),
-        ));
+        );
       }
       return [
         ...privilegedActions,
@@ -407,7 +447,7 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
           onPressed: () =>
               AutoRouter.of(context).push(LoginRoute(orgID: widget.orgID)),
         ),
-      )
+      ),
     ];
   }
 }
@@ -420,28 +460,24 @@ class ReviewBookingsAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OrgDetailsProvider(
-        orgID: orgID,
-        builder: (context, details) {
-          Widget widget = IconButton(
-            icon: const Icon(Icons.approval_rounded),
-            onPressed: () =>
-                AutoRouter.of(context).push(ReviewBookingsRoute(orgID: orgID)),
-          );
-          if (details != null) {
-            var total =
-                details.numPendingRequests + details.numConflictingRequests;
-            widget = Badge(
-              badgeContent:
-                  Text("$total", style: TextStyle(color: Colors.white)),
-              badgeAnimation:
-                  const BadgeAnimation.slide(), // Optional animation
-              child: widget,
-            );
-          }
-          return Tooltip(
-            message: "Review Bookings",
+      orgID: orgID,
+      builder: (context, details) {
+        Widget widget = IconButton(
+          icon: const Icon(Icons.approval_rounded),
+          onPressed: () =>
+              AutoRouter.of(context).push(ReviewBookingsRoute(orgID: orgID)),
+        );
+        if (details != null) {
+          var total =
+              details.numPendingRequests + details.numConflictingRequests;
+          widget = Badge(
+            badgeContent: Text("$total", style: TextStyle(color: Colors.white)),
+            badgeAnimation: const BadgeAnimation.slide(), // Optional animation
             child: widget,
           );
-        });
+        }
+        return Tooltip(message: "Review Bookings", child: widget);
+      },
+    );
   }
 }
