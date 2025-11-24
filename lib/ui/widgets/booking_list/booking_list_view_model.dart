@@ -148,6 +148,7 @@ class BookingListViewModel extends ChangeNotifier {
           if (details == null) {
             log("No details found for request ${requests[index].id}");
             details = PrivateRequestDetails(
+              id: requests[index].id,
               name: "Unknown",
               email: "Unknown",
               phone: "Unknown",
