@@ -45,24 +45,30 @@ void main() {
     when(() => mockOrgState.org).thenReturn(mockOrganization);
     when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
     when(() => mockOrganization.id).thenReturn('org_id');
-    when(() => mockBookingRepo.listRequests(
+    when(
+      () => mockBookingRepo.listRequests(
         orgID: any(named: 'orgID'),
         startTime: any(named: 'startTime'),
-        endTime: any(named: 'endTime'))).thenAnswer((_) => Stream.value([]));
+        endTime: any(named: 'endTime'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
     when(() => mockBookingRepo.getRequestDetails(any(), any())).thenAnswer(
-        (_) => Stream.value(PrivateRequestDetails(
-            id: 'detail_id',
-            eventName: "Fake Event",
-            name: "Some name",
-            email: "someone@somewhere.com",
-            phone: "1234")));
-    when(() => mockBookingRepo.listBlackoutWindows(any(), any(), any()))
-        .thenAnswer((_) => Stream.value([]));
-    when(() => mockRoomState.getRoom(any())).thenReturn(Room(
-      id: 'room_id',
-      name: 'Test Room',
-      colorHex: '#FF0000',
-    ));
+      (_) => Stream.value(
+        PrivateRequestDetails(
+          id: 'detail_id',
+          eventName: "Fake Event",
+          name: "Some name",
+          email: "someone@somewhere.com",
+          phone: "1234",
+        ),
+      ),
+    );
+    when(
+      () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
+    ).thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockRoomState.getRoom(any()),
+    ).thenReturn(Room(id: 'room_id', name: 'Test Room', colorHex: '#FF0000'));
     when(() => mockRoomState.color(any())).thenReturn(Colors.red);
 
     viewModel = CalendarViewModel(
@@ -73,56 +79,78 @@ void main() {
   });
 
   group('Data Transformation', () {
-    test('private bookings are filtered when includePrivateBookings is false',
-        () async {
-      final List<Request> requests = [
-        Request(
+    test(
+      'private bookings are filtered when includePrivateBookings is false',
+      () async {
+        final List<Request> requests = [
+          Request(
             id: 'req_1',
             roomID: 'room_1',
             eventStartTime: DateTime.now(),
             eventEndTime: DateTime.now().add(Duration(hours: 1)),
             status: RequestStatus.confirmed,
-            roomName: 'Test Room')
-      ];
-      when(() => mockBookingRepo.listRequests(
-              orgID: any(named: 'orgID'),
-              startTime: any(named: 'startTime'),
-              endTime: any(named: 'endTime')))
-          .thenAnswer((_) => Stream.value(requests));
+            roomName: 'Test Room',
+          ),
+        ];
+        when(
+          () => mockBookingRepo.listRequests(
+            orgID: any(named: 'orgID'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        ).thenAnswer((_) => Stream.value(requests));
 
-      viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
-        orgState: mockOrgState,
-        roomState: mockRoomState,
-        includePrivateBookings: false,
-      );
+        viewModel = CalendarViewModel(
+          bookingRepo: mockBookingRepo,
+          orgState: mockOrgState,
+          roomState: mockRoomState,
+          includePrivateBookings: false,
+        );
 
-      await expectLater(
-        viewModel.calendarViewState(),
-        emits(isA<CalendarViewState>().having(
-          (state) => state.dataSource.appointments!.length,
-          'appointments.length',
-          0,
-        )),
-      );
-    });
+        await expectLater(
+          viewModel.calendarViewState(),
+          emits(
+            isA<CalendarViewState>().having(
+              (state) => state.dataSource.appointments!.length,
+              'appointments.length',
+              0,
+            ),
+          ),
+        );
+      },
+    );
 
     test('room name is appended when appendRoomName is true', () async {
       final List<Request> requests = [
         Request(
-            id: 'req_1',
-            roomID: 'room_1',
-            eventStartTime: DateTime.now(),
-            eventEndTime: DateTime.now().add(Duration(hours: 1)),
-            publicName: 'Public Event',
-            status: RequestStatus.confirmed,
-            roomName: 'Test Room')
+          id: 'req_1',
+          roomID: 'room_1',
+          eventStartTime: DateTime.now(),
+          eventEndTime: DateTime.now().add(Duration(hours: 1)),
+          publicName: 'Public Event',
+          status: RequestStatus.confirmed,
+          roomName: 'Test Room',
+        ),
       ];
-      when(() => mockBookingRepo.listRequests(
-              orgID: any(named: 'orgID'),
-              startTime: any(named: 'startTime'),
-              endTime: any(named: 'endTime')))
-          .thenAnswer((_) => Stream.value(requests));
+      when(
+        () => mockBookingRepo.listRequests(
+          orgID: any(named: 'orgID'),
+          startTime: any(named: 'startTime'),
+          endTime: any(named: 'endTime'),
+        ),
+      ).thenAnswer((_) => Stream.value(requests));
+
+      when(() => mockBookingRepo.getRequestDetails(any(), any())).thenAnswer(
+        (_) => Stream.value(
+          PrivateRequestDetails(
+            id: 'req_1',
+            eventName: "Fake Event",
+            name: "Some name",
+            email: "someone@somewhere.com",
+            phone: "1234",
+          ),
+        ),
+      );
 
       viewModel = CalendarViewModel(
         bookingRepo: mockBookingRepo,
@@ -133,49 +161,62 @@ void main() {
 
       await expectLater(
         viewModel.calendarViewState(),
-        emitsThrough(isA<CalendarViewState>().having(
-          (state) =>
-              (state.dataSource.appointments!.first as Appointment).subject,
-          'first appointment subject',
-          'Public Event (Test Room)',
-        )),
+        emitsThrough(
+          isA<CalendarViewState>().having(
+            (state) =>
+                (state.dataSource.appointments!.first as Appointment).subject,
+            'first appointment subject',
+            'Public Event (Test Room)',
+          ),
+        ),
       );
     });
   });
 
   group('User Interaction', () {
-    test('handleTap on appointment emits request on requestTapStream',
-        () async {
-      final now = DateTime(2025, 1, 1, 12, 0);
-      final request = Request(
+    test(
+      'handleTap on appointment emits request on requestTapStream',
+      () async {
+        final now = DateTime(2025, 1, 1, 12, 0);
+        final request = Request(
           id: 'req_1',
           roomID: 'room_1',
           eventStartTime: now,
           eventEndTime: now.add(Duration(hours: 1)),
           publicName: 'Public Event',
           status: RequestStatus.confirmed,
-          roomName: 'Test Room');
+          roomName: 'Test Room',
+        );
 
-      when(() => mockBookingRepo.listRequests(
-              orgID: any(named: 'orgID'),
-              startTime: any(named: 'startTime'),
-              endTime: any(named: 'endTime')))
-          .thenAnswer((_) => Stream.value([request]));
+        when(
+          () => mockBookingRepo.listRequests(
+            orgID: any(named: 'orgID'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        ).thenAnswer((_) => Stream.value([request]));
 
-      viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
-        orgState: mockOrgState,
-        roomState: mockRoomState,
-      );
+        viewModel = CalendarViewModel(
+          bookingRepo: mockBookingRepo,
+          orgState: mockOrgState,
+          roomState: mockRoomState,
+        );
 
-      viewModel.controller.displayDate = now;
-      await Future.delayed(Duration(seconds: 1));
-      final state = await viewModel.calendarViewState().first;
-      final appointment = state.dataSource.appointments!.first as Appointment;
+        viewModel.controller.displayDate = now;
+        await Future.delayed(Duration(seconds: 1));
+        final state = await viewModel.calendarViewState().first;
+        final appointment = state.dataSource.appointments!.first as Appointment;
 
-      viewModel.handleTap(CalendarTapDetails(
-          [appointment], now, CalendarElement.appointment, null));
-    });
+        viewModel.handleTap(
+          CalendarTapDetails(
+            [appointment],
+            now,
+            CalendarElement.appointment,
+            null,
+          ),
+        );
+      },
+    );
 
     test('handleTap on calendar cell emits date on dateTapStream', () async {
       final date = DateTime.now();
@@ -183,26 +224,30 @@ void main() {
       expect(viewModel.dateTapStream, emits(date));
 
       viewModel.handleTap(
-          CalendarTapDetails(null, date, CalendarElement.calendarCell, null));
+        CalendarTapDetails(null, date, CalendarElement.calendarCell, null),
+      );
     });
 
     test('handleDragEnd emits drag details on dragEventStream', () async {
       final now = DateTime(2025, 1, 1, 12, 0);
       final request = Request(
-          id: 'req_1',
-          roomID: 'room_1',
-          eventStartTime: now,
-          eventEndTime: now.add(Duration(hours: 1)),
-          publicName: 'Public Event',
-          status: RequestStatus.confirmed,
-          roomName: 'Test Room');
+        id: 'req_1',
+        roomID: 'room_1',
+        eventStartTime: now,
+        eventEndTime: now.add(Duration(hours: 1)),
+        publicName: 'Public Event',
+        status: RequestStatus.confirmed,
+        roomName: 'Test Room',
+      );
       final dropTime = now.add(Duration(hours: 2));
 
-      when(() => mockBookingRepo.listRequests(
-              orgID: any(named: 'orgID'),
-              startTime: any(named: 'startTime'),
-              endTime: any(named: 'endTime')))
-          .thenAnswer((_) => Stream.value([request]));
+      when(
+        () => mockBookingRepo.listRequests(
+          orgID: any(named: 'orgID'),
+          startTime: any(named: 'startTime'),
+          endTime: any(named: 'endTime'),
+        ),
+      ).thenAnswer((_) => Stream.value([request]));
 
       viewModel = CalendarViewModel(
         bookingRepo: mockBookingRepo,
@@ -211,117 +256,152 @@ void main() {
       );
 
       expect(
-          viewModel.dragEventStream,
-          emits(isA<DragDetails>()
+        viewModel.dragEventStream,
+        emits(
+          isA<DragDetails>()
               .having((d) => d.request, 'request', request)
-              .having((d) => d.dropTime, 'dropTime', dropTime)));
+              .having((d) => d.dropTime, 'dropTime', dropTime),
+        ),
+      );
 
       viewModel.controller.displayDate = now;
       await Future.delayed(Duration(seconds: 1));
       final state = await viewModel.calendarViewState().first;
       final appointment = state.dataSource.appointments!.first as Appointment;
 
-      final details =
-          AppointmentDragEndDetails(appointment, null, null, dropTime);
+      final details = AppointmentDragEndDetails(
+        appointment,
+        null,
+        null,
+        dropTime,
+      );
       viewModel.handleDragEnd(details);
     });
 
     test('handleResizeEnd emits resize details on resizeEventStream', () async {
       final appointment = Appointment(
-          subject: 'Public Event',
-          startTime: DateTime.now(),
-          endTime: DateTime.now().add(Duration(hours: 1)));
+        subject: 'Public Event',
+        startTime: DateTime.now(),
+        endTime: DateTime.now().add(Duration(hours: 1)),
+      );
       final startTime = DateTime.now().add(Duration(minutes: 30));
       final endTime = DateTime.now().add(Duration(hours: 1, minutes: 30));
 
       expect(
-          viewModel.resizeEventStream,
-          emits(isA<ResizeDetails>()
+        viewModel.resizeEventStream,
+        emits(
+          isA<ResizeDetails>()
               .having((d) => d.appointment, 'appointment', appointment)
               .having((d) => d.startTime, 'startTime', startTime)
-              .having((d) => d.endTime, 'endTime', endTime)));
+              .having((d) => d.endTime, 'endTime', endTime),
+        ),
+      );
 
-      final details =
-          AppointmentResizeEndDetails(appointment, null, startTime, endTime);
+      final details = AppointmentResizeEndDetails(
+        appointment,
+        null,
+        startTime,
+        endTime,
+      );
       viewModel.handleResizeEnd(details);
     });
 
     test(
-        'handleTap on non-existent appointment does not emit on requestTapStream',
-        () async {
-      final nonExistentAppointment = Appointment(
+      'handleTap on non-existent appointment does not emit on requestTapStream',
+      () async {
+        final nonExistentAppointment = Appointment(
           subject: 'Non Existent',
           startTime: DateTime.now(),
-          endTime: DateTime.now().add(Duration(hours: 1)));
+          endTime: DateTime.now().add(Duration(hours: 1)),
+        );
 
-      viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
-        orgState: mockOrgState,
-        roomState: mockRoomState,
-      );
+        viewModel = CalendarViewModel(
+          bookingRepo: mockBookingRepo,
+          orgState: mockOrgState,
+          roomState: mockRoomState,
+        );
 
-      var eventFired = false;
-      viewModel.requestTapStream.listen((_) {
-        eventFired = true;
-      });
+        var eventFired = false;
+        viewModel.requestTapStream.listen((_) {
+          eventFired = true;
+        });
 
-      viewModel.handleTap(CalendarTapDetails([nonExistentAppointment],
-          DateTime.now(), CalendarElement.appointment, null));
+        viewModel.handleTap(
+          CalendarTapDetails(
+            [nonExistentAppointment],
+            DateTime.now(),
+            CalendarElement.appointment,
+            null,
+          ),
+        );
 
-      await Future.delayed(const Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
 
-      expect(eventFired, isFalse);
-    });
+        expect(eventFired, isFalse);
+      },
+    );
 
     test(
-        'handleDragEnd emits drag details even if droppingTime is in a blackout window',
-        () async {
-      final now = DateTime(2025, 1, 1, 12, 0);
-      final request = Request(
+      'handleDragEnd emits drag details even if droppingTime is in a blackout window',
+      () async {
+        final now = DateTime(2025, 1, 1, 12, 0);
+        final request = Request(
           id: 'req_1',
           roomID: 'room_1',
           eventStartTime: now,
           eventEndTime: now.add(Duration(hours: 1)),
           publicName: 'Public Event',
           status: RequestStatus.confirmed,
-          roomName: 'Test Room');
-      final dropTime = now.add(Duration(hours: 2));
+          roomName: 'Test Room',
+        );
+        final dropTime = now.add(Duration(hours: 2));
 
-      final blackoutWindow = BlackoutWindow(
-        start: dropTime.subtract(Duration(minutes: 30)),
-        end: dropTime.add(Duration(minutes: 30)),
-        reason: 'Maintenance',
-      );
-      when(() => mockBookingRepo.listBlackoutWindows(any(), any(), any()))
-          .thenAnswer((_) => Stream.value([blackoutWindow]));
+        final blackoutWindow = BlackoutWindow(
+          start: dropTime.subtract(Duration(minutes: 30)),
+          end: dropTime.add(Duration(minutes: 30)),
+          reason: 'Maintenance',
+        );
+        when(
+          () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
+        ).thenAnswer((_) => Stream.value([blackoutWindow]));
 
-      when(() => mockBookingRepo.listRequests(
-              orgID: any(named: 'orgID'),
-              startTime: any(named: 'startTime'),
-              endTime: any(named: 'endTime')))
-          .thenAnswer((_) => Stream.value([request]));
+        when(
+          () => mockBookingRepo.listRequests(
+            orgID: any(named: 'orgID'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        ).thenAnswer((_) => Stream.value([request]));
 
-      viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
-        orgState: mockOrgState,
-        roomState: mockRoomState,
-      );
+        viewModel = CalendarViewModel(
+          bookingRepo: mockBookingRepo,
+          orgState: mockOrgState,
+          roomState: mockRoomState,
+        );
 
-      expect(
+        expect(
           viewModel.dragEventStream,
-          emits(isA<DragDetails>()
-              .having((d) => d.request, 'request', request)
-              .having((d) => d.dropTime, 'dropTime', dropTime)));
+          emits(
+            isA<DragDetails>()
+                .having((d) => d.request, 'request', request)
+                .having((d) => d.dropTime, 'dropTime', dropTime),
+          ),
+        );
 
-      viewModel.controller.displayDate = now;
-      await Future.delayed(Duration(seconds: 1));
-      final state = await viewModel.calendarViewState().first;
-      final appointment = state.dataSource.appointments!.first as Appointment;
+        viewModel.controller.displayDate = now;
+        await Future.delayed(Duration(seconds: 1));
+        final state = await viewModel.calendarViewState().first;
+        final appointment = state.dataSource.appointments!.first as Appointment;
 
-      final details =
-          AppointmentDragEndDetails(appointment, null, null, dropTime);
-      viewModel.handleDragEnd(details);
-    });
+        final details = AppointmentDragEndDetails(
+          appointment,
+          null,
+          null,
+          dropTime,
+        );
+        viewModel.handleDragEnd(details);
+      },
+    );
   });
 
   group('View and Date Range', () {
@@ -378,13 +458,17 @@ void main() {
   });
 
   group('Recurring Events', () {
-    test('daily recurring event generates correct number of appointments',
-        () async {
-      final start = DateTime(2025, 1, 1, 12, 0);
-      final end = start.add(Duration(days: 6)); // Cover 7 days
-      final recurrancePattern =
-          RecurrancePattern(frequency: Frequency.daily, period: 1, end: end);
-      final request = Request(
+    test(
+      'daily recurring event generates correct number of appointments',
+      () async {
+        final start = DateTime(2025, 1, 1, 12, 0);
+        final end = start.add(Duration(days: 6)); // Cover 7 days
+        final recurrancePattern = RecurrancePattern(
+          frequency: Frequency.daily,
+          period: 1,
+          end: end,
+        );
+        final request = Request(
           id: 'req_1',
           roomID: 'room_1',
           eventStartTime: start,
@@ -392,45 +476,54 @@ void main() {
           publicName: 'Daily Event',
           status: RequestStatus.confirmed,
           roomName: 'Test Room',
-          recurrancePattern: recurrancePattern);
+          recurrancePattern: recurrancePattern,
+        );
 
-      when(() => mockBookingRepo.listRequests(
-              orgID: any(named: 'orgID'),
-              startTime: any(named: 'startTime'),
-              endTime: any(named: 'endTime')))
-          .thenAnswer((_) => Stream.value([request]));
+        when(
+          () => mockBookingRepo.listRequests(
+            orgID: any(named: 'orgID'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        ).thenAnswer((_) => Stream.value([request]));
 
-      viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
-        orgState: mockOrgState,
-        roomState: mockRoomState,
-      );
+        viewModel = CalendarViewModel(
+          bookingRepo: mockBookingRepo,
+          orgState: mockOrgState,
+          roomState: mockRoomState,
+        );
 
-      viewModel.controller.view = CalendarView.week; // Set to week view
-      viewModel.controller.displayDate =
-          start.add(Duration(days: 3)); // Middle of the week
-      await Future.delayed(Duration(seconds: 1));
+        viewModel.controller.view = CalendarView.week; // Set to week view
+        viewModel.controller.displayDate = start.add(
+          Duration(days: 3),
+        ); // Middle of the week
+        await Future.delayed(Duration(seconds: 1));
 
-      await expectLater(
-        viewModel.calendarViewState(),
-        emits(isA<CalendarViewState>().having(
-          (state) => state.dataSource.appointments!.length,
-          'appointments.length',
-          5, // Expect 5 appointments for a week
-        )),
-      );
-    });
+        await expectLater(
+          viewModel.calendarViewState(),
+          emits(
+            isA<CalendarViewState>().having(
+              (state) => state.dataSource.appointments!.length,
+              'appointments.length',
+              5, // Expect 5 appointments for a week
+            ),
+          ),
+        );
+      },
+    );
 
-    test('weekly recurring event generates correct number of appointments',
-        () async {
-      final start = DateTime(2025, 1, 1, 12, 0); // Wednesday
-      final end = start.add(Duration(days: 27)); // Cover 4 weeks
-      final recurrancePattern = RecurrancePattern(
+    test(
+      'weekly recurring event generates correct number of appointments',
+      () async {
+        final start = DateTime(2025, 1, 1, 12, 0); // Wednesday
+        final end = start.add(Duration(days: 27)); // Cover 4 weeks
+        final recurrancePattern = RecurrancePattern(
           frequency: Frequency.weekly,
           period: 1,
           weekday: {Weekday.wednesday},
-          end: end);
-      final request = Request(
+          end: end,
+        );
+        final request = Request(
           id: 'req_1',
           roomID: 'room_1',
           eventStartTime: start,
@@ -438,41 +531,51 @@ void main() {
           publicName: 'Weekly Event',
           status: RequestStatus.confirmed,
           roomName: 'Test Room',
-          recurrancePattern: recurrancePattern);
+          recurrancePattern: recurrancePattern,
+        );
 
-      when(() => mockBookingRepo.listRequests(
-              orgID: any(named: 'orgID'),
-              startTime: any(named: 'startTime'),
-              endTime: any(named: 'endTime')))
-          .thenAnswer((_) => Stream.value([request]));
+        when(
+          () => mockBookingRepo.listRequests(
+            orgID: any(named: 'orgID'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        ).thenAnswer((_) => Stream.value([request]));
 
-      viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
-        orgState: mockOrgState,
-        roomState: mockRoomState,
-      );
+        viewModel = CalendarViewModel(
+          bookingRepo: mockBookingRepo,
+          orgState: mockOrgState,
+          roomState: mockRoomState,
+        );
 
-      viewModel.controller.view = CalendarView.month; // Set to month view
-      viewModel.controller.displayDate =
-          start.add(Duration(days: 15)); // Middle of the month
-      await Future.delayed(Duration(seconds: 1));
+        viewModel.controller.view = CalendarView.month; // Set to month view
+        viewModel.controller.displayDate = start.add(
+          Duration(days: 15),
+        ); // Middle of the month
+        await Future.delayed(Duration(seconds: 1));
 
-      await expectLater(
-        viewModel.calendarViewState(),
-        emits(isA<CalendarViewState>().having(
-          (state) => state.dataSource.appointments!.length,
-          'appointments.length',
-          4, // Expect 4 appointments for 4 weeks
-        )),
-      );
-    });
+        await expectLater(
+          viewModel.calendarViewState(),
+          emits(
+            isA<CalendarViewState>().having(
+              (state) => state.dataSource.appointments!.length,
+              'appointments.length',
+              4, // Expect 4 appointments for 4 weeks
+            ),
+          ),
+        );
+      },
+    );
 
-    test('monthly recurring event generates correct number of appointments',
-        () async {
-      final start = DateTime(2025, 1, 1, 12, 0); // First Wednesday of January
-      final recurrancePattern =
-          RecurrancePattern.monthlyOnNth(1, Weekday.wednesday);
-      final request = Request(
+    test(
+      'monthly recurring event generates correct number of appointments',
+      () async {
+        final start = DateTime(2025, 1, 1, 12, 0); // First Wednesday of January
+        final recurrancePattern = RecurrancePattern.monthlyOnNth(
+          1,
+          Weekday.wednesday,
+        );
+        final request = Request(
           id: 'req_1',
           roomID: 'room_1',
           eventStartTime: start,
@@ -480,59 +583,71 @@ void main() {
           publicName: 'Monthly Event',
           status: RequestStatus.confirmed,
           roomName: 'Test Room',
-          recurrancePattern: recurrancePattern);
+          recurrancePattern: recurrancePattern,
+        );
 
-      when(() => mockBookingRepo.listRequests(
-              orgID: any(named: 'orgID'),
-              startTime: any(named: 'startTime'),
-              endTime: any(named: 'endTime')))
-          .thenAnswer((_) => Stream.value([request]));
+        when(
+          () => mockBookingRepo.listRequests(
+            orgID: any(named: 'orgID'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        ).thenAnswer((_) => Stream.value([request]));
 
-      viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
-        orgState: mockOrgState,
-        roomState: mockRoomState,
-      );
+        viewModel = CalendarViewModel(
+          bookingRepo: mockBookingRepo,
+          orgState: mockOrgState,
+          roomState: mockRoomState,
+        );
 
-      viewModel.controller.view = CalendarView.month; // Set to month view
-      viewModel.controller.displayDate =
-          start.add(Duration(days: 15)); // Middle of the month
-      await Future.delayed(Duration(seconds: 1));
+        viewModel.controller.view = CalendarView.month; // Set to month view
+        viewModel.controller.displayDate = start.add(
+          Duration(days: 15),
+        ); // Middle of the month
+        await Future.delayed(Duration(seconds: 1));
 
-      await expectLater(
-        viewModel.calendarViewState(),
-        emits(isA<CalendarViewState>().having(
-          (state) => state.dataSource.appointments!.length,
-          'appointments.length',
-          1,
-        )),
-      );
-    });
+        await expectLater(
+          viewModel.calendarViewState(),
+          emits(
+            isA<CalendarViewState>().having(
+              (state) => state.dataSource.appointments!.length,
+              'appointments.length',
+              1,
+            ),
+          ),
+        );
+      },
+    );
   });
 
   group('Error Handling', () {
-    test('calendarViewState emits error when listRequests emits error',
-        () async {
-      when(() => mockBookingRepo.listRequests(
-              orgID: any(named: 'orgID'),
-              startTime: any(named: 'startTime'),
-              endTime: any(named: 'endTime')))
-          .thenAnswer(
-              (_) => Stream.error(Exception('Failed to fetch requests')));
+    test(
+      'calendarViewState emits error when listRequests emits error',
+      () async {
+        when(
+          () => mockBookingRepo.listRequests(
+            orgID: any(named: 'orgID'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+          ),
+        ).thenAnswer(
+          (_) => Stream.error(Exception('Failed to fetch requests')),
+        );
 
-      viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
-        orgState: mockOrgState,
-        roomState: mockRoomState,
-      );
+        viewModel = CalendarViewModel(
+          bookingRepo: mockBookingRepo,
+          orgState: mockOrgState,
+          roomState: mockRoomState,
+        );
 
-      viewModel.controller.displayDate = DateTime.now();
-      await Future.delayed(Duration(seconds: 1));
+        viewModel.controller.displayDate = DateTime.now();
+        await Future.delayed(Duration(seconds: 1));
 
-      await expectLater(
-        viewModel.calendarViewState(),
-        emitsError(isA<Exception>()),
-      );
-    });
+        await expectLater(
+          viewModel.calendarViewState(),
+          emitsError(isA<Exception>()),
+        );
+      },
+    );
   });
 }

@@ -16,11 +16,12 @@ class CalendarViewState {
   final CalendarDataSource dataSource;
   final List<TimeRegion> specialRegions;
 
-  CalendarViewState(
-      {required this.allowAppointmentResize,
-      required this.allowDragAndDrop,
-      required this.specialRegions,
-      required this.dataSource});
+  CalendarViewState({
+    required this.allowAppointmentResize,
+    required this.allowDragAndDrop,
+    required this.specialRegions,
+    required this.dataSource,
+  });
 }
 
 class VisibleWindow {
@@ -80,78 +81,93 @@ class CalendarViewModel extends ChangeNotifier {
       CalendarView.month,
       CalendarView.schedule,
     ],
-  })  : _allowAppointmentResize = allowAppointmentResize,
-        _allowDragAndDrop = allowDragAndDrop,
-        _bookingRepo = bookingRepo,
-        _orgState = orgState,
-        _newAppointment =
-            (newAppointment ?? Stream.value(null)).asBroadcastStream() {
+  }) : _allowAppointmentResize = allowAppointmentResize,
+       _allowDragAndDrop = allowDragAndDrop,
+       _bookingRepo = bookingRepo,
+       _orgState = orgState,
+       _newAppointment = (newAppointment ?? Stream.value(null))
+           .asBroadcastStream() {
     controller.view = defaultView;
     controller.displayDate = DateTime.now();
-    var currentWindow = VisibleWindow(
-      start: startOfView,
-      end: endOfView,
-    );
+    var currentWindow = VisibleWindow(start: startOfView, end: endOfView);
     _visibleWindowController.add(currentWindow);
     controller.addPropertyChangedListener(_handlePropertyChange);
-    _appointments
-        .addStream(_buildAppointmentStream(bookingRepo, orgState, roomState));
+    _appointments.addStream(
+      _buildAppointmentStream(bookingRepo, orgState, roomState),
+    );
   }
 
   Stream<CalendarViewState> _viewStateStream(
-      BookingRepo bookingRepo, OrgState orgState) {
+    BookingRepo bookingRepo,
+    OrgState orgState,
+  ) {
     return Rx.combineLatest3(
-        _newAppointment.startWith(null),
-        _appointments.stream.startWith(const {}),
-        bookingRepo
-            .listBlackoutWindows(orgState.org, startOfView, endOfView)
-            .startWith(const []),
-        (newAppointment, appointments, blackoutWindows) {
-      List<Appointment> out = [];
-      for (var appointment in appointments.keys) {
-        out.add(appointment);
-      }
-      return CalendarViewState(
-        allowAppointmentResize:
-            _allowAppointmentResize && newAppointment == null,
-        allowDragAndDrop: _allowDragAndDrop && newAppointment == null,
-        dataSource: _DataSource(out),
-        specialRegions: blackoutWindows.map((w) => w.toTimeRegion()).toList(),
-      );
-    });
+      _newAppointment.startWith(null),
+      _appointments.stream.startWith(const {}),
+      bookingRepo
+          .listBlackoutWindows(orgState.org, startOfView, endOfView)
+          .startWith(const []),
+      (newAppointment, appointments, blackoutWindows) {
+        List<Appointment> out = [];
+        for (var appointment in appointments.keys) {
+          out.add(appointment);
+        }
+        return CalendarViewState(
+          allowAppointmentResize:
+              _allowAppointmentResize && newAppointment == null,
+          allowDragAndDrop: _allowDragAndDrop && newAppointment == null,
+          dataSource: _DataSource(out),
+          specialRegions: blackoutWindows.map((w) => w.toTimeRegion()).toList(),
+        );
+      },
+    );
   }
 
   Stream<Map<Appointment, Request>> _buildAppointmentStream(
-      BookingRepo bookingRepo, OrgState orgState, RoomState roomState) {
+    BookingRepo bookingRepo,
+    OrgState orgState,
+    RoomState roomState,
+  ) {
     return Rx.combineLatest2(
-        _visibleWindowController.stream,
-        _newAppointment,
-        (window, newAppointment) => bookingRepo
-            .listRequests(
-                orgID: orgState.org.id!,
-                startTime: window.start,
-                endTime: window.end)
-            .flatMap((requests) =>
-                _detailStream(orgState, requests, bookingRepo)
-                    .startWith([]).map((details) => _convertRequests(
-                        requests,
-                        details,
-                        window,
-                        roomState,
-                        newAppointment)))).flatMap((s) => s);
+      _visibleWindowController,
+      _newAppointment.startWith(null),
+      (window, newAppointment) => bookingRepo
+          .listRequests(
+            orgID: orgState.org.id!,
+            startTime: window.start,
+            endTime: window.end,
+          )
+          .flatMap(
+            (requests) => _detailStream(orgState, requests, bookingRepo)
+                .startWith([])
+                .map(
+                  (details) => _convertRequests(
+                    requests,
+                    details,
+                    window,
+                    roomState,
+                    newAppointment,
+                  ),
+                ),
+          ),
+    ).flatMap((s) => s);
   }
 
   Map<Appointment, Request> _convertRequests(
-      List<Request> requests,
-      List<PrivateRequestDetails> details,
-      VisibleWindow window,
-      RoomState roomState,
-      Appointment? newAppointment) {
+    List<Request> requests,
+    List<PrivateRequestDetails> details,
+    VisibleWindow window,
+    RoomState roomState,
+    Appointment? newAppointment,
+  ) {
     var detailIndex = _indexDetails(details);
     Map<Appointment, Request> appointments = {};
     for (var request in requests) {
-      for (var repeat in request.expand(window.start, window.end,
-          includeRequestDate: true)) {
+      for (var repeat in request.expand(
+        window.start,
+        window.end,
+        includeRequestDate: true,
+      )) {
         /*if (_isSameRequest(requestEditorState.existingRequest, repeat)) {
           // Skip the current request
           continue;
@@ -178,7 +194,8 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   static Map<String, PrivateRequestDetails> _indexDetails(
-      List<PrivateRequestDetails> details) {
+    List<PrivateRequestDetails> details,
+  ) {
     var out = <String, PrivateRequestDetails>{};
     for (var d in details) {
       out[d.id!] = d;
@@ -187,7 +204,10 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   Stream<List<PrivateRequestDetails>> _detailStream(
-      OrgState orgState, List<Request> requests, BookingRepo bookingRepo) {
+    OrgState orgState,
+    List<Request> requests,
+    BookingRepo bookingRepo,
+  ) {
     if (!orgState.currentUserIsAdmin() || requests.isEmpty) {
       return Stream.value([]);
     }
@@ -219,18 +239,16 @@ class CalendarViewModel extends ChangeNotifier {
         // This prevents the schedule view from glitching out.
         return;
       }
-      _visibleWindowController.add(VisibleWindow(
-        start: startOfView,
-        end: endOfView,
-      ));
+      _visibleWindowController.add(
+        VisibleWindow(start: startOfView, end: endOfView),
+      );
       return;
     }
     if (property == "calendarView") {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _visibleWindowController.add(VisibleWindow(
-          start: startOfView,
-          end: endOfView,
-        ));
+        _visibleWindowController.add(
+          VisibleWindow(start: startOfView, end: endOfView),
+        );
       });
       return;
     }
@@ -286,8 +304,11 @@ class CalendarViewModel extends ChangeNotifier {
       case CalendarView.week:
         return startOfView.add(Duration(days: 7));
       case CalendarView.month:
-        var date = DateTime(start.year, start.month + 1, 1)
-            .subtract(Duration(days: 1));
+        var date = DateTime(
+          start.year,
+          start.month + 1,
+          1,
+        ).subtract(Duration(days: 1));
         while (getWeekday(date) != Weekday.saturday) {
           date = date.add(Duration(days: 1));
         }
@@ -325,16 +346,20 @@ class CalendarViewModel extends ChangeNotifier {
         log("Appointment not found in state, cannot call onAppointmentDragEnd");
         return;
       }
-      _dragEventController
-          .add(DragDetails(request: request!, dropTime: details.droppingTime!));
+      _dragEventController.add(
+        DragDetails(request: request!, dropTime: details.droppingTime!),
+      );
     });
   }
 
   void handleResizeEnd(AppointmentResizeEndDetails details) {
-    _resizeEventController.add(ResizeDetails(
+    _resizeEventController.add(
+      ResizeDetails(
         appointment: details.appointment,
         startTime: details.startTime!,
-        endTime: details.endTime!));
+        endTime: details.endTime!,
+      ),
+    );
   }
 
   void handleTap(CalendarTapDetails details) {
@@ -415,8 +440,12 @@ DateTime stripTime(DateTime date) {
 }
 
 extension on Request {
-  Appointment toAppointment(RoomState roomState,
-      {String? subject, bool diminish = false, bool appendRoomName = false}) {
+  Appointment toAppointment(
+    RoomState roomState, {
+    String? subject,
+    bool diminish = false,
+    bool appendRoomName = false,
+  }) {
     var alphaLevel = diminish || status == RequestStatus.pending ? 128 : 255;
     var color = roomState.color(roomID).withAlpha(alphaLevel);
     var s =
