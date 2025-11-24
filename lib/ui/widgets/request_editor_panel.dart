@@ -67,66 +67,78 @@ class NewRequestPanelState extends State<NewRequestPanel> {
     var localizations = MaterialLocalizations.of(context);
     var repo = Provider.of<BookingRepo>(context, listen: false);
     return Consumer3<RoomState, RequestEditorState, RequestPanelSate>(
-        builder: (context, roomState, state, panelState, child) {
-      var readOnly = state.readOnly();
-      if (state.startTime == null) {
-        // No idea why this is neccessary but without it there are a lot of NPEs
-        // for the start and end time...
-        return Container();
-      }
-      var formContents = Column(
-        children: [
-          AppBar(
-            title: Text(state.pannelTitle()),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => closePanel(context),
-              )
-            ],
-            automaticallyImplyLeading: false,
-          ),
-          RoomDropdownSelector(
-            readOnly: readOnly,
-            orgID: widget.orgID,
-            onChanged: (room) {
-              if (room != null) {
-                state.updateRoomID(room.id!);
-              }
-            },
-            initialRoomID: state._roomID,
-          ),
-          SimpleTextFormField(
+      builder: (context, roomState, state, panelState, child) {
+        var readOnly = state.readOnly();
+        if (state.startTime == null) {
+          // No idea why this is neccessary but without it there are a lot of NPEs
+          // for the start and end time...
+          return Container();
+        }
+        var formContents = Column(
+          children: [
+            AppBar(
+              title: Text(state.pannelTitle()),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => closePanel(context),
+                ),
+              ],
+              automaticallyImplyLeading: false,
+            ),
+            RoomDropdownSelector(
+              readOnly: readOnly,
+              orgID: widget.orgID,
+              onChanged: (room) {
+                if (room != null) {
+                  state.updateRoomID(room.id!);
+                }
+              },
+              initialRoomID: state._roomID,
+            ),
+            SimpleTextFormField(
               readOnly: readOnly,
               controller: eventNameController,
               labelText: "Event Name",
               validationMessage: "Please provide a name",
-              onChanged: state.updateEventName),
-          SwitchListTile(
-            title: Text("Show name on parish calendar"),
-            value: state.isPublicEvent,
-            onChanged: readOnly ? null : state.updatePublicEvent,
-          ),
-          if (state.existingRequest?.ignoreOverlaps ?? false)
-            SwitchListTile(
-              title: Text("Ignore overlapping events"),
-              value: state.isIgnoreOverlaps,
-              onChanged: readOnly ? null : state.updateIgnoreOverlaps,
+              onChanged: state.updateEventName,
             ),
-          DateField(
-            readOnly: readOnly,
-            labelText: 'Event Date',
-            validationMessage: 'Please select a date',
-            initialValue: state.startTime,
-            onChanged: (newDate) {
-              state.updateTimes(
-                  DateTime(newDate.year, newDate.month, newDate.day,
-                      state.startTime!.hour, state.startTime!.minute),
-                  DateTime(newDate.year, newDate.month, newDate.day,
-                      state.endTime!.hour, state.endTime!.minute));
-            },
-          ),
-          TimeField(
+            SwitchListTile(
+              title: Text("Show name on parish calendar"),
+              value: state.isPublicEvent,
+              onChanged: readOnly ? null : state.updatePublicEvent,
+            ),
+            if (state.existingRequest?.ignoreOverlaps ?? false)
+              SwitchListTile(
+                title: Text("Ignore overlapping events"),
+                value: state.isIgnoreOverlaps,
+                onChanged: readOnly ? null : state.updateIgnoreOverlaps,
+              ),
+            DateField(
+              readOnly: readOnly,
+              labelText: 'Event Date',
+              validationMessage: 'Please select a date',
+              initialValue: state.startTime,
+              onChanged: (newDate) {
+                state.updateTimes(
+                  DateTime(
+                    newDate.year,
+                    newDate.month,
+                    newDate.day,
+                    state.startTime!.hour,
+                    state.startTime!.minute,
+                  ),
+                  DateTime(
+                    newDate.year,
+                    newDate.month,
+                    newDate.day,
+                    state.endTime!.hour,
+                    state.endTime!.minute,
+                  ),
+                );
+              },
+            ),
+            TimeField(
               readOnly: readOnly,
               labelText: 'Start Time',
               initialValue: TimeOfDay.fromDateTime(state.startTime!),
@@ -135,15 +147,17 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               onChanged: (newTime) {
                 var eventDuration = state.endTime!.difference(state.startTime!);
                 var newStartTime = DateTime(
-                    state.startTime!.year,
-                    state.startTime!.month,
-                    state.startTime!.day,
-                    newTime.hour,
-                    newTime.minute);
+                  state.startTime!.year,
+                  state.startTime!.month,
+                  state.startTime!.day,
+                  newTime.hour,
+                  newTime.minute,
+                );
                 var newEndTime = newStartTime.add(eventDuration);
                 state.updateTimes(newStartTime, newEndTime);
-              }),
-          TimeField(
+              },
+            ),
+            TimeField(
               readOnly: readOnly,
               labelText: 'End Time',
               minTime: TimeOfDay.fromDateTime(state.startTime!),
@@ -151,107 +165,116 @@ class NewRequestPanelState extends State<NewRequestPanel> {
               localizations: localizations,
               onChanged: (newTime) {
                 var newEndTime = DateTime(
-                    state.startTime!.year,
-                    state.startTime!.month,
-                    state.startTime!.day,
-                    newTime.hour,
-                    newTime.minute);
+                  state.startTime!.year,
+                  state.startTime!.month,
+                  state.startTime!.day,
+                  newTime.hour,
+                  newTime.minute,
+                );
                 state.updateTimes(state.startTime!, newEndTime);
-              }),
-          RepeatBookingsSelector(
-            readOnly: readOnly,
-            startTime: state.startTime!,
-            isCustom: state.isCustomRecurrencePattern,
-            onIntervalChanged: state.updateInterval,
-            pattern: state.recurrancePattern,
-            onFrequencyChanged: (value) {
-              if (value == Frequency.custom) {
-                state.updateFrequency(Frequency.weekly, true);
-              } else {
-                state.updateFrequency(value, state.isCustomRecurrencePattern);
-              }
-            },
-            onPatternChanged: (pattern, isCustom) {
-              state.updateOffset(pattern.offset);
-              state.updateInterval(pattern.period);
-              state.updateFrequency(pattern.frequency, isCustom);
-            },
-            toggleDay: state.toggleWeekday,
-            frequency: state.recurrancePattern.frequency,
-          ),
-          if (state.recurrancePattern.frequency != Frequency.never)
-            DateField(
-              initialValue: state.recurrancePattern.end,
-              labelText: "End on or before",
-              onChanged: (date) => state.updateEndDate(date),
-              readOnly: readOnly,
-              clearable: true,
-            ),
-          const Divider(),
-          SimpleTextFormField(
-            readOnly: readOnly,
-            controller: contactNameController,
-            labelText: "Your Name",
-            validationMessage: "Please provide your name",
-            onChanged: state.updateContactName,
-          ),
-          SimpleTextFormField(
-            readOnly: readOnly,
-            controller: contactEmailController,
-            labelText: "Your Email",
-            validationMessage: "Please provide your email",
-            validationRegex:
-                RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'),
-            onChanged: state.updateContactEmail,
-          ),
-          SimpleTextFormField(
-            readOnly: readOnly,
-            controller: contactPhoneController,
-            labelText: "Your Phone Number",
-            validationMessage: "Please provide your phone number",
-            onChanged: state.updateContactPhone,
-          ),
-          if (orgState.currentUserIsAdmin())
-            ElevatedButton(
-              onPressed: () {
-                state.useAdminContactInfo();
-                _updateControllers(state);
               },
-              child: Text("Use My Info"),
             ),
-          const Divider(),
-          SimpleTextFormField(
-            readOnly: readOnly,
-            controller: messageController,
-            labelText: "Additional Info",
-            onChanged: state.updateMessage,
-          ),
-          if (state.showID())
-            SimpleTextFormField(
-              controller: idController,
+            RepeatBookingsSelector(
               readOnly: readOnly,
-              labelText: "Request ID",
+              startTime: state.startTime!,
+              isCustom: state.isCustomRecurrencePattern,
+              onIntervalChanged: state.updateInterval,
+              pattern: state.recurrancePattern,
+              onFrequencyChanged: (value) {
+                if (value == Frequency.custom) {
+                  state.updateFrequency(Frequency.weekly, true);
+                } else {
+                  state.updateFrequency(value, state.isCustomRecurrencePattern);
+                }
+              },
+              onPatternChanged: (pattern, isCustom) {
+                state.updateOffset(pattern.offset);
+                state.updateInterval(pattern.period);
+                state.updateFrequency(pattern.frequency, isCustom);
+              },
+              toggleDay: state.toggleWeekday,
+              frequency: state.recurrancePattern.frequency,
             ),
-          if (state.showRequestLog())
-            Consumer<OrgState>(
-              builder: (context, orgState, child) => LogsWidget(
-                org: orgState.org,
-                requestID: state.requestID()!,
+            if (state.recurrancePattern.frequency != Frequency.never)
+              DateField(
+                initialValue: state.recurrancePattern.end,
+                labelText: "End on or before",
+                onChanged: (date) => state.updateEndDate(date),
+                readOnly: readOnly,
+                clearable: true,
               ),
+            const Divider(),
+            SimpleTextFormField(
+              readOnly: readOnly,
+              controller: contactNameController,
+              labelText: "Your Name",
+              validationMessage: "Please provide your name",
+              onChanged: state.updateContactName,
             ),
-          _getButtons(state, panelState, roomState, repo),
-        ],
-      );
-      return SingleChildScrollView(
+            SimpleTextFormField(
+              readOnly: readOnly,
+              controller: contactEmailController,
+              labelText: "Your Email",
+              validationMessage: "Please provide your email",
+              validationRegex: RegExp(
+                r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+              ),
+              onChanged: state.updateContactEmail,
+            ),
+            SimpleTextFormField(
+              readOnly: readOnly,
+              controller: contactPhoneController,
+              labelText: "Your Phone Number",
+              validationMessage: "Please provide your phone number",
+              onChanged: state.updateContactPhone,
+            ),
+            if (orgState.currentUserIsAdmin())
+              ElevatedButton(
+                onPressed: () {
+                  state.useAdminContactInfo();
+                  _updateControllers(state);
+                },
+                child: Text("Use My Info"),
+              ),
+            const Divider(),
+            SimpleTextFormField(
+              readOnly: readOnly,
+              controller: messageController,
+              labelText: "Additional Info",
+              onChanged: state.updateMessage,
+            ),
+            if (state.showID())
+              SimpleTextFormField(
+                controller: idController,
+                readOnly: readOnly,
+                labelText: "Request ID",
+              ),
+            if (state.showRequestLog())
+              Consumer<OrgState>(
+                builder: (context, orgState, child) => LogsWidget(
+                  org: orgState.org,
+                  requestID: state.requestID()!,
+                ),
+              ),
+            _getButtons(state, panelState, roomState, repo),
+          ],
+        );
+        return SingleChildScrollView(
           child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Form(key: _formKey, child: formContents),
-      ));
-    });
+            padding: const EdgeInsets.all(4),
+            child: Form(key: _formKey, child: formContents),
+          ),
+        );
+      },
+    );
   }
 
-  List<Widget> _buttonsForNewRequest(RequestEditorState state,
-      RoomState roomState, BookingRepo repo, OrgState orgState) {
+  List<Widget> _buttonsForNewRequest(
+    RequestEditorState state,
+    RoomState roomState,
+    BookingRepo repo,
+    OrgState orgState,
+  ) {
     if (orgState.currentUserIsAdmin()) {
       return [
         ElevatedButton(
@@ -259,18 +282,23 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             if (_formKey.currentState!.validate()) {
               var request = state.getRequest(roomState)!;
               await repo.addBooking(
-                  widget.orgID, request, state.getPrivateDetails());
+                widget.orgID,
+                request,
+                state.getPrivateDetails(),
+              );
               if (context.mounted) {
                 closePanel(context);
               } else {
                 log("Context not mounted", error: Exception());
               }
               FirebaseAnalytics.instance.logEvent(
-                  name: "Booking Added", parameters: {"orgID": widget.orgID});
+                name: "Booking Added",
+                parameters: {"orgID": widget.orgID},
+              );
             }
           },
           child: const Text("Add Booking"),
-        )
+        ),
       ];
     }
     return [
@@ -280,15 +308,19 @@ class NewRequestPanelState extends State<NewRequestPanel> {
             var request = state.getRequest(roomState)!;
             try {
               await repo.submitBookingRequest(
-                  widget.orgID, request, state.getPrivateDetails());
+                widget.orgID,
+                request,
+                state.getPrivateDetails(),
+              );
               if (context.mounted) {
                 closePanel(context);
               } else {
                 log("Context not mounted", error: Exception());
               }
               FirebaseAnalytics.instance.logEvent(
-                  name: "Request Submitted",
-                  parameters: {"orgID": widget.orgID});
+                name: "Request Submitted",
+                parameters: {"orgID": widget.orgID},
+              );
             } catch (e) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -300,12 +332,16 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           }
         },
         child: const Text("Submit Request"),
-      )
+      ),
     ];
   }
 
-  List<Widget> _buttonsForPendingRequest(RequestEditorState state,
-      RequestPanelSate panelState, RoomState roomState, BookingRepo repo) {
+  List<Widget> _buttonsForPendingRequest(
+    RequestEditorState state,
+    RequestPanelSate panelState,
+    RoomState roomState,
+    BookingRepo repo,
+  ) {
     return [
       ElevatedButton(
         onPressed: () async {
@@ -313,25 +349,35 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           await repo.denyRequest(widget.orgID, request.id!);
           state.updateStatus(RequestStatus.denied);
           FirebaseAnalytics.instance.logEvent(
-              name: "Booking Rejected", parameters: {"orgID": widget.orgID});
+            name: "Booking Rejected",
+            parameters: {"orgID": widget.orgID},
+          );
         },
         child: const Text("Deny"),
       ),
       ElevatedButton(
         onPressed: () async {
           await repo.confirmRequest(
-              widget.orgID, state.getRequest(roomState)!.id!);
+            widget.orgID,
+            state.getRequest(roomState)!.id!,
+          );
           state.updateStatus(RequestStatus.confirmed);
           FirebaseAnalytics.instance.logEvent(
-              name: "Booking Approved", parameters: {"orgID": widget.orgID});
+            name: "Booking Approved",
+            parameters: {"orgID": widget.orgID},
+          );
         },
         child: const Text("Approve"),
       ),
     ];
   }
 
-  List<Widget> _buttonsForConfirmedRequest(RequestEditorState state,
-      RequestPanelSate panelState, RoomState roomState, BookingRepo repo) {
+  List<Widget> _buttonsForConfirmedRequest(
+    RequestEditorState state,
+    RequestPanelSate panelState,
+    RoomState roomState,
+    BookingRepo repo,
+  ) {
     var buttons = <Widget>[
       state.editingEnabled
           ? ElevatedButton(
@@ -343,15 +389,16 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                 }*/
                 try {
                   await repo.updateBooking(
-                      widget.orgID,
-                      state.existingRequest!,
-                      state.getRequest(roomState)!,
-                      state.getPrivateDetails(),
-                      state.getStatus(),
-                      () async => showDialog<RecurringBookingEditChoice>(
-                            context: context,
-                            builder: (context) => EditRecurringBookingDialog(),
-                          ));
+                    widget.orgID,
+                    state.existingRequest!,
+                    state.getRequest(roomState)!,
+                    state.getPrivateDetails(),
+                    state.getStatus(),
+                    () async => showDialog<RecurringBookingEditChoice>(
+                      context: context,
+                      builder: (context) => EditRecurringBookingDialog(),
+                    ),
+                  );
                   state.disableEditing();
                 } catch (e) {
                   messenger.showSnackBar(
@@ -395,46 +442,64 @@ class NewRequestPanelState extends State<NewRequestPanel> {
           message: "Delete the request",
           child: const Text("Delete"),
         ),
-      )
+      ),
     ];
     if (state.recurrancePattern.frequency != Frequency.never &&
         state.recurrancePattern.end == null) {
-      buttons.add(ElevatedButton(
-        onPressed: () async {
-          var request = state.getRequest(roomState);
-          await repo.endBooking(widget.orgID, request!.id!, state.startTime!);
-          state.updateEndDate(state.startTime);
-          FirebaseAnalytics.instance.logEvent(
-              name: "Series Cancelled", parameters: {"orgID": widget.orgID});
-        },
-        child: const Text("End Series"),
-      ));
+      buttons.add(
+        ElevatedButton(
+          onPressed: () async {
+            var request = state.getRequest(roomState);
+            await repo.endBooking(widget.orgID, request!.id!, state.startTime!);
+            state.updateEndDate(state.startTime);
+            FirebaseAnalytics.instance.logEvent(
+              name: "Series Cancelled",
+              parameters: {"orgID": widget.orgID},
+            );
+          },
+          child: const Text("End Series"),
+        ),
+      );
     }
     return buttons;
   }
 
-  Widget _getButtons(RequestEditorState state, RequestPanelSate panelState,
-      RoomState roomState, BookingRepo repo) {
-    return Consumer<OrgState>(builder: (context, orgState, child) {
-      var status = state.getStatus();
-      List<Widget> buttons = [];
-      if (state.isNewRequest()) {
-        buttons = _buttonsForNewRequest(state, roomState, repo, orgState);
-      } else {
-        if (status == RequestStatus.pending) {
-          buttons =
-              _buttonsForPendingRequest(state, panelState, roomState, repo);
+  Widget _getButtons(
+    RequestEditorState state,
+    RequestPanelSate panelState,
+    RoomState roomState,
+    BookingRepo repo,
+  ) {
+    return Consumer<OrgState>(
+      builder: (context, orgState, child) {
+        var status = state.getStatus();
+        List<Widget> buttons = [];
+        if (state.isNewRequest()) {
+          buttons = _buttonsForNewRequest(state, roomState, repo, orgState);
         } else {
-          buttons =
-              _buttonsForConfirmedRequest(state, panelState, roomState, repo);
+          if (status == RequestStatus.pending) {
+            buttons = _buttonsForPendingRequest(
+              state,
+              panelState,
+              roomState,
+              repo,
+            );
+          } else {
+            buttons = _buttonsForConfirmedRequest(
+              state,
+              panelState,
+              roomState,
+              repo,
+            );
+          }
         }
-      }
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.max,
-        children: buttons,
-      );
-    });
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.max,
+          children: buttons,
+        );
+      },
+    );
   }
 
   void _onDelete() async {
@@ -469,12 +534,13 @@ class NewRequestPanelState extends State<NewRequestPanel> {
     if (confirmDelete) {
       var request = state.getRequest(roomState)!;
       await repo.deleteBooking(
-          widget.orgID,
-          request,
-          () async => showDialog<RecurringBookingEditChoice>(
-                context: context,
-                builder: (context) => EditRecurringBookingDialog(),
-              ));
+        widget.orgID,
+        request,
+        () async => showDialog<RecurringBookingEditChoice>(
+          context: context,
+          builder: (context) => EditRecurringBookingDialog(),
+        ),
+      );
       state.clearAppointment();
       closePanel(context);
     }
@@ -483,42 +549,48 @@ class NewRequestPanelState extends State<NewRequestPanel> {
 
 class RequestStateProvider extends StatelessWidget {
   final Organization org;
-  final Widget child;
+  final Widget Function(BuildContext context, Widget? child) builder;
   final bool enableAllRooms;
   final DateTime? requestStartTime;
   final Request? initialRequest;
   final PrivateRequestDetails? initialDetails;
   final bool isCurrentUserAdmin;
 
-  RequestStateProvider(
-      {super.key,
-      required this.child,
-      required OrgState orgState,
-      required this.enableAllRooms,
-      this.initialRequest,
-      this.initialDetails,
-      this.requestStartTime})
-      : org = orgState.org,
-        isCurrentUserAdmin = orgState.currentUserIsAdmin();
+  RequestStateProvider({
+    super.key,
+    required this.builder,
+    required OrgState orgState,
+    required this.enableAllRooms,
+    this.initialRequest,
+    this.initialDetails,
+    this.requestStartTime,
+  }) : org = orgState.org,
+       isCurrentUserAdmin = orgState.currentUserIsAdmin();
 
   @override
   Widget build(BuildContext context) {
     bool panelActive =
         (requestStartTime ?? initialRequest?.eventStartTime) != null;
     return RoomStateProvider(
-        org: org,
-        enableAllRooms: enableAllRooms,
-        builder: (context, _) => MultiProvider(providers: [
-              ChangeNotifierProvider.value(
-                  value: RequestPanelSate(panelActive, org.id!)),
-              ChangeNotifierProvider.value(
-                  value: RequestEditorState(
-                startTime: requestStartTime,
-                initialRequest: initialRequest,
-                initialDetails: initialDetails,
-                isCurrenetUserAdmin: isCurrentUserAdmin,
-              )),
-            ], builder: (context, _) => child));
+      org: org,
+      enableAllRooms: enableAllRooms,
+      builder: (context, _) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(
+            value: RequestPanelSate(panelActive, org.id!),
+          ),
+          ChangeNotifierProvider.value(
+            value: RequestEditorState(
+              startTime: requestStartTime,
+              initialRequest: initialRequest,
+              initialDetails: initialDetails,
+              isCurrenetUserAdmin: isCurrentUserAdmin,
+            ),
+          ),
+        ],
+        builder: builder,
+      ),
+    );
   }
 }
 
@@ -610,8 +682,11 @@ class RequestEditorState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void showRequest(Request request, PrivateRequestDetails details,
-      {bool updateListeners = true}) {
+  void showRequest(
+    Request request,
+    PrivateRequestDetails details, {
+    bool updateListeners = true,
+  }) {
     _publicEvent = (request.publicName ?? "") != "";
     _ignoreOverlaps = request.ignoreOverlaps;
     _existingRequest = request;
@@ -873,11 +948,13 @@ class LogsWidget extends StatelessWidget {
           allowPagination: false,
           requestID: requestID,
           titleBuilder: (entry) => Text(
-              "${entry.action.name} on ${dateFormat.format(entry.timestamp)}"),
+            "${entry.action.name} on ${dateFormat.format(entry.timestamp)}",
+          ),
           subtitleBuilder: (entry) => Text(
-              "By ${entry.adminEmail} at ${timeFormat.format(entry.timestamp)}"),
+            "By ${entry.adminEmail} at ${timeFormat.format(entry.timestamp)}",
+          ),
           showViewButton: false,
-        )
+        ),
       ],
     );
   }

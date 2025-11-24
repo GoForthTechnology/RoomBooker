@@ -54,6 +54,8 @@ class CalendarViewModel extends ChangeNotifier {
   final bool showNavigationArrow;
   final bool showTodayButton;
   final bool showDatePickerButton;
+  final bool showIgnoringOverlaps;
+  final bool allowViewNavigation;
   final List<CalendarView> allowedViews;
   final Stream<Appointment?> _newAppointment;
 
@@ -71,11 +73,14 @@ class CalendarViewModel extends ChangeNotifier {
     bool allowAppointmentResize = false,
     bool allowDragAndDrop = false,
     Stream<Appointment?>? newAppointment,
+    DateTime? targetDate,
     this.includePrivateBookings = false,
     this.showNavigationArrow = false,
     this.showTodayButton = false,
     this.showDatePickerButton = false,
     this.appendRoomName = false,
+    this.showIgnoringOverlaps = false,
+    this.allowViewNavigation = false,
     this.allowedViews = const [
       CalendarView.day,
       CalendarView.week,
@@ -90,7 +95,7 @@ class CalendarViewModel extends ChangeNotifier {
        _newAppointment = (newAppointment ?? Stream.value(null))
            .asBroadcastStream() {
     controller.view = defaultView;
-    controller.displayDate = DateTime.now();
+    controller.displayDate = targetDate ?? DateTime.now();
     var currentWindow = VisibleWindow(start: startOfView, end: endOfView);
     _visibleWindowController.add(currentWindow);
     controller.addPropertyChangedListener(_handlePropertyChange);
@@ -194,6 +199,7 @@ class CalendarViewModel extends ChangeNotifier {
           subject: subject,
           diminish: newAppointment != null,
           appendRoomName: appendRoomName,
+          showIngnoringOverlaps: showIgnoringOverlaps,
         );
         appointments[appointment] = repeat;
       }
@@ -453,6 +459,7 @@ extension on Request {
     String? subject,
     bool diminish = false,
     bool appendRoomName = false,
+    bool showIngnoringOverlaps = false,
   }) {
     var alphaLevel = diminish || status == RequestStatus.pending ? 128 : 255;
     var color = roomState.color(roomID).withAlpha(alphaLevel);
@@ -462,7 +469,7 @@ extension on Request {
       var roomName = roomState.getRoom(roomID)?.name ?? "Unknown Room";
       s += " ($roomName)";
     }
-    if (ignoreOverlaps) {
+    if (ignoreOverlaps && showIngnoringOverlaps) {
       s += "\n(Ignoring Overlaps!)";
     }
     return Appointment(

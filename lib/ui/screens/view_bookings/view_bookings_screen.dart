@@ -12,13 +12,13 @@ import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
-import 'package:room_booker/ui/widgets/current_bookings_calendar.dart';
+import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
+import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/navigation_drawer.dart';
 import 'package:room_booker/ui/widgets/org_settings/org_details.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor_panel.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
-import 'package:room_booker/ui/widgets/stateful_calendar.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:badges/badges.dart';
@@ -119,16 +119,40 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
     );
   }
 
-  Widget _content(
-    BuildContext context,
-    Request? request,
-    PrivateRequestDetails? details,
-  ) {
+  CalendarViewModel _createViewModel(OrgState orgState, Request? request) {
+    var targetDate =
+        widget.targetDate ?? request?.eventEndTime ?? DateTime.now();
     var defaultView = widget.view;
     if (defaultView == null) {
       var prefRepo = Provider.of<PreferencesRepo>(context, listen: false);
       defaultView = prefRepo.defaultCalendarView.name;
     }
+    return CalendarViewModel(
+      orgState: orgState,
+      bookingRepo: context.read(),
+      roomState: context.read(),
+      targetDate: targetDate,
+      defaultView: CalendarView.values.firstWhere(
+        (element) => element.name == defaultView,
+      ),
+      allowedViews: [
+        CalendarView.day,
+        CalendarView.week,
+        CalendarView.month,
+        CalendarView.schedule,
+      ],
+      includePrivateBookings: widget.showPrivateBookings,
+      showIgnoringOverlaps: !widget.readOnlyMode,
+      showDatePickerButton: true,
+      allowViewNavigation: true,
+    );
+  }
+
+  Widget _content(
+    BuildContext context,
+    Request? request,
+    PrivateRequestDetails? details,
+  ) {
     return OrgStateProvider(
       orgID: widget.orgID,
       child: Consumer<OrgState>(
@@ -138,15 +162,25 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
           initialRequest: request,
           initialDetails: details,
           requestStartTime: widget.createRequest ? widget.targetDate : null,
-          child: CalendarStateProvider(
-            initialView: CalendarView.values.firstWhere(
-              (element) => element.name == defaultView,
-            ),
-            focusDate:
-                widget.targetDate ?? request?.eventEndTime ?? DateTime.now(),
+          builder: (context, _) => ChangeNotifierProvider.value(
+            value: _createViewModel(orgState, request),
             builder: (context, child) {
-              var calendarState = Provider.of<CalendarState>(context);
-              bool showFab = calendarState.controller.view != CalendarView.day;
+              var viewModel = Provider.of<CalendarViewModel>(
+                context,
+                listen: false,
+              );
+              viewModel.dateTapStream.listen(
+                (date) => _onTapDate(
+                  date,
+                  context,
+                  viewModel.controller.view ?? CalendarView.day,
+                ),
+              );
+              viewModel.requestTapStream.listen(
+                (request) => _onTapBooking(request, context),
+              );
+
+              bool showFab = viewModel.controller.view != CalendarView.day;
               return Consumer<RequestPanelSate>(
                 builder: (context, requestPanelState, child) => Scaffold(
                   appBar: AppBar(
@@ -161,7 +195,7 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
                   ),
                   floatingActionButton: showFab
                       ? FloatingActionButton(
-                          onPressed: () => _onFabPressed(context),
+                          onPressed: () => _onFabPressed(context, viewModel),
                           child: const Icon(Icons.add),
                         )
                       : null,
@@ -175,10 +209,7 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
                           showRoomSelector &&
                           !requestPanelState.active)
                         Flexible(flex: 1, child: MyDrawer(org: orgState.org)),
-                      Flexible(
-                        flex: 3,
-                        child: _buildCalendar(context, request),
-                      ),
+                      Flexible(flex: 3, child: BookingCalendarView()),
                       if (requestPanelState.active)
                         Flexible(
                           flex: 1,
@@ -197,11 +228,44 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
     );
   }
 
-  void _onFabPressed(BuildContext context) async {
-    var router = AutoRouter.of(context);
-    var calendarState = Provider.of<CalendarState>(context, listen: false);
+  void _onTapDate(
+    DateTime date,
+    BuildContext context,
+    CalendarView currentView,
+  ) {
+    if (widget.readOnlyMode) {
+      return;
+    }
+    if (currentView == CalendarView.month) {
+      AutoRouter.of(context).push(
+        ViewBookingsRoute(
+          orgID: widget.orgID,
+          view: CalendarView.day.name,
+          targetDate: date,
+        ),
+      );
+      return;
+    }
+    var requestEditorState = context.read();
+    var roomState = context.read();
+    requestEditorState.clearAppointment();
+    requestEditorState.createRequest(
+      date,
+      date.add(const Duration(hours: 1)),
+      roomState.enabledValue()!,
+    );
+    if (_isSmallView(context)) {
+      _showPannelAsDialog(context);
+    } else {
+      var requestPanelState = context.read();
+      requestPanelState.showPanel();
+    }
+  }
 
-    var focusDate = calendarState.controller.displayDate;
+  void _onFabPressed(BuildContext context, CalendarViewModel viewModel) async {
+    var router = AutoRouter.of(context);
+
+    var focusDate = viewModel.controller.displayDate;
     var firstDate = DateTime(focusDate!.year, focusDate.month);
     var lastDate = firstDate.add(Duration(days: 365));
 
@@ -243,59 +307,6 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
 
   bool _isSmallView(BuildContext context) {
     return MediaQuery.sizeOf(context).width < 650;
-  }
-
-  Widget _buildCalendar(BuildContext context, Request? existingRequest) {
-    var requestEditorState = Provider.of<RequestEditorState>(
-      context,
-      listen: false,
-    );
-    var requestPanelState = Provider.of<RequestPanelSate>(
-      context,
-      listen: false,
-    );
-    var calendarState = Provider.of<CalendarState>(context, listen: false);
-    var roomState = Provider.of<RoomState>(context, listen: false);
-    return CurrentBookingsCalendar(
-      includePrivateBookings: widget.showPrivateBookings,
-      showIgnoringOverlaps: !widget.readOnlyMode,
-      orgID: widget.orgID,
-      allowedViews: [
-        CalendarView.day,
-        CalendarView.week,
-        CalendarView.month,
-        CalendarView.schedule,
-      ],
-      onTap: widget.readOnlyMode
-          ? null
-          : (details) {
-              var targetDate = details.date!;
-              var currentView = calendarState.controller.view;
-              if (currentView == CalendarView.month) {
-                AutoRouter.of(context).push(
-                  ViewBookingsRoute(
-                    orgID: widget.orgID,
-                    view: CalendarView.day.name,
-                    targetDate: targetDate,
-                  ),
-                );
-                return;
-              }
-              requestEditorState.clearAppointment();
-              requestEditorState.createRequest(
-                details.date!,
-                details.date!.add(const Duration(hours: 1)),
-                roomState.enabledValue()!,
-              );
-              if (_isSmallView(context)) {
-                _showPannelAsDialog(context);
-              } else {
-                requestPanelState.showPanel();
-              }
-            },
-      onTapRequest: (request) => _onTapBooking(request, context),
-      showDatePickerButton: true,
-    );
   }
 
   void _onTapBookingRO(Request request) {

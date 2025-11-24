@@ -49,50 +49,49 @@ void main() {
   });
 
   testWidgets(
-      'BookingCalendarView shows CircularProgressIndicator when snapshot has no data',
-      (WidgetTester tester) async {
-    when(() => mockViewModel.calendarViewState())
-        .thenAnswer((_) => Stream.empty());
+    'BookingCalendarView shows CircularProgressIndicator when snapshot has no data',
+    (WidgetTester tester) async {
+      when(
+        () => mockViewModel.calendarViewState(),
+      ).thenAnswer((_) => Stream.empty());
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: BookingCalendar(
-          createViewModel: () => mockViewModel,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BookingCalendar(createViewModel: () => mockViewModel),
         ),
-      ),
-    );
+      );
 
-    await tester.pump();
+      await tester.pump();
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-  });
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    },
+  );
 
-  testWidgets('BookingCalendarView shows SfCalendar when snapshot has data',
-      (WidgetTester tester) async {
+  testWidgets('BookingCalendarView shows SfCalendar when snapshot has data', (
+    WidgetTester tester,
+  ) async {
     final state = CalendarViewState(
       allowDragAndDrop: true,
       allowAppointmentResize: true,
       dataSource: FakeDataSource(),
       specialRegions: [],
     );
-    when(() => mockViewModel.calendarViewState())
-        .thenAnswer((_) => Stream.value(state));
+    when(
+      () => mockViewModel.calendarViewState(),
+    ).thenAnswer((_) => Stream.value(state));
     when(() => mockViewModel.controller).thenReturn(CalendarController());
     when(() => mockViewModel.minDate).thenReturn(DateTime.now());
     when(() => mockViewModel.showNavigationArrow).thenReturn(true);
     when(() => mockViewModel.showTodayButton).thenReturn(true);
     when(() => mockViewModel.showDatePickerButton).thenReturn(true);
+    when(() => mockViewModel.allowViewNavigation).thenReturn(true);
     when(() => mockViewModel.allowedViews).thenReturn([CalendarView.day]);
     when(() => mockViewModel.handleResizeEnd(any())).thenAnswer((_) async {});
     when(() => mockViewModel.handleDragEnd(any())).thenAnswer((_) async {});
     when(() => mockViewModel.handleTap(any())).thenAnswer((_) async {});
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: BookingCalendar(
-          createViewModel: () => mockViewModel,
-        ),
-      ),
+      MaterialApp(home: BookingCalendar(createViewModel: () => mockViewModel)),
     );
 
     await tester.pump();

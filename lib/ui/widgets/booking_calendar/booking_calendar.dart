@@ -37,7 +37,7 @@ class BookingCalendarView extends StatelessWidget {
         var viewState = snapshot.data!;
         return SfCalendar(
           cellEndPadding: 20,
-          allowViewNavigation: false,
+          allowViewNavigation: viewModel.allowViewNavigation,
           controller: viewModel.controller,
           minDate: viewModel.minDate,
           showNavigationArrow: viewModel.showNavigationArrow,
