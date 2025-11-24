@@ -27,6 +27,10 @@ class BookingCalendarView extends StatelessWidget {
     return StreamBuilder(
       stream: viewModel.calendarViewState(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          print(snapshot.error);
+          return Text('Error: ${snapshot.error}');
+        }
         if (!snapshot.hasData) {
           return CircularProgressIndicator();
         }

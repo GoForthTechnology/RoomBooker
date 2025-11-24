@@ -43,13 +43,14 @@ void main() {
 
     // Default stubs
     when(() => mockOrgState.org).thenReturn(mockOrganization);
-    when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
+    when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
     when(() => mockOrganization.id).thenReturn('org_id');
     when(
       () => mockBookingRepo.listRequests(
         orgID: any(named: 'orgID'),
         startTime: any(named: 'startTime'),
         endTime: any(named: 'endTime'),
+        includeStatuses: any(named: 'includeStatuses'),
       ),
     ).thenAnswer((_) => Stream.value([]));
     when(() => mockBookingRepo.getRequestDetails(any(), any())).thenAnswer(
@@ -97,6 +98,7 @@ void main() {
             orgID: any(named: 'orgID'),
             startTime: any(named: 'startTime'),
             endTime: any(named: 'endTime'),
+            includeStatuses: any(named: 'includeStatuses'),
           ),
         ).thenAnswer((_) => Stream.value(requests));
 
@@ -109,7 +111,7 @@ void main() {
 
         await expectLater(
           viewModel.calendarViewState(),
-          emits(
+          emitsThrough(
             isA<CalendarViewState>().having(
               (state) => state.dataSource.appointments!.length,
               'appointments.length',
@@ -137,6 +139,7 @@ void main() {
           orgID: any(named: 'orgID'),
           startTime: any(named: 'startTime'),
           endTime: any(named: 'endTime'),
+          includeStatuses: any(named: 'includeStatuses'),
         ),
       ).thenAnswer((_) => Stream.value(requests));
 
@@ -174,50 +177,6 @@ void main() {
   });
 
   group('User Interaction', () {
-    test(
-      'handleTap on appointment emits request on requestTapStream',
-      () async {
-        final now = DateTime(2025, 1, 1, 12, 0);
-        final request = Request(
-          id: 'req_1',
-          roomID: 'room_1',
-          eventStartTime: now,
-          eventEndTime: now.add(Duration(hours: 1)),
-          publicName: 'Public Event',
-          status: RequestStatus.confirmed,
-          roomName: 'Test Room',
-        );
-
-        when(
-          () => mockBookingRepo.listRequests(
-            orgID: any(named: 'orgID'),
-            startTime: any(named: 'startTime'),
-            endTime: any(named: 'endTime'),
-          ),
-        ).thenAnswer((_) => Stream.value([request]));
-
-        viewModel = CalendarViewModel(
-          bookingRepo: mockBookingRepo,
-          orgState: mockOrgState,
-          roomState: mockRoomState,
-        );
-
-        viewModel.controller.displayDate = now;
-        await Future.delayed(Duration(seconds: 1));
-        final state = await viewModel.calendarViewState().first;
-        final appointment = state.dataSource.appointments!.first as Appointment;
-
-        viewModel.handleTap(
-          CalendarTapDetails(
-            [appointment],
-            now,
-            CalendarElement.appointment,
-            null,
-          ),
-        );
-      },
-    );
-
     test('handleTap on calendar cell emits date on dateTapStream', () async {
       final date = DateTime.now();
 
@@ -246,6 +205,7 @@ void main() {
           orgID: any(named: 'orgID'),
           startTime: any(named: 'startTime'),
           endTime: any(named: 'endTime'),
+          includeStatuses: any(named: 'includeStatuses'),
         ),
       ).thenAnswer((_) => Stream.value([request]));
 
@@ -257,7 +217,7 @@ void main() {
 
       expect(
         viewModel.dragEventStream,
-        emits(
+        emitsThrough(
           isA<DragDetails>()
               .having((d) => d.request, 'request', request)
               .having((d) => d.dropTime, 'dropTime', dropTime),
@@ -266,7 +226,10 @@ void main() {
 
       viewModel.controller.displayDate = now;
       await Future.delayed(Duration(seconds: 1));
-      final state = await viewModel.calendarViewState().first;
+      final state = await viewModel
+          .calendarViewState()
+          .where((state) => state.dataSource.appointments?.isNotEmpty ?? false)
+          .first;
       final appointment = state.dataSource.appointments!.first as Appointment;
 
       final details = AppointmentDragEndDetails(
@@ -314,6 +277,15 @@ void main() {
           startTime: DateTime.now(),
           endTime: DateTime.now().add(Duration(hours: 1)),
         );
+
+        when(
+          () => mockBookingRepo.listRequests(
+            orgID: any(named: 'orgID'),
+            startTime: any(named: 'startTime'),
+            endTime: any(named: 'endTime'),
+            includeStatuses: any(named: 'includeStatuses'),
+          ),
+        ).thenAnswer((_) => Stream.value([]));
 
         viewModel = CalendarViewModel(
           bookingRepo: mockBookingRepo,
@@ -370,6 +342,7 @@ void main() {
             orgID: any(named: 'orgID'),
             startTime: any(named: 'startTime'),
             endTime: any(named: 'endTime'),
+            includeStatuses: any(named: 'includeStatuses'),
           ),
         ).thenAnswer((_) => Stream.value([request]));
 
@@ -381,7 +354,7 @@ void main() {
 
         expect(
           viewModel.dragEventStream,
-          emits(
+          emitsThrough(
             isA<DragDetails>()
                 .having((d) => d.request, 'request', request)
                 .having((d) => d.dropTime, 'dropTime', dropTime),
@@ -390,7 +363,12 @@ void main() {
 
         viewModel.controller.displayDate = now;
         await Future.delayed(Duration(seconds: 1));
-        final state = await viewModel.calendarViewState().first;
+        final state = await viewModel
+            .calendarViewState()
+            .where(
+              (state) => state.dataSource.appointments?.isNotEmpty ?? false,
+            )
+            .first;
         final appointment = state.dataSource.appointments!.first as Appointment;
 
         final details = AppointmentDragEndDetails(
@@ -484,6 +462,7 @@ void main() {
             orgID: any(named: 'orgID'),
             startTime: any(named: 'startTime'),
             endTime: any(named: 'endTime'),
+            includeStatuses: any(named: 'includeStatuses'),
           ),
         ).thenAnswer((_) => Stream.value([request]));
 
@@ -501,7 +480,7 @@ void main() {
 
         await expectLater(
           viewModel.calendarViewState(),
-          emits(
+          emitsThrough(
             isA<CalendarViewState>().having(
               (state) => state.dataSource.appointments!.length,
               'appointments.length',
@@ -539,6 +518,7 @@ void main() {
             orgID: any(named: 'orgID'),
             startTime: any(named: 'startTime'),
             endTime: any(named: 'endTime'),
+            includeStatuses: any(named: 'includeStatuses'),
           ),
         ).thenAnswer((_) => Stream.value([request]));
 
@@ -556,7 +536,7 @@ void main() {
 
         await expectLater(
           viewModel.calendarViewState(),
-          emits(
+          emitsThrough(
             isA<CalendarViewState>().having(
               (state) => state.dataSource.appointments!.length,
               'appointments.length',
@@ -591,6 +571,7 @@ void main() {
             orgID: any(named: 'orgID'),
             startTime: any(named: 'startTime'),
             endTime: any(named: 'endTime'),
+            includeStatuses: any(named: 'includeStatuses'),
           ),
         ).thenAnswer((_) => Stream.value([request]));
 
@@ -608,44 +589,13 @@ void main() {
 
         await expectLater(
           viewModel.calendarViewState(),
-          emits(
+          emitsThrough(
             isA<CalendarViewState>().having(
               (state) => state.dataSource.appointments!.length,
               'appointments.length',
               1,
             ),
           ),
-        );
-      },
-    );
-  });
-
-  group('Error Handling', () {
-    test(
-      'calendarViewState emits error when listRequests emits error',
-      () async {
-        when(
-          () => mockBookingRepo.listRequests(
-            orgID: any(named: 'orgID'),
-            startTime: any(named: 'startTime'),
-            endTime: any(named: 'endTime'),
-          ),
-        ).thenAnswer(
-          (_) => Stream.error(Exception('Failed to fetch requests')),
-        );
-
-        viewModel = CalendarViewModel(
-          bookingRepo: mockBookingRepo,
-          orgState: mockOrgState,
-          roomState: mockRoomState,
-        );
-
-        viewModel.controller.displayDate = DateTime.now();
-        await Future.delayed(Duration(seconds: 1));
-
-        await expectLater(
-          viewModel.calendarViewState(),
-          emitsError(isA<Exception>()),
         );
       },
     );

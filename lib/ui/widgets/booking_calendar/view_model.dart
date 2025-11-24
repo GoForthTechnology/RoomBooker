@@ -61,6 +61,7 @@ class CalendarViewModel extends ChangeNotifier {
 
   final BookingRepo _bookingRepo;
   final OrgState _orgState;
+  final RoomState _roomState;
 
   CalendarViewModel({
     required OrgState orgState,
@@ -85,6 +86,7 @@ class CalendarViewModel extends ChangeNotifier {
        _allowDragAndDrop = allowDragAndDrop,
        _bookingRepo = bookingRepo,
        _orgState = orgState,
+       _roomState = roomState,
        _newAppointment = (newAppointment ?? Stream.value(null))
            .asBroadcastStream() {
     controller.view = defaultView;
@@ -100,10 +102,15 @@ class CalendarViewModel extends ChangeNotifier {
   Stream<CalendarViewState> _viewStateStream(
     BookingRepo bookingRepo,
     OrgState orgState,
+    RoomState roomState,
   ) {
     return Rx.combineLatest3(
       _newAppointment.startWith(null),
-      _appointments.stream.startWith(const {}),
+      _buildAppointmentStream(
+        bookingRepo,
+        orgState,
+        roomState,
+      ).startWith(const {}),
       bookingRepo
           .listBlackoutWindows(orgState.org, startOfView, endOfView)
           .startWith(const []),
@@ -136,6 +143,7 @@ class CalendarViewModel extends ChangeNotifier {
             orgID: orgState.org.id!,
             startTime: window.start,
             endTime: window.end,
+            includeStatuses: {RequestStatus.pending, RequestStatus.confirmed},
           )
           .flatMap(
             (requests) => _detailStream(orgState, requests, bookingRepo)
@@ -150,7 +158,7 @@ class CalendarViewModel extends ChangeNotifier {
                   ),
                 ),
           ),
-    ).flatMap((s) => s);
+    ).flatMap((s) => s).startWith({});
   }
 
   Map<Appointment, Request> _convertRequests(
@@ -260,7 +268,7 @@ class CalendarViewModel extends ChangeNotifier {
   Stream<Request> get requestTapStream => _requestTapController.stream;
 
   Stream<CalendarViewState> calendarViewState() {
-    return _viewStateStream(_bookingRepo, _orgState);
+    return _viewStateStream(_bookingRepo, _orgState, _roomState);
   }
 
   // Bizarre things happen when you shink the screen which makes this
