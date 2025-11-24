@@ -180,11 +180,21 @@ void main() {
     test('handleTap on calendar cell emits date on dateTapStream', () async {
       final date = DateTime.now();
 
-      expect(viewModel.dateTapStream, emits(date));
+      bool called = false;
+      viewModel = CalendarViewModel(
+        bookingRepo: mockBookingRepo,
+        orgState: mockOrgState,
+        roomState: mockRoomState,
+        onDateTap: (_) {
+          called = true;
+        },
+      );
 
       viewModel.handleTap(
         CalendarTapDetails(null, date, CalendarElement.calendarCell, null),
       );
+
+      expect(called, isTrue);
     });
 
     test('handleDragEnd emits drag details on dragEventStream', () async {
@@ -209,19 +219,14 @@ void main() {
         ),
       ).thenAnswer((_) => Stream.value([request]));
 
+      Completer<DragDetails> dragDetails = Completer();
       viewModel = CalendarViewModel(
         bookingRepo: mockBookingRepo,
         orgState: mockOrgState,
         roomState: mockRoomState,
-      );
-
-      expect(
-        viewModel.dragEventStream,
-        emitsThrough(
-          isA<DragDetails>()
-              .having((d) => d.request, 'request', request)
-              .having((d) => d.dropTime, 'dropTime', dropTime),
-        ),
+        onDragEnd: (details) {
+          dragDetails.complete(details);
+        },
       );
 
       viewModel.controller.displayDate = now;
@@ -239,6 +244,15 @@ void main() {
         dropTime,
       );
       viewModel.handleDragEnd(details);
+
+      var gotDetails = await dragDetails.future;
+
+      expect(
+        gotDetails,
+        isA<DragDetails>()
+            .having((d) => d.request, 'request', request)
+            .having((d) => d.dropTime, 'dropTime', dropTime),
+      );
     });
 
     test('handleResizeEnd emits resize details on resizeEventStream', () async {
@@ -250,23 +264,31 @@ void main() {
       final startTime = DateTime.now().add(Duration(minutes: 30));
       final endTime = DateTime.now().add(Duration(hours: 1, minutes: 30));
 
-      expect(
-        viewModel.resizeEventStream,
-        emits(
-          isA<ResizeDetails>()
-              .having((d) => d.appointment, 'appointment', appointment)
-              .having((d) => d.startTime, 'startTime', startTime)
-              .having((d) => d.endTime, 'endTime', endTime),
-        ),
-      );
-
       final details = AppointmentResizeEndDetails(
         appointment,
         null,
         startTime,
         endTime,
       );
+
+      var completer = Completer<ResizeDetails>();
+      var viewModel = CalendarViewModel(
+        orgState: mockOrgState,
+        bookingRepo: mockBookingRepo,
+        roomState: mockRoomState,
+        onResizeEnd: (details) => completer.complete(details),
+      );
       viewModel.handleResizeEnd(details);
+
+      var gotDetails = await completer.future;
+
+      expect(
+        gotDetails,
+        isA<ResizeDetails>()
+            .having((d) => d.appointment, 'appointment', appointment)
+            .having((d) => d.startTime, 'startTime', startTime)
+            .having((d) => d.endTime, 'endTime', endTime),
+      );
     });
 
     test(
@@ -287,16 +309,15 @@ void main() {
           ),
         ).thenAnswer((_) => Stream.value([]));
 
+        var eventFired = false;
         viewModel = CalendarViewModel(
           bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
+          onRequestTap: (_) {
+            eventFired = true;
+          },
         );
-
-        var eventFired = false;
-        viewModel.requestTapStream.listen((_) {
-          eventFired = true;
-        });
 
         viewModel.handleTap(
           CalendarTapDetails(
@@ -346,19 +367,12 @@ void main() {
           ),
         ).thenAnswer((_) => Stream.value([request]));
 
+        Completer<DragDetails> dragDetails = Completer();
         viewModel = CalendarViewModel(
           bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
-        );
-
-        expect(
-          viewModel.dragEventStream,
-          emitsThrough(
-            isA<DragDetails>()
-                .having((d) => d.request, 'request', request)
-                .having((d) => d.dropTime, 'dropTime', dropTime),
-          ),
+          onDragEnd: (details) => dragDetails.complete(details),
         );
 
         viewModel.controller.displayDate = now;
@@ -378,6 +392,14 @@ void main() {
           dropTime,
         );
         viewModel.handleDragEnd(details);
+
+        var gotDetails = await dragDetails.future;
+        expect(
+          gotDetails,
+          isA<DragDetails>()
+              .having((d) => d.request, 'request', request)
+              .having((d) => d.dropTime, 'dropTime', dropTime),
+        );
       },
     );
   });

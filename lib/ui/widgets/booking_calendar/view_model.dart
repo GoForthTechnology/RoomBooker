@@ -34,18 +34,15 @@ class VisibleWindow {
 class CalendarViewModel extends ChangeNotifier {
   final CalendarController controller = CalendarController();
 
-  final StreamController<Request> _requestTapController =
-      StreamController.broadcast();
-  final StreamController<DateTime> _dateTapController =
-      StreamController.broadcast();
-  final StreamController<DragDetails> _dragEventController =
-      StreamController.broadcast();
-  final StreamController<ResizeDetails> _resizeEventController =
-      StreamController.broadcast();
   final BehaviorSubject<VisibleWindow> _visibleWindowController =
       BehaviorSubject();
   final BehaviorSubject<Map<Appointment, Request>> _appointments =
       BehaviorSubject();
+
+  final Function(Request)? onRequestTap;
+  final Function(DateTapDetails)? onDateTap;
+  final Function(DragDetails)? onDragEnd;
+  final Function(ResizeDetails)? onResizeEnd;
 
   final bool appendRoomName;
   final bool includePrivateBookings;
@@ -81,6 +78,10 @@ class CalendarViewModel extends ChangeNotifier {
     this.appendRoomName = false,
     this.showIgnoringOverlaps = false,
     this.allowViewNavigation = false,
+    this.onDateTap,
+    this.onDragEnd,
+    this.onResizeEnd,
+    this.onRequestTap,
     this.allowedViews = const [
       CalendarView.day,
       CalendarView.week,
@@ -268,11 +269,6 @@ class CalendarViewModel extends ChangeNotifier {
     }
   }
 
-  Stream<DragDetails> get dragEventStream => _dragEventController.stream;
-  Stream<ResizeDetails> get resizeEventStream => _resizeEventController.stream;
-  Stream<DateTime> get dateTapStream => _dateTapController.stream;
-  Stream<Request> get requestTapStream => _requestTapController.stream;
-
   Stream<CalendarViewState> calendarViewState() {
     return _viewStateStream(_bookingRepo, _orgState, _roomState);
   }
@@ -360,20 +356,24 @@ class CalendarViewModel extends ChangeNotifier {
         log("Appointment not found in state, cannot call onAppointmentDragEnd");
         return;
       }
-      _dragEventController.add(
-        DragDetails(request: request!, dropTime: details.droppingTime!),
-      );
+      if (onDragEnd != null) {
+        onDragEnd!(
+          DragDetails(request: request!, dropTime: details.droppingTime!),
+        );
+      }
     });
   }
 
   void handleResizeEnd(AppointmentResizeEndDetails details) {
-    _resizeEventController.add(
-      ResizeDetails(
-        appointment: details.appointment,
-        startTime: details.startTime!,
-        endTime: details.endTime!,
-      ),
-    );
+    if (onResizeEnd != null) {
+      onResizeEnd!(
+        ResizeDetails(
+          appointment: details.appointment,
+          startTime: details.startTime!,
+          endTime: details.endTime!,
+        ),
+      );
+    }
   }
 
   void handleTap(CalendarTapDetails details) {
@@ -397,7 +397,9 @@ class CalendarViewModel extends ChangeNotifier {
           log("Appointment not found in state");
           return;
         }
-        _requestTapController.add(request);
+        if (onRequestTap != null) {
+          onRequestTap!(request);
+        }
         break;
       }
     });
@@ -407,8 +409,17 @@ class CalendarViewModel extends ChangeNotifier {
     if (date == null) {
       return;
     }
-    _dateTapController.add(date);
+    if (onDateTap != null) {
+      onDateTap!(DateTapDetails(date: date, view: controller.view!));
+    }
   }
+}
+
+class DateTapDetails {
+  final DateTime date;
+  final CalendarView view;
+
+  DateTapDetails({required this.date, required this.view});
 }
 
 class DragDetails {

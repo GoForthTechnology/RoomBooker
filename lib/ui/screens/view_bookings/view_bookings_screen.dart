@@ -119,7 +119,38 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
     );
   }
 
-  CalendarViewModel _createViewModel(OrgState orgState, Request? request) {
+  Widget _content(
+    BuildContext context,
+    Request? request,
+    PrivateRequestDetails? details,
+  ) {
+    return OrgStateProvider(
+      orgID: widget.orgID,
+      child: Consumer<OrgState>(
+        builder: (context, orgState, child) => RequestStateProvider(
+          enableAllRooms: true,
+          orgState: orgState,
+          initialRequest: request,
+          initialDetails: details,
+          requestStartTime: widget.createRequest ? widget.targetDate : null,
+          builder: (context, _) => ChangeNotifierProvider.value(
+            value: _createViewModel(orgState, request, context),
+            builder: (context, child) =>
+                Consumer2<CalendarViewModel, RequestPanelSate>(
+                  builder: (context, viewModel, requestPanelState, child) =>
+                      _scaffold(orgState, viewModel, requestPanelState),
+                ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  CalendarViewModel _createViewModel(
+    OrgState orgState,
+    Request? request,
+    BuildContext context,
+  ) {
     var targetDate =
         widget.targetDate ?? request?.eventEndTime ?? DateTime.now();
     var defaultView = widget.view;
@@ -145,85 +176,50 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
       showIgnoringOverlaps: !widget.readOnlyMode,
       showDatePickerButton: true,
       allowViewNavigation: true,
+      onDateTap: (details) => _onTapDate(details.date, context, details.view),
+      onRequestTap: (request) => _onTapBooking(request, context),
     );
   }
 
-  Widget _content(
-    BuildContext context,
-    Request? request,
-    PrivateRequestDetails? details,
+  Widget _scaffold(
+    OrgState orgState,
+    CalendarViewModel viewModel,
+    RequestPanelSate requestPanelState,
   ) {
-    return OrgStateProvider(
-      orgID: widget.orgID,
-      child: Consumer<OrgState>(
-        builder: (context, orgState, child) => RequestStateProvider(
-          enableAllRooms: true,
-          orgState: orgState,
-          initialRequest: request,
-          initialDetails: details,
-          requestStartTime: widget.createRequest ? widget.targetDate : null,
-          builder: (context, _) => ChangeNotifierProvider.value(
-            value: _createViewModel(orgState, request),
-            builder: (context, child) {
-              var viewModel = Provider.of<CalendarViewModel>(
-                context,
-                listen: false,
-              );
-              viewModel.dateTapStream.listen(
-                (date) => _onTapDate(
-                  date,
-                  context,
-                  viewModel.controller.view ?? CalendarView.day,
-                ),
-              );
-              viewModel.requestTapStream.listen(
-                (request) => _onTapBooking(request, context),
-              );
-
-              bool showFab = viewModel.controller.view != CalendarView.day;
-              return Consumer<RequestPanelSate>(
-                builder: (context, requestPanelState, child) => Scaffold(
-                  appBar: AppBar(
-                    title: Text(orgState.org.name),
-                    actions: _actions(context, orgState),
-                    leading: _isSmallView(context)
-                        ? null
-                        : IconButton(
-                            icon: const Icon(Icons.menu),
-                            onPressed: _toggleRoomSelector,
-                          ),
-                  ),
-                  floatingActionButton: showFab
-                      ? FloatingActionButton(
-                          onPressed: () => _onFabPressed(context, viewModel),
-                          child: const Icon(Icons.add),
-                        )
-                      : null,
-                  drawer: _isSmallView(context)
-                      ? MyDrawer(org: orgState.org)
-                      : null,
-                  body: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (!_isSmallView(context) &&
-                          showRoomSelector &&
-                          !requestPanelState.active)
-                        Flexible(flex: 1, child: MyDrawer(org: orgState.org)),
-                      Flexible(flex: 3, child: BookingCalendarView()),
-                      if (requestPanelState.active)
-                        Flexible(
-                          flex: 1,
-                          child: SingleChildScrollView(
-                            child: NewRequestPanel(orgID: widget.orgID),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(orgState.org.name),
+        actions: _actions(context, orgState),
+        leading: _isSmallView(context)
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: _toggleRoomSelector,
+              ),
+      ),
+      floatingActionButton: viewModel.controller.view != CalendarView.day
+          ? FloatingActionButton(
+              onPressed: () => _onFabPressed(context, viewModel),
+              child: const Icon(Icons.add),
+            )
+          : null,
+      drawer: _isSmallView(context) ? MyDrawer(org: orgState.org) : null,
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!_isSmallView(context) &&
+              showRoomSelector &&
+              !requestPanelState.active)
+            Flexible(flex: 1, child: MyDrawer(org: orgState.org)),
+          Flexible(flex: 3, child: BookingCalendarView()),
+          if (requestPanelState.active)
+            Flexible(
+              flex: 1,
+              child: SingleChildScrollView(
+                child: NewRequestPanel(orgID: widget.orgID),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -246,19 +242,18 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
       );
       return;
     }
-    var requestEditorState = context.read();
-    var roomState = context.read();
-    requestEditorState.clearAppointment();
-    requestEditorState.createRequest(
-      date,
-      date.add(const Duration(hours: 1)),
-      roomState.enabledValue()!,
-    );
+
+    Provider.of<RequestEditorState>(context, listen: false)
+      ..clearAppointment()
+      ..createRequest(
+        date,
+        date.add(const Duration(hours: 1)),
+        Provider.of<RoomState>(context, listen: false).enabledValue()!,
+      );
     if (_isSmallView(context)) {
       _showPannelAsDialog(context);
     } else {
-      var requestPanelState = context.read();
-      requestPanelState.showPanel();
+      Provider.of<RequestPanelSate>(context, listen: false).showPanel();
     }
   }
 
