@@ -13,6 +13,8 @@ extension TextEditingControllerStream on TextEditingController {
 
     controller = StreamController<String>(
       onListen: () {
+        // Emit current value immediately
+        controller.add(text);
         // Start listening to the text controller when the stream is subscribed to
         addListener(listener);
       },

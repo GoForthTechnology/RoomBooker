@@ -5,12 +5,7 @@ import 'package:room_booker/ui/screens/review_bookings/review_bookings_screen.da
 
 part 'request.g.dart';
 
-enum RequestStatus {
-  unknown,
-  confirmed,
-  denied,
-  pending,
-}
+enum RequestStatus { unknown, confirmed, denied, pending }
 
 @JsonSerializable(explicitToJson: true)
 class PrivateRequestDetails {
@@ -52,6 +47,29 @@ class PrivateRequestDetails {
   factory PrivateRequestDetails.fromJson(Map<String, dynamic> json) =>
       _$PrivateRequestDetailsFromJson(json);
   Map<String, dynamic> toJson() => _$PrivateRequestDetailsToJson(this);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is PrivateRequestDetails &&
+        other.id == id &&
+        other.name == name &&
+        other.email == email &&
+        other.phone == phone &&
+        other.message == message &&
+        other.eventName == eventName;
+  }
+
+  @override
+  int get hashCode {
+    return id.hashCode ^
+        name.hashCode ^
+        email.hashCode ^
+        phone.hashCode ^
+        message.hashCode ^
+        eventName.hashCode;
+  }
 }
 
 @JsonSerializable(explicitToJson: true)
@@ -82,9 +100,11 @@ class Request {
     this.ignoreOverlaps = false,
   }) {
     if (!eventStartTime.isBefore(eventEndTime)) {
-      log("Event start time is not before end time",
-          name: id ?? "ID MISSING",
-          error: "Start time: $eventStartTime, End time: $eventEndTime");
+      log(
+        "Event start time is not before end time",
+        name: id ?? "ID MISSING",
+        error: "Start time: $eventStartTime, End time: $eventEndTime",
+      );
     }
   }
 
@@ -172,11 +192,17 @@ class Request {
         status.hashCode;
   }
 
-  List<Request> expand(DateTime windowStart, DateTime windowEndExclusive,
-      {bool includeRequestDate = true}) {
+  List<Request> expand(
+    DateTime windowStart,
+    DateTime windowEndExclusive, {
+    bool includeRequestDate = true,
+  }) {
     var dates = _generateDates(windowStart, windowEndExclusive);
-    var eventDate =
-        DateTime(eventStartTime.year, eventStartTime.month, eventStartTime.day);
+    var eventDate = DateTime(
+      eventStartTime.year,
+      eventStartTime.month,
+      eventStartTime.day,
+    );
     return dates
         .where((d) => includeRequestDate || d != eventDate)
         .map((date) {
@@ -189,10 +215,20 @@ class Request {
             return override.copyWith(id: id, status: status);
           }
           return copyWith(
-            eventStartTime: DateTime(date.year, date.month, date.day,
-                eventStartTime.hour, eventStartTime.minute),
-            eventEndTime: DateTime(date.year, date.month, date.day,
-                eventEndTime.hour, eventEndTime.minute),
+            eventStartTime: DateTime(
+              date.year,
+              date.month,
+              date.day,
+              eventStartTime.hour,
+              eventStartTime.minute,
+            ),
+            eventEndTime: DateTime(
+              date.year,
+              date.month,
+              date.day,
+              eventEndTime.hour,
+              eventEndTime.minute,
+            ),
           );
         })
         .where((d) => d != null)
@@ -201,7 +237,9 @@ class Request {
   }
 
   List<DateTime> _generateDates(
-      DateTime windowStart, DateTime windowEndExclusive) {
+    DateTime windowStart,
+    DateTime windowEndExclusive,
+  ) {
     var pattern = recurrancePattern;
     if (pattern == null || pattern.frequency == Frequency.never) {
       if (!eventStartTime.isBefore(windowStart) &&
@@ -215,14 +253,15 @@ class Request {
     // Cap the end date if it is before the window end
     var effectiveEnd =
         windowEndExclusive.isBefore(pattern.end ?? windowEndExclusive)
-            ? windowEndExclusive
-            : pattern.end ?? windowEndExclusive;
+        ? windowEndExclusive
+        : pattern.end ?? windowEndExclusive;
     if (pattern.end != null) {
       effectiveEnd = min(effectiveEnd, pattern.end!);
     }
     // Ensure the start date is after the window start
-    var effectiveStart =
-        eventStartTime.isAfter(windowStart) ? eventStartTime : windowStart;
+    var effectiveStart = eventStartTime.isAfter(windowStart)
+        ? eventStartTime
+        : windowStart;
     effectiveStart = stripTime(effectiveStart);
     if (effectiveEnd.isBefore(effectiveStart)) {
       // The series has not started yet
@@ -271,8 +310,11 @@ class Request {
     if (pattern == null) {
       return [];
     }
-    var effectiveStart = DateTime(eventStartTime.year, eventStartTime.month,
-        eventStartTime.day - eventStartTime.weekday);
+    var effectiveStart = DateTime(
+      eventStartTime.year,
+      eventStartTime.month,
+      eventStartTime.day - eventStartTime.weekday,
+    );
     var dates = <DateTime>[];
     var current = windowStart;
     while (current.isBefore(windowEnd)) {
@@ -392,7 +434,8 @@ class RecurrancePattern {
   }) {
     if (frequency == Frequency.monthly && (offset == null || offset! < 1)) {
       throw ArgumentError(
-          "Offset must be greater than 0 for monthly frequency");
+        "Offset must be greater than 0 for monthly frequency",
+      );
     }
     if (frequency == Frequency.monthly && weekday == null) {
       throw ArgumentError("Weekday must be set for monthly frequency");
@@ -441,10 +484,17 @@ class RecurrancePattern {
     return RecurrancePattern(frequency: Frequency.never, period: 0);
   }
 
-  static RecurrancePattern every(int n, Frequency frequency,
-      {required Weekday on}) {
+  static RecurrancePattern every(
+    int n,
+    Frequency frequency, {
+    required Weekday on,
+  }) {
     return RecurrancePattern(
-        frequency: frequency, weekday: {on}, period: n, offset: 1);
+      frequency: frequency,
+      weekday: {on},
+      period: n,
+      offset: 1,
+    );
   }
 
   static RecurrancePattern daily() {
@@ -453,7 +503,10 @@ class RecurrancePattern {
 
   static RecurrancePattern weekly({required Weekday on, int? period}) {
     return RecurrancePattern(
-        frequency: Frequency.weekly, weekday: {on}, period: period ?? 1);
+      frequency: Frequency.weekly,
+      weekday: {on},
+      period: period ?? 1,
+    );
   }
 
   static RecurrancePattern monthlyOnNth(int nth, Weekday on) {

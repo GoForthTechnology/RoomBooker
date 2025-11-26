@@ -274,6 +274,10 @@ class RequestEditorViewModel extends ChangeNotifier {
         eventName,
       ) {
         return Request(
+          id: initialRequest.id,
+          status: initialRequest.status,
+          recurrancePattern: initialRequest.recurrancePattern,
+          recurranceOverrides: initialRequest.recurranceOverrides,
           eventStartTime: start,
           eventEndTime: end,
           roomID: room.id!,
@@ -287,9 +291,9 @@ class RequestEditorViewModel extends ChangeNotifier {
 
   Stream<PrivateRequestDetails> detailsStream() {
     return Rx.combineLatest5(
-      eventNameContoller.textStream.warnOnStall(3, "EventName"),
-      contactNameController.textStream.warnOnStall(3, "ContactName"),
-      contactEmailController.textStream.warnOnStall(3, "ContactEmail"),
+      eventNameContoller.textStream,
+      contactNameController.textStream,
+      contactEmailController.textStream,
       phoneNumberController.textStream,
       additionalInfoController.textStream,
       (eventName, name, email, phone, additionalInfo) {

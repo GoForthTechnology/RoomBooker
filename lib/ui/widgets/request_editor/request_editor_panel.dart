@@ -4,13 +4,11 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
-import 'package:room_booker/ui/widgets/request_logs_widget.dart';
 import 'package:room_booker/ui/widgets/date_field.dart';
 import 'package:room_booker/ui/widgets/edit_recurring_booking_dialog.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
@@ -20,6 +18,8 @@ import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:room_booker/ui/widgets/simple_text_form_field.dart';
 import 'package:room_booker/ui/widgets/time_field.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
+
+import 'logs_widget.dart';
 
 class NewRequestPanel extends StatefulWidget {
   final String orgID;
@@ -927,35 +927,4 @@ DateTime roundToNearest15Minutes(DateTime time) {
   }
 
   return DateTime(year, month, day, hour, roundedMinute);
-}
-
-class LogsWidget extends StatelessWidget {
-  final Organization org;
-  final String requestID;
-
-  const LogsWidget({super.key, required this.org, required this.requestID});
-
-  static final dateFormat = DateFormat('MM/dd/yyyy');
-  static final timeFormat = DateFormat('HH:mm');
-
-  @override
-  Widget build(BuildContext context) {
-    return ExpansionTile(
-      title: Text("Request Log"),
-      children: [
-        RequestLogsWidget(
-          org: org,
-          allowPagination: false,
-          requestID: requestID,
-          titleBuilder: (entry) => Text(
-            "${entry.action.name} on ${dateFormat.format(entry.timestamp)}",
-          ),
-          subtitleBuilder: (entry) => Text(
-            "By ${entry.adminEmail} at ${timeFormat.format(entry.timestamp)}",
-          ),
-          showViewButton: false,
-        ),
-      ],
-    );
-  }
 }
