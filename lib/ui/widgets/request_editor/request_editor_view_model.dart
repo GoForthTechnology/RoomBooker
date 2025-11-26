@@ -376,11 +376,3 @@ class RequestEditorViewModel extends ChangeNotifier {
     super.dispose();
   }
 }
-
-extension _StreamDoOnErrorExtension<T> on Stream<T> {
-  Stream<T> warnOnStall(int stallSeconds, String streamName) {
-    return timeout(Duration(seconds: 3)).doOnError((error, stackTrace) {
-      print("Stream $streamName stalled: $error, $stackTrace");
-    });
-  }
-}
