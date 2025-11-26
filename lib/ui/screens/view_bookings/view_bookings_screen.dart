@@ -17,7 +17,7 @@ import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/navigation_drawer.dart';
 import 'package:room_booker/ui/widgets/org_settings/org_details.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
-import 'package:room_booker/ui/widgets/request_editor_panel.dart';
+import 'package:room_booker/ui/widgets/request_editor/request_editor_panel.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -146,6 +146,21 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
     );
   }
 
+  Stream<Appointment?> _newAppointmentStrem(
+    RoomState roomState,
+    RequestEditorState requestEditorState,
+  ) {
+    var enabledRoom = roomState.enabledValue();
+    if (requestEditorState.roomID != "") {
+      enabledRoom = roomState.getRoom(requestEditorState.roomID!);
+    }
+    var newApointmentColor = enabledRoom == null
+        ? Colors.blue
+        : roomState.color(enabledRoom.id!);
+    var newAppointment = requestEditorState.getAppointment(newApointmentColor);
+    return Stream.value(newAppointment);
+  }
+
   CalendarViewModel _createViewModel(
     OrgState orgState,
     Request? request,
@@ -178,6 +193,7 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
       allowViewNavigation: true,
       onDateTap: (details) => _onTapDate(details.date, context, details.view),
       onRequestTap: (request) => _onTapBooking(request, context),
+      newAppointment: _newAppointmentStrem(context.read(), context.read()),
     );
   }
 

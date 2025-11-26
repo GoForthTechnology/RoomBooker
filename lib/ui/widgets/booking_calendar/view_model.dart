@@ -36,8 +36,7 @@ class CalendarViewModel extends ChangeNotifier {
 
   final BehaviorSubject<VisibleWindow> _visibleWindowController =
       BehaviorSubject();
-  final BehaviorSubject<Map<Appointment, Request>> _appointments =
-      BehaviorSubject();
+  final BehaviorSubject<Map<String, Request>> _requestIndex = BehaviorSubject();
 
   final Function(Request)? onRequestTap;
   final Function(DateTapDetails)? onDateTap;
@@ -100,8 +99,18 @@ class CalendarViewModel extends ChangeNotifier {
     var currentWindow = VisibleWindow(start: startOfView, end: endOfView);
     _visibleWindowController.add(currentWindow);
     controller.addPropertyChangedListener(_handlePropertyChange);
-    _appointments.addStream(
-      _buildAppointmentStream(bookingRepo, orgState, roomState),
+    _requestIndex.addStream(
+      _buildAppointmentStream(bookingRepo, orgState, roomState).map((
+        appointmentsToRequests,
+      ) {
+        Map<String, Request> index = {};
+        for (var e in appointmentsToRequests.entries) {
+          var appointment = e.key;
+          var request = e.value;
+          index[_appointmentID(appointment)] = request;
+        }
+        return index;
+      }),
     );
   }
 
@@ -340,28 +349,19 @@ class CalendarViewModel extends ChangeNotifier {
       return;
     }
     var appointment = details.appointment as Appointment?;
-    Request? request;
-    _appointments.stream.listen((appointments) {
-      Map<String, Request> requestIndex = {};
-      for (var r in appointments.values) {
-        requestIndex[r.id!] = r;
-      }
-      for (var id in appointment?.resourceIds ?? []) {
-        request = requestIndex[id];
-        if (request != null) {
-          break;
-        }
-      }
-      if (request == null) {
-        log("Appointment not found in state, cannot call onAppointmentDragEnd");
-        return;
-      }
-      if (onDragEnd != null) {
-        onDragEnd!(
-          DragDetails(request: request!, dropTime: details.droppingTime!),
-        );
-      }
-    });
+    if (appointment == null) {
+      return;
+    }
+    Request? request = _requestIndex.valueOrNull?[_appointmentID(appointment)];
+    if (request == null) {
+      log("Appointment not found in state, cannot call onAppointmentDragEnd");
+      return;
+    }
+    if (onDragEnd != null) {
+      onDragEnd!(
+        DragDetails(request: request, dropTime: details.droppingTime!),
+      );
+    }
   }
 
   void handleResizeEnd(AppointmentResizeEndDetails details) {
@@ -389,20 +389,25 @@ class CalendarViewModel extends ChangeNotifier {
     }
   }
 
+  static String _appointmentID(Appointment appointment) {
+    if (appointment.resourceIds == null || appointment.resourceIds!.isEmpty) {
+      throw ArgumentError("Appointment has no resource ID");
+    }
+    return appointment.resourceIds!.first.toString();
+  }
+
   void _handleRequestTap(CalendarTapDetails details) {
-    _appointments.stream.first.then((appointments) {
-      for (var appointment in details.appointments ?? []) {
-        var request = appointments[appointment];
-        if (request == null) {
-          log("Appointment not found in state");
-          return;
-        }
-        if (onRequestTap != null) {
-          onRequestTap!(request);
-        }
-        break;
+    if (onRequestTap == null) {
+      return;
+    }
+    for (var appointment in details.appointments ?? []) {
+      var request = _requestIndex.valueOrNull?[_appointmentID(appointment)];
+      if (request == null) {
+        log("Appointment not found in state");
+        continue;
       }
-    });
+      onRequestTap!(request);
+    }
   }
 
   void _handleDateTap(DateTime? date) {
