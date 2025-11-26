@@ -52,36 +52,17 @@ class ViewBookingsScreen extends StatefulWidget {
 
 class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
   bool showRoomSelector = true;
-  bool isLoggedIn = FirebaseAuth.instance.currentUser != null;
-  StreamSubscription<User?>? subscription;
-
-  @override
-  void initState() {
-    subscription = FirebaseAuth.instance.authStateChanges().listen((user) {
-      if (user == null) {
-        log("User logged out");
-        setState(() {
-          isLoggedIn = false;
-        });
-      } else {
-        log("User logged in: ${user.email}");
-        setState(() {
-          isLoggedIn = true;
-        });
-      }
-    });
-    super.initState();
-  }
-
-  @override
-  dispose() {
-    subscription?.cancel();
-    super.dispose();
-  }
+  bool showEditorPanel = false;
 
   void _toggleRoomSelector() {
     setState(() {
       showRoomSelector = !showRoomSelector;
+    });
+  }
+
+  void _toggleEditorPanel() {
+    setState(() {
+      showEditorPanel = !showEditorPanel;
     });
   }
 
