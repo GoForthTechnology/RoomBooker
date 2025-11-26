@@ -85,6 +85,12 @@ class RequestEditorViewModel extends ChangeNotifier {
   Stream<bool> get isPublicStream => _isPublicSubject.stream;
   Stream<bool> get ignoreOverlapsStream => _ignoreOverlapsSubject.stream;
 
+  Stream<(DateTime, DateTime)> get eventTimeStream => Rx.combineLatest2(
+    eventStartStream,
+    eventEndStream,
+    (start, end) => (start, end),
+  );
+
   List<EditorAction> getActions() {
     if (initialRequest.id == null) {
       return _getActionsForNewRequest();

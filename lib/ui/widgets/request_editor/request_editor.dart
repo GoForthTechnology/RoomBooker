@@ -7,7 +7,6 @@ import 'package:room_booker/ui/widgets/room_dropdown_selector.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:room_booker/ui/widgets/simple_text_form_field.dart';
 import 'package:room_booker/ui/widgets/time_field.dart';
-import 'package:rxdart/rxdart.dart';
 
 import 'logs_widget.dart';
 
@@ -26,7 +25,8 @@ class RequestEditor extends StatelessWidget {
             _roomSelector(viewModel),
             _eventNameSelector(viewModel),
             _isPublicSelector(viewModel),
-            ?_ignoreOverlapsSelector(viewModel),
+            if (viewModel.showIgnoreOverlapsToggle())
+              _ignoreOverlapsSelector(viewModel)!,
             _eventDateSelector(viewModel),
             _eventStartTimeSelector(viewModel, localizations),
             _eventEndTimeSelector(viewModel, localizations),
@@ -63,11 +63,12 @@ class RequestEditor extends StatelessWidget {
             _contactNameSelector(viewModel),
             _contactEmailSelector(viewModel),
             _contactPhoneSelector(viewModel),
-            ?_adminContactInfoButton(viewModel, orgState),
+            if (orgState.currentUserIsAdmin())
+              _adminContactInfoButton(viewModel, orgState)!,
             const Divider(),
             _additionalInfoSelector(viewModel),
-            ?_requestIDField(viewModel),
-            ?_requestLogWidget(viewModel),
+            if (viewModel.showID()) _requestIDField(viewModel)!,
+            if (viewModel.showEventLog()) _requestLogWidget(viewModel)!,
             _getButtons(viewModel, context),
           ],
         );
@@ -179,19 +180,18 @@ class RequestEditor extends StatelessWidget {
     MaterialLocalizations localizations,
   ) {
     return StreamBuilder<(DateTime, DateTime)>(
-      stream: Rx.combineLatest2(
-        viewModel.eventStartStream,
-        viewModel.eventEndStream,
-        (start, end) => (start, end),
-      ),
+      stream: viewModel.eventTimeStream,
       builder: (context, snapshot) {
         var (startTime, endTime) = snapshot.data ?? (null, null);
+        if (startTime == null || endTime == null) {
+          return const SizedBox.shrink();
+        }
         return TimeField(
           readOnly: viewModel.readOnly,
           labelText: 'Start Time',
-          initialValue: TimeOfDay.fromDateTime(startTime!),
+          initialValue: TimeOfDay.fromDateTime(startTime),
           localizations: localizations,
-          maxTime: TimeOfDay.fromDateTime(endTime!),
+          maxTime: TimeOfDay.fromDateTime(endTime),
           onChanged: (newTime) {
             var eventDuration = endTime.difference(startTime);
             var newStartTime = DateTime(
@@ -215,19 +215,18 @@ class RequestEditor extends StatelessWidget {
     MaterialLocalizations localizations,
   ) {
     return StreamBuilder<(DateTime, DateTime)>(
-      stream: Rx.combineLatest2(
-        viewModel.eventStartStream,
-        viewModel.eventEndStream,
-        (start, end) => (start, end),
-      ),
+      stream: viewModel.eventTimeStream,
       builder: (context, snapshot) {
         var (startTime, endTime) = snapshot.data ?? (null, null);
+        if (startTime == null || endTime == null) {
+          return const SizedBox.shrink();
+        }
         return TimeField(
           readOnly: viewModel.readOnly,
           labelText: 'End Time',
-          initialValue: TimeOfDay.fromDateTime(endTime!),
+          initialValue: TimeOfDay.fromDateTime(endTime),
           localizations: localizations,
-          minTime: TimeOfDay.fromDateTime(startTime!),
+          minTime: TimeOfDay.fromDateTime(startTime),
           onChanged: (newTime) {
             var newEndTime = DateTime(
               startTime.year,
