@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/analytics_service.dart';
+import 'package:room_booker/data/auth_service.dart';
 import 'package:room_booker/data/logging_service.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
@@ -77,6 +78,7 @@ class MyApp extends StatelessWidget {
       var prefsRepo = PreferencesRepo();
       var orgRepo = OrgRepo(userRepo: userRepo, roomRepo: roomRepo);
       var analyticsService = FirebaseAnalyticsService();
+      var authService = FirebaseAuthService();
       return MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => bookingRepo),
@@ -87,6 +89,7 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => prefsRepo),
           ChangeNotifierProvider(create: (_) => analyticsService),
           ChangeNotifierProvider(create: (_) => loggingService),
+          ChangeNotifierProvider(create: (_) => authService),
         ],
         child: MaterialApp.router(
           title: 'Room Booker',
