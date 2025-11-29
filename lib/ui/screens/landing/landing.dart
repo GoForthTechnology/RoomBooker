@@ -49,13 +49,14 @@ class LandingScreenViewState extends State<LandingScreenView> {
   }
 
   void _listenToNavigationEvents() {
+    var router = AutoRouter.of(context);
     if (_navSubscription == null) {
       final viewModel = context.read<LandingViewModel>();
       _navSubscription = viewModel.navigationEvents.listen((event) {
         if (event.replace) {
-          AutoRouter.of(context).replace(event.route);
+          router.replace(event.route);
         } else {
-          AutoRouter.of(context).push(event.route);
+          router.push(event.route);
         }
       });
     }
@@ -170,20 +171,25 @@ class SettingsAction extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              ...CalendarView.values
-                  .where((view) => _isValidCalendarView(view))
-                  .map(
-                    (view) => RadioListTile<CalendarView>(
-                      title: Text(_getCalendarViewDisplayName(view)),
-                      value: view,
-                      groupValue: prefsRepo.defaultCalendarView,
-                      onChanged: (CalendarView? value) {
-                        if (value != null) {
-                          prefsRepo.setDefaultCalendarView(value);
-                        }
-                      },
-                    ),
-                  ),
+              RadioGroup<CalendarView>(
+                groupValue: prefsRepo.defaultCalendarView,
+                onChanged: (CalendarView? value) {
+                  if (value != null) {
+                    prefsRepo.setDefaultCalendarView(value);
+                  }
+                },
+                child: Column(
+                  children: CalendarView.values
+                      .where((view) => _isValidCalendarView(view))
+                      .map(
+                        (view) => RadioListTile<CalendarView>(
+                          title: Text(_getCalendarViewDisplayName(view)),
+                          value: view,
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
             ],
           ),
         ),

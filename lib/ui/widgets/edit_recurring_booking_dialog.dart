@@ -17,40 +17,30 @@ class _EditRecurringBookingDialogState
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Edit Recurring Booking'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          RadioListTile<RecurringBookingEditChoice>(
-            title: const Text('This instance only'),
-            value: RecurringBookingEditChoice.thisInstance,
-            groupValue: choice,
-            onChanged: (value) {
-              setState(() {
-                choice = value!;
-              });
-            },
-          ),
-          RadioListTile<RecurringBookingEditChoice>(
-            title: const Text('This and future instances'),
-            value: RecurringBookingEditChoice.thisAndFuture,
-            groupValue: choice,
-            onChanged: (value) {
-              setState(() {
-                choice = value!;
-              });
-            },
-          ),
-          RadioListTile<RecurringBookingEditChoice>(
-            title: const Text('All instances'),
-            value: RecurringBookingEditChoice.all,
-            groupValue: choice,
-            onChanged: (value) {
-              setState(() {
-                choice = value!;
-              });
-            },
-          ),
-        ],
+      content: RadioGroup<RecurringBookingEditChoice>(
+        groupValue: choice,
+        onChanged: (value) {
+          setState(() {
+            choice = value!;
+          });
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            RadioListTile<RecurringBookingEditChoice>(
+              title: Text('This instance only'),
+              value: RecurringBookingEditChoice.thisInstance,
+            ),
+            RadioListTile<RecurringBookingEditChoice>(
+              title: Text('This and future instances'),
+              value: RecurringBookingEditChoice.thisAndFuture,
+            ),
+            RadioListTile<RecurringBookingEditChoice>(
+              title: Text('All instances'),
+              value: RecurringBookingEditChoice.all,
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
