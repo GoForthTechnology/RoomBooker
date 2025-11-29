@@ -24,8 +24,11 @@ class MyDrawer extends StatelessWidget {
             padding: EdgeInsets.zero,
             children: [
               Center(
-                  child: Text("Active Rooms",
-                      style: Theme.of(context).textTheme.labelMedium)),
+                child: Text(
+                  "Active Rooms",
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ),
               ...state.allRooms().map((room) {
                 final isActive = state.isEnabled(room.id!);
                 return CheckboxListTile(
@@ -38,10 +41,12 @@ class MyDrawer extends StatelessWidget {
                 );
               }),
               TextButton(
-                child: Text("Close Calendar"),
+                child: Text("← Back to Org List"),
                 onPressed: () {
-                  var prefRepo =
-                      Provider.of<PreferencesRepo>(context, listen: false);
+                  var prefRepo = Provider.of<PreferencesRepo>(
+                    context,
+                    listen: false,
+                  );
                   prefRepo.setLastOpenedOrgId(null);
                   var router = AutoRouter.of(context);
                   router.popUntilRoot();
