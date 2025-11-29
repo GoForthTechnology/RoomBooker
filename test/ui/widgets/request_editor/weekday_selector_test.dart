@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/ui/widgets/weekday_selector.dart';
+import 'package:room_booker/ui/widgets/request_editor/weekday_selector.dart';
 
 void main() {
   group('WeekdaySelector', () {
@@ -32,8 +32,9 @@ void main() {
       expect(find.byType(DayButton), findsNWidgets(7));
     });
 
-    testWidgets('calls toggleDay with correct weekday on tap',
-        (WidgetTester tester) async {
+    testWidgets('calls toggleDay with correct weekday on tap', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -59,17 +60,17 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: DayButton(
-              label: 'M',
-              selected: true,
-              onPressed: () {},
-            ),
+            body: DayButton(label: 'M', selected: true, onPressed: () {}),
           ),
         ),
       );
 
-      final container = tester.widget<Container>(find.descendant(
-          of: find.byType(DayButton), matching: find.byType(Container)));
+      final container = tester.widget<Container>(
+        find.descendant(
+          of: find.byType(DayButton),
+          matching: find.byType(Container),
+        ),
+      );
       final decoration = container.decoration as BoxDecoration;
       expect(decoration.color, Colors.blue);
 
@@ -77,22 +78,23 @@ void main() {
       expect(text.style?.color, Colors.white);
     });
 
-    testWidgets('renders correctly when not selected',
-        (WidgetTester tester) async {
+    testWidgets('renders correctly when not selected', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: DayButton(
-              label: 'T',
-              selected: false,
-              onPressed: () {},
-            ),
+            body: DayButton(label: 'T', selected: false, onPressed: () {}),
           ),
         ),
       );
 
-      final container = tester.widget<Container>(find.descendant(
-          of: find.byType(DayButton), matching: find.byType(Container)));
+      final container = tester.widget<Container>(
+        find.descendant(
+          of: find.byType(DayButton),
+          matching: find.byType(Container),
+        ),
+      );
       final decoration = container.decoration as BoxDecoration;
       expect(decoration.color, Colors.grey[200]);
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/logic/recurring_bookings.dart';
 import 'package:room_booker/ui/widgets/repeat_period_selector.dart';
-import 'package:room_booker/ui/widgets/weekday_selector.dart';
+import 'package:room_booker/ui/widgets/request_editor/weekday_selector.dart';
 
 class RepeatBookingsSelector extends StatelessWidget {
   final DateTime startTime;
@@ -15,26 +15,22 @@ class RepeatBookingsSelector extends StatelessWidget {
   final Function(RecurrancePattern, bool) onPatternChanged;
   final Function(Weekday) toggleDay;
 
-  const RepeatBookingsSelector(
-      {super.key,
-      required this.startTime,
-      required this.onFrequencyChanged,
-      required this.onPatternChanged,
-      required this.frequency,
-      required this.isCustom,
-      required this.toggleDay,
-      required this.pattern,
-      required this.onIntervalChanged,
-      required this.readOnly});
+  const RepeatBookingsSelector({
+    super.key,
+    required this.startTime,
+    required this.onFrequencyChanged,
+    required this.onPatternChanged,
+    required this.frequency,
+    required this.isCustom,
+    required this.toggleDay,
+    required this.pattern,
+    required this.onIntervalChanged,
+    required this.readOnly,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _frequencySelector(),
-        ..._additionalWidgets(),
-      ],
-    );
+    return Column(children: [_frequencySelector(), ..._additionalWidgets()]);
   }
 
   List<Widget> _additionalWidgets() {
@@ -60,7 +56,7 @@ class RepeatBookingsSelector extends StatelessWidget {
                 selectedDays: pattern.weekday ?? {},
                 startTime: startTime,
                 toggleDay: toggleDay,
-              )
+              ),
             ];
       case Frequency.monthly:
         return widgets + [_monthIntervalSelector()];
@@ -80,10 +76,12 @@ class RepeatBookingsSelector extends StatelessWidget {
         border: OutlineInputBorder(),
       ),
       items: patterns.entries
-          .map((e) => DropdownMenuItem(
-                value: e.key,
-                child: Text(e.value?.toString() ?? "Custom"),
-              ))
+          .map(
+            (e) => DropdownMenuItem(
+              value: e.key,
+              child: Text(e.value?.toString() ?? "Custom"),
+            ),
+          )
           .toList(),
       onChanged: readOnly
           ? null

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/ui/widgets/date_field.dart';
+import 'package:room_booker/ui/widgets/request_editor/date_field.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
 import 'package:room_booker/ui/widgets/room_dropdown_selector.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:room_booker/ui/widgets/simple_text_form_field.dart';
-import 'package:room_booker/ui/widgets/time_field.dart';
+import 'package:room_booker/ui/widgets/request_editor/time_field.dart';
 
 import 'logs_widget.dart';
 

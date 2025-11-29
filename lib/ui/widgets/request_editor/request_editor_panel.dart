@@ -9,14 +9,14 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
-import 'package:room_booker/ui/widgets/date_field.dart';
+import 'package:room_booker/ui/widgets/request_editor/date_field.dart';
 import 'package:room_booker/ui/widgets/edit_recurring_booking_dialog.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/repeat_bookings_selector.dart';
 import 'package:room_booker/ui/widgets/room_dropdown_selector.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:room_booker/ui/widgets/simple_text_form_field.dart';
-import 'package:room_booker/ui/widgets/time_field.dart';
+import 'package:room_booker/ui/widgets/request_editor/time_field.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 import 'logs_widget.dart';

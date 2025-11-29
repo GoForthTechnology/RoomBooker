@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:room_booker/ui/widgets/time_field.dart';
+import 'package:room_booker/ui/widgets/request_editor/time_field.dart';
 
 void main() {
   group('TimeField', () {
@@ -55,8 +55,9 @@ void main() {
       expect(find.byType(TimePickerDialog), findsOneWidget);
     });
 
-    testWidgets('onChanged is called with rounded time after picking',
-        (WidgetTester tester) async {
+    testWidgets('onChanged is called with rounded time after picking', (
+      WidgetTester tester,
+    ) async {
       TimeOfDay? selectedTime;
       await tester.pumpWidget(
         MaterialApp(
@@ -87,8 +88,9 @@ void main() {
       expect(find.text('10:30 AM'), findsOneWidget);
     });
 
-    testWidgets('onChanged is not called when time picker is cancelled',
-        (WidgetTester tester) async {
+    testWidgets('onChanged is not called when time picker is cancelled', (
+      WidgetTester tester,
+    ) async {
       TimeOfDay? selectedTime;
       await tester.pumpWidget(
         MaterialApp(
@@ -357,4 +359,3 @@ extension TimeOfDayExtension on TimeOfDay {
     return false;
   }
 }
-
