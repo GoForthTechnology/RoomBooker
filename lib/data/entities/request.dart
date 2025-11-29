@@ -1,5 +1,7 @@
 import 'dart:developer';
+import 'dart:math' show min; // Added for min function
 
+import 'package:collection/collection.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:room_booker/ui/screens/review_bookings/review_bookings_screen.dart';
 
@@ -520,6 +522,27 @@ class RecurrancePattern {
 
   static RecurrancePattern annually() {
     return RecurrancePattern(frequency: Frequency.annually, period: 1);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is RecurrancePattern &&
+        other.frequency == frequency &&
+        other.period == period &&
+        other.offset == offset &&
+        const SetEquality().equals(other.weekday, weekday) &&
+        other.end == end;
+  }
+
+  @override
+  int get hashCode {
+    return frequency.hashCode ^
+        period.hashCode ^
+        offset.hashCode ^
+        const SetEquality().hash(weekday) ^
+        end.hashCode;
   }
 }
 

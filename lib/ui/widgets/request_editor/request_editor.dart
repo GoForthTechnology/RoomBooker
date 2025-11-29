@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/ui/widgets/request_editor/date_field.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
+import 'package:room_booker/ui/widgets/request_editor/repeat_booking_selector/repeat_bookings_selector.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
 import 'package:room_booker/ui/widgets/room_dropdown_selector.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
@@ -38,35 +40,10 @@ class RequestEditor extends StatelessWidget {
               _eventDateSelector(viewModel, state.readOnly),
               _eventStartTimeSelector(viewModel, localizations, state.readOnly),
               _eventEndTimeSelector(viewModel, localizations, state.readOnly),
-              /*RepeatBookingsSelector(
-              readOnly: readOnly,
-              startTime: state.startTime!,
-              isCustom: state.isCustomRecurrencePattern,
-              onIntervalChanged: state.updateInterval,
-              pattern: state.recurrancePattern,
-              onFrequencyChanged: (value) {
-                if (value == Frequency.custom) {
-                  state.updateFrequency(Frequency.weekly, true);
-                } else {
-                  state.updateFrequency(value, state.isCustomRecurrencePattern);
-                }
-              },
-              onPatternChanged: (pattern, isCustom) {
-                state.updateOffset(pattern.offset);
-                state.updateInterval(pattern.period);
-                state.updateFrequency(pattern.frequency, isCustom);
-              },
-              toggleDay: state.toggleWeekday,
-              frequency: state.recurrancePattern.frequency,
-            ),*/
-              /*if (state.recurrancePattern.frequency != Frequency.never)
-              DateField(
-                initialValue: state.recurrancePattern.end,
-                labelText: "End on or before",
-                onChanged: (date) => state.updateEndDate(date),
-                readOnly: readOnly,
-                clearable: true,
-              ),*/
+              RepeatBookingsSelector(
+                viewModel: viewModel.repeatBookingsViewModel,
+              ),
+              _patternEndSelector(viewModel, state.readOnly),
               const Divider(),
               _contactNameSelector(viewModel, state.readOnly),
               _contactEmailSelector(viewModel, state.readOnly),
@@ -252,6 +229,25 @@ class RequestEditor extends StatelessWidget {
             );
             viewModel.updateEventEnd(newEndTime);
           },
+        );
+      },
+    );
+  }
+
+  Widget _patternEndSelector(RequestEditorViewModel viewModel, bool readOnly) {
+    return StreamBuilder<RecurrancePattern>(
+      stream: viewModel.repeatBookingsViewModel.patternStream,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.frequency == Frequency.never) {
+          return const SizedBox.shrink();
+        }
+        return DateField(
+          initialValue: snapshot.data!.end,
+          labelText: "End on or before",
+          onChanged: (date) =>
+              viewModel.repeatBookingsViewModel.updateEndDate(date),
+          readOnly: readOnly,
+          clearable: true,
         );
       },
     );

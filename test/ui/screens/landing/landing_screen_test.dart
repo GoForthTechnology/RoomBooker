@@ -1,5 +1,4 @@
-import 'dart:async';
-
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -21,17 +20,21 @@ class MockOrgRepo extends Mock implements OrgRepo {}
 
 class MockBookingRepo extends Mock implements BookingRepo {}
 
+class MockStackRouter extends Mock implements StackRouter {}
+
 void main() {
   late MockLandingViewModel mockViewModel;
   late MockPreferencesRepo mockPrefsRepo;
   late MockOrgRepo mockOrgRepo;
   late MockBookingRepo mockBookingRepo;
+  late MockStackRouter mockRouter;
 
   setUp(() {
     mockViewModel = MockLandingViewModel();
     mockPrefsRepo = MockPreferencesRepo();
     mockOrgRepo = MockOrgRepo();
     mockBookingRepo = MockBookingRepo();
+    mockRouter = MockStackRouter();
 
     // Stub view model methods and streams
     when(() => mockViewModel.shouldShowRedirecting).thenReturn(false);
@@ -73,7 +76,13 @@ void main() {
         ChangeNotifierProvider<OrgRepo>.value(value: mockOrgRepo),
         ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
       ],
-      child: const MaterialApp(home: LandingScreenView()),
+      child: MaterialApp(
+        home: StackRouterScope(
+          controller: mockRouter,
+          stateHash: 0,
+          child: const LandingScreenView(),
+        ),
+      ),
     );
   }
 

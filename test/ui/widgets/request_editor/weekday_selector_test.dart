@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/ui/widgets/request_editor/weekday_selector.dart';
+import 'package:room_booker/ui/widgets/request_editor/repeat_booking_selector/weekday_selector.dart';
 
 void main() {
   group('WeekdaySelector', () {

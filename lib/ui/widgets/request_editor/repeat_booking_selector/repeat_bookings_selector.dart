@@ -1,47 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/logic/recurring_bookings.dart';
-import 'package:room_booker/ui/widgets/repeat_period_selector.dart';
-import 'package:room_booker/ui/widgets/request_editor/weekday_selector.dart';
+import 'package:rxdart/rxdart.dart';
+
+import 'repeat_bookings_view_model.dart';
+import 'repeat_period_selector.dart';
+import 'weekday_selector.dart';
 
 class RepeatBookingsSelector extends StatelessWidget {
-  final DateTime startTime;
-  final Frequency frequency;
-  final RecurrancePattern pattern;
-  final bool isCustom;
-  final bool readOnly;
-  final Function(Frequency) onFrequencyChanged;
-  final Function(int) onIntervalChanged;
-  final Function(RecurrancePattern, bool) onPatternChanged;
-  final Function(Weekday) toggleDay;
+  final RepeatBookingsViewModel viewModel;
 
-  const RepeatBookingsSelector({
-    super.key,
-    required this.startTime,
-    required this.onFrequencyChanged,
-    required this.onPatternChanged,
-    required this.frequency,
-    required this.isCustom,
-    required this.toggleDay,
-    required this.pattern,
-    required this.onIntervalChanged,
-    required this.readOnly,
-  });
+  const RepeatBookingsSelector({super.key, required this.viewModel});
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [_frequencySelector(), ..._additionalWidgets()]);
+    return StreamBuilder(
+      stream: Rx.combineLatest4(
+        viewModel.patternStream,
+        viewModel.isCustomStream,
+        viewModel.startTimeStream,
+        viewModel.readOnlyStream,
+        (pattern, isCustom, startTime, readOnly) =>
+            (pattern, isCustom, startTime, readOnly),
+      ),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+        var (pattern, isCustom, startTime, readOnly) = snapshot.data!;
+
+        return Column(
+          children: [
+            _frequencySelector(startTime, pattern.frequency, readOnly),
+            ..._additionalWidgets(pattern, isCustom, startTime, readOnly),
+          ],
+        );
+      },
+    );
   }
 
-  List<Widget> _additionalWidgets() {
+  List<Widget> _additionalWidgets(
+    RecurrancePattern pattern,
+    bool isCustom,
+    DateTime startTime,
+    bool readOnly,
+  ) {
     if (!isCustom || pattern.frequency == Frequency.never) {
       return [];
     }
     var widgets = <Widget>[
       RepeatPeriodSelector(
         frequency: pattern.frequency,
-        onFrequencyChanged: (value) => onFrequencyChanged(value),
-        onIntervalChanged: (value) => onIntervalChanged(value),
+        interval: pattern.period,
+        onFrequencyChanged: (value) => viewModel.onFrequencyChanged(value),
+        onIntervalChanged: (value) => viewModel.onIntervalChanged(value),
+        readOnly: readOnly,
       ),
     ];
 
@@ -55,20 +68,25 @@ class RepeatBookingsSelector extends StatelessWidget {
               WeekdaySelector(
                 selectedDays: pattern.weekday ?? {},
                 startTime: startTime,
-                toggleDay: toggleDay,
+                toggleDay: (day) => viewModel.toggleWeekday(day),
               ),
             ];
       case Frequency.monthly:
-        return widgets + [_monthIntervalSelector()];
+        return widgets + [_monthIntervalSelector(startTime)];
       case Frequency.custom:
       case Frequency.never:
         throw Exception("Invalid frequency ${pattern.frequency}");
     }
   }
 
-  Widget _frequencySelector() {
+  Widget _frequencySelector(
+    DateTime startTime,
+    Frequency frequency,
+    bool readOnly,
+  ) {
     var patterns = getRecurringBookingOptions(startTime);
     return DropdownButtonFormField<Frequency>(
+      key: ValueKey(frequency),
       isExpanded: true,
       initialValue: frequency,
       decoration: const InputDecoration(
@@ -86,19 +104,14 @@ class RepeatBookingsSelector extends StatelessWidget {
       onChanged: readOnly
           ? null
           : (value) {
-              if (value == Frequency.custom) {
-                onFrequencyChanged(value!);
-                return;
-              }
-              var pattern = patterns[value];
-              if (pattern != null) {
-                onPatternChanged(pattern, false);
+              if (value != null) {
+                viewModel.onFrequencyChanged(value);
               }
             },
     );
   }
 
-  Widget _monthIntervalSelector() {
+  Widget _monthIntervalSelector(DateTime startTime) {
     var monthlyOccurrence = getMonthlyOccurrence(startTime);
     var weekdayName = getWeekdayName(startTime);
     var options = [

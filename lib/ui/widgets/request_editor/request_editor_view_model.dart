@@ -9,6 +9,7 @@ import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/controller_extensions.dart';
+import 'package:room_booker/ui/widgets/request_editor/repeat_booking_selector/repeat_bookings_view_model.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -73,6 +74,8 @@ class RequestEditorViewModel extends ChangeNotifier {
   final _isPublicSubject = BehaviorSubject<bool>.seeded(false);
   final _ignoreOverlapsSubject = BehaviorSubject<bool>.seeded(false);
 
+  late RepeatBookingsViewModel repeatBookingsViewModel;
+
   final formKey = GlobalKey<FormState>(); // Form key for validation
 
   final _closeSubject = BehaviorSubject<void>();
@@ -94,6 +97,22 @@ class RequestEditorViewModel extends ChangeNotifier {
        _orgState = orgState,
        _choiceProvider = choiceProvider {
     _subscriptions.add(_closeSubject.listen((_) => _clearSubjects()));
+    
+    // Initialize with default/empty state. It will be re-initialized in _initializeSubjects.
+    repeatBookingsViewModel = RepeatBookingsViewModel(
+      startTime: DateTime.now(),
+      readOnly: true,
+    );
+    
+    _subscriptions.add(_editingEnabledSubject.listen((enabled) {
+      repeatBookingsViewModel.setReadOnly(!enabled);
+    }));
+    
+     _subscriptions.add(_eventStartSubject.listen((startTime) {
+      if(startTime != null) {
+        repeatBookingsViewModel.updateStartTime(startTime);
+      }
+    }));
   }
 
   void _clearSubjects() {
@@ -111,6 +130,13 @@ class RequestEditorViewModel extends ChangeNotifier {
     contactEmailController.text = "";
     phoneNumberController.text = "";
     additionalInfoController.text = "";
+    
+    // Reset VM to clean state
+    repeatBookingsViewModel.dispose();
+    repeatBookingsViewModel = RepeatBookingsViewModel(
+      startTime: DateTime.now(),
+      readOnly: true,
+    );
   }
 
   void _initializeSubjects(Request? request, PrivateRequestDetails? details) {
@@ -129,6 +155,29 @@ class RequestEditorViewModel extends ChangeNotifier {
     contactEmailController.text = details?.email ?? "";
     phoneNumberController.text = details?.phone ?? "";
     additionalInfoController.text = details?.message ?? "";
+
+    // Re-initialize repeat view model with request data
+    // Dispose old one if needed? Actually, better to just update it or create new one and replace.
+    // Since RepeatBookingsSelector takes the VM instance, we should probably keep the instance stable if possible,
+    // or ensure the UI rebuilds with the new instance. The UI is built in build() method so new instance is fine.
+    // BUT, if we replace the instance, the listeners in constructor need to be re-attached?
+    // No, the listeners in constructor are on subjects which we don't replace.
+    // But we need to listen to the VM? No, we just pass it to the UI.
+    // Wait, _requestStream needs the pattern from the VM.
+    
+    // Let's recreate it to be safe and clean.
+    repeatBookingsViewModel.dispose(); 
+    repeatBookingsViewModel = RepeatBookingsViewModel(
+      startTime: request?.eventStartTime ?? DateTime.now(),
+      initialPattern: request?.recurrancePattern,
+      readOnly: true, // Will be updated by _editingEnabledSubject
+    );
+    // Important: If we replace the instance, we must ensure any downstream listeners are aware.
+    // The _requestStream uses repeatBookingsViewModel.patternStream.
+    // If we replace the VM, we break the stream connection in _requestStream unless we rebuild that stream too.
+    // _requestStream is called once in _initializeCurrentDataSubscription.
+    // _initializeCurrentDataSubscription is called AFTER _initializeSubjects.
+    // So replacing the VM here is fine for the NEW subscription.
   }
 
   Stream<(Request?, PrivateRequestDetails?)> currentDataStream() =>
@@ -428,7 +477,7 @@ class RequestEditorViewModel extends ChangeNotifier {
       _initialDataSubject.stream.map((data) => data.$1);
 
   Stream<Request?> _requestStream() {
-    return Rx.combineLatest8(
+    return Rx.combineLatest9(
       _initialDataSubject.stream.map((data) => data.$1),
       eventStartStream,
       eventEndStream,
@@ -437,6 +486,7 @@ class RequestEditorViewModel extends ChangeNotifier {
       isPublicStream,
       ignoreOverlapsStream,
       eventNameContoller.textStream,
+      repeatBookingsViewModel.patternStream,
       (
         Request? initialRequest,
         DateTime? start,
@@ -446,6 +496,7 @@ class RequestEditorViewModel extends ChangeNotifier {
         isPublic,
         ignoreOverlaps,
         eventName,
+        pattern,
       ) {
         if (initialRequest == null) {
           return null;
@@ -456,7 +507,7 @@ class RequestEditorViewModel extends ChangeNotifier {
         return Request(
           id: initialRequest.id,
           status: initialRequest.status,
-          recurrancePattern: initialRequest.recurrancePattern,
+          recurrancePattern: pattern,
           recurranceOverrides: initialRequest.recurranceOverrides,
           eventStartTime: start,
           eventEndTime: end,
@@ -548,6 +599,7 @@ class RequestEditorViewModel extends ChangeNotifier {
     _initialDataSubject.close();
     _editingEnabledSubject.close();
     _currentDataSubject.close();
+    repeatBookingsViewModel.dispose();
     for (var s in _subscriptions) {
       s.cancel();
     }
