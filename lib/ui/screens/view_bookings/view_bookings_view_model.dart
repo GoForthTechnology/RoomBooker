@@ -15,6 +15,7 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 class ViewBookingsViewModel extends ChangeNotifier {
   final String? _existingRequestID;
   final bool readOnlyMode;
+  final bool createRequest;
 
   final StackRouter _router;
   final AuthService _authService;
@@ -40,7 +41,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
     required RequestEditorViewModel requestEditorViewModel,
     required String? existingRequestID,
     required bool showRoomSelector,
-    required bool createRequest,
+    required this.createRequest,
     required this.readOnlyMode,
     required this.showRequestDialog,
     required this.showEditorAsDialog,
@@ -86,11 +87,14 @@ class ViewBookingsViewModel extends ChangeNotifier {
           orgID: orgID,
           view: CalendarView.day.name,
           targetDate: details.date,
+          createRequest: false,
         ),
       );
       return;
     }
-    loadNewRequest(details.date);
+    if (createRequest) {
+      loadNewRequest(details.date);
+    }
   }
 
   Future<void> loadExistingRequest(String requestID) async {
