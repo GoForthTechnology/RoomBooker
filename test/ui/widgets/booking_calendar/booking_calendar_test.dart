@@ -70,6 +70,8 @@ void main() {
     WidgetTester tester,
   ) async {
     final state = CalendarViewState(
+      currentView: CalendarView.day,
+      currentDate: DateTime.now(),
       allowDragAndDrop: true,
       allowAppointmentResize: true,
       dataSource: FakeDataSource(),

@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import 'package:auto_route/auto_route.dart';
@@ -40,7 +41,7 @@ class ViewBookingsScreen extends StatelessWidget {
     @QueryParam('spb') this.showPrivateBookings = true,
     @QueryParam('ro') this.readOnlyMode = false,
     this.createRequest = false,
-    this.targetDate,
+    @QueryParam('td') this.targetDate,
     @QueryParam('v') String? view,
   }) : view = (targetDate != null || requestID != null
            ? CalendarView.day.name
@@ -88,11 +89,15 @@ class ViewBookingsScreen extends StatelessWidget {
       requestEditorViewModel: context.read<RequestEditorViewModel>(),
       calendarViewModel: context.read<CalendarViewModel>(),
       createRequest: createRequest,
+      showPrivateBookings: showPrivateBookings,
       existingRequestID: requestID,
       showRoomSelector: true,
       showRequestDialog: (request) => _showRequestDialog(request, context),
       showEditorAsDialog: () =>
           _showPannelAsDialog(context, context.read<RequestEditorViewModel>()),
+      updateUri: (uri) async {
+        await SystemNavigator.routeInformationUpdated(uri: uri);
+      },
     );
   }
 

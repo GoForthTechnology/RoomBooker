@@ -150,6 +150,8 @@ class CalendarViewModel extends ChangeNotifier {
           allowDragAndDrop: _allowDragAndDrop && newAppointment == null,
           dataSource: _DataSource(out),
           specialRegions: blackoutWindows.map((w) => w.toTimeRegion()).toList(),
+          currentView: controller.view!,
+          currentDate: controller.displayDate!,
         );
       },
     );
@@ -532,12 +534,16 @@ class CalendarViewState {
   final bool allowDragAndDrop;
   final CalendarDataSource dataSource;
   final List<TimeRegion> specialRegions;
+  final CalendarView currentView;
+  final DateTime currentDate;
 
   CalendarViewState({
     required this.allowAppointmentResize,
     required this.allowDragAndDrop,
     required this.specialRegions,
     required this.dataSource,
+    required this.currentView,
+    required this.currentDate,
   });
 }
 

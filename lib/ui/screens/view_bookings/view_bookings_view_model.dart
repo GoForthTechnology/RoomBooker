@@ -11,11 +11,13 @@ import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
+import 'package:intl/intl.dart';
 
 class ViewBookingsViewModel extends ChangeNotifier {
   final String? _existingRequestID;
   final bool readOnlyMode;
   final bool createRequest;
+  final bool showPrivateBookings;
 
   final StackRouter _router;
   final AuthService _authService;
@@ -43,8 +45,10 @@ class ViewBookingsViewModel extends ChangeNotifier {
     required bool showRoomSelector,
     required this.createRequest,
     required this.readOnlyMode,
+    required this.showPrivateBookings,
     required this.showRequestDialog,
     required this.showEditorAsDialog,
+    required Function(Uri) updateUri,
   }) : _bookingRepo = bookingRepo,
        _authService = authService,
        _router = router,
@@ -58,6 +62,33 @@ class ViewBookingsViewModel extends ChangeNotifier {
     );
     _calendarViewModel.dateTapStream.listen(_onTapDate);
     _calendarViewModel.requestTapStream.listen(_onTapBooking);
+    _currentUriStream().listen(updateUri);
+  }
+
+  Stream<Uri> _currentUriStream() {
+    return Rx.combineLatest2(
+      _requestEditorViewModel.initialRequestStream,
+      _calendarViewModel.calendarViewState(),
+      (initialRequest, viewState) {
+        final params = <String, String>{
+          "td": DateFormat('yyyy-MM-dd').format(viewState.currentDate),
+          "v": viewState.currentView.name,
+        };
+        if (readOnlyMode) {
+          params["ro"] = "true";
+        }
+        if (!showPrivateBookings) {
+          params["spb"] = "false";
+        }
+        if (createRequest) {
+          params["createRequest"] = "true";
+        }
+        if (initialRequest != null) {
+          params["rid"] = initialRequest.id!;
+        }
+        return Uri(path: "/view/${_orgState.org.id!}", queryParameters: params);
+      },
+    );
   }
 
   void _onTapBooking(Request request) async {

@@ -331,6 +331,7 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
            'rid': requestID,
            'spb': showPrivateBookings,
            'ro': readOnlyMode,
+           'td': targetDate,
            'v': view,
          },
          initialChildren: children,
@@ -349,6 +350,7 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
           requestID: queryParams.optString('rid'),
           showPrivateBookings: queryParams.getBool('spb', true),
           readOnlyMode: queryParams.getBool('ro', false),
+          targetDate: queryParams.get('td'),
           view: queryParams.optString('v'),
         ),
       );

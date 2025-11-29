@@ -32,6 +32,13 @@ class MockOrganization extends Mock implements Organization {}
 
 class MockBuildContext extends Mock implements BuildContext {}
 
+class FakeCalendarDataSource extends Fake implements CalendarDataSource {
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return super.toString();
+  }
+}
+
 // Fakes
 class FakeRequest extends Fake implements Request {}
 
@@ -52,6 +59,7 @@ void main() {
   late StreamController<DateTapDetails> dateTapController;
   late StreamController<Request> requestTapController;
   late StreamController<Request?> initialRequestController;
+  late StreamController<CalendarViewState> calendarViewStateController;
 
   setUpAll(() {
     registerFallbackValue(Stream<(Request?, PrivateRequestDetails?)>.empty());
@@ -61,6 +69,7 @@ void main() {
     registerFallbackValue(
       ViewBookingsRoute(orgID: 'test', createRequest: false),
     );
+    registerFallbackValue(Uri());
   });
 
   setUp(() {
@@ -76,6 +85,8 @@ void main() {
     dateTapController = StreamController<DateTapDetails>.broadcast();
     requestTapController = StreamController<Request>.broadcast();
     initialRequestController = StreamController<Request?>.broadcast();
+    calendarViewStateController =
+        StreamController<CalendarViewState>.broadcast();
 
     when(
       () => mockCalendarViewModel.dateTapStream,
@@ -89,6 +100,9 @@ void main() {
     when(() => mockRequestEditorViewModel.currentDataStream()).thenAnswer(
       (_) => Stream<(Request?, PrivateRequestDetails?)>.value((null, null)),
     );
+    when(
+      () => mockCalendarViewModel.calendarViewState(),
+    ).thenAnswer((_) => calendarViewStateController.stream);
 
     when(() => mockOrgState.org).thenReturn(mockOrganization);
     when(() => mockOrganization.id).thenReturn('test-org-id');
@@ -98,14 +112,17 @@ void main() {
     dateTapController.close();
     requestTapController.close();
     initialRequestController.close();
+    calendarViewStateController.close();
   });
 
   ViewBookingsViewModel createViewModel({
     required bool createRequest,
     bool readOnlyMode = false,
+    bool showPrivateBookings = true,
     Size? size,
     Function(Request)? showRequestDialog,
     Function()? showEditorAsDialog,
+    Function(Uri)? updateUri,
   }) {
     return ViewBookingsViewModel(
       bookingRepo: mockBookingRepo,
@@ -119,8 +136,24 @@ void main() {
       showRoomSelector: false,
       createRequest: createRequest,
       readOnlyMode: readOnlyMode,
+      showPrivateBookings: showPrivateBookings,
       showRequestDialog: showRequestDialog ?? (_) {},
       showEditorAsDialog: showEditorAsDialog ?? () {},
+      updateUri: updateUri ?? (_) {},
+    );
+  }
+
+  CalendarViewState createViewState({
+    DateTime? currentDate,
+    CalendarView view = CalendarView.week,
+  }) {
+    return CalendarViewState(
+      allowAppointmentResize: false,
+      allowDragAndDrop: false,
+      dataSource: FakeCalendarDataSource(),
+      specialRegions: [],
+      currentView: view,
+      currentDate: currentDate ?? DateTime.now(),
     );
   }
 
@@ -171,11 +204,20 @@ void main() {
       ).thenAnswer((_) {});
 
       requestTapController.add(request);
-      await Future.delayed(Duration.zero);
 
+      await untilCalled(
+        () => mockBookingRepo.getRequestDetails('test-org-id', 'req-1'),
+      );
       verify(
         () => mockBookingRepo.getRequestDetails('test-org-id', 'req-1'),
       ).called(1);
+
+      await untilCalled(
+        () => mockRequestEditorViewModel.initializeFromExistingRequest(
+          request,
+          details,
+        ),
+      );
       verify(
         () => mockRequestEditorViewModel.initializeFromExistingRequest(
           request,
@@ -204,7 +246,12 @@ void main() {
       ).thenAnswer((_) {});
 
       requestTapController.add(request);
-      await Future.delayed(Duration.zero);
+      await untilCalled(
+        () => mockRequestEditorViewModel.initializeFromExistingRequest(
+          request,
+          details,
+        ),
+      );
 
       expect(showEditorCalled, true);
     });
@@ -358,16 +405,6 @@ void main() {
   });
 
   group('getActions', () {
-    setUp(() {
-      // AutoRoute.of(context) returns the router. We can mock this using a provider or finding
-      // a way to mock the static call.
-      // However, ViewBookingsViewModel uses AutoRouter.of(context).
-      // Mocking static extensions or inherited widgets in unit tests without a widget tree is hard.
-      // We will test the logic branches based on auth/admin state, but we might not be able to call onPressed
-      // without crashing if we don't wrap in a proper widget test or mock AutoRouter.of.
-      // For unit test of ViewModel, we check the list content.
-    });
-
     test('Admin actions included', () {
       when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
       when(() => mockAuthService.getCurrentUserID()).thenReturn('user-1');
@@ -389,6 +426,96 @@ void main() {
 
       expect(actions.any((a) => a.name == "Review Requests"), false);
       expect(actions.any((a) => a.name == "Login"), true);
+    });
+  });
+
+  group('currentUriStream', () {
+    test('updates URI with correct parameters', () async {
+      final updatedUris = <Uri>[];
+      createViewModel(
+        createRequest: false,
+        showPrivateBookings: true,
+        readOnlyMode: false,
+        updateUri: updatedUris.add,
+      );
+
+      final date = DateTime(2023, 10, 27);
+      final viewState = createViewState(
+        currentDate: date,
+        view: CalendarView.month,
+      );
+
+      // Trigger emission
+      initialRequestController.add(null);
+      calendarViewStateController.add(viewState);
+
+      await Future.delayed(Duration.zero);
+
+      expect(updatedUris.isNotEmpty, true);
+      final uri = updatedUris.last;
+      expect(uri.path, '/view/test-org-id');
+      expect(uri.queryParameters['td'], '2023-10-27');
+      expect(uri.queryParameters['v'], 'month');
+      expect(uri.queryParameters.containsKey('ro'), false);
+      expect(uri.queryParameters.containsKey('spb'), false);
+      expect(uri.queryParameters.containsKey('createRequest'), false);
+      expect(uri.queryParameters.containsKey('rid'), false);
+    });
+
+    test(
+      'updates URI with readOnlyMode and createRequest parameters',
+      () async {
+        final updatedUris = <Uri>[];
+        createViewModel(
+          createRequest: true,
+          showPrivateBookings: false,
+          readOnlyMode: true,
+          updateUri: updatedUris.add,
+        );
+
+        final date = DateTime(2023, 10, 28);
+        final viewState = createViewState(
+          currentDate: date,
+          view: CalendarView.week,
+        );
+
+        initialRequestController.add(null);
+        calendarViewStateController.add(viewState);
+
+        await Future.delayed(Duration.zero);
+
+        expect(updatedUris.isNotEmpty, true);
+        final uri = updatedUris.last;
+        expect(uri.queryParameters['td'], '2023-10-28');
+        expect(uri.queryParameters['v'], 'week');
+        expect(uri.queryParameters['ro'], 'true');
+        expect(uri.queryParameters['spb'], 'false');
+        expect(uri.queryParameters['createRequest'], 'true');
+      },
+    );
+
+    test('updates URI with request ID', () async {
+      final updatedUris = <Uri>[];
+      createViewModel(createRequest: false, updateUri: updatedUris.add);
+
+      final request = Request(
+        id: 'req-123',
+        eventStartTime: DateTime.now(),
+        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
+        roomID: 'r1',
+        roomName: 'Room',
+      );
+
+      final viewState = createViewState();
+
+      initialRequestController.add(request);
+      calendarViewStateController.add(viewState);
+
+      await Future.delayed(Duration.zero);
+
+      expect(updatedUris.isNotEmpty, true);
+      final uri = updatedUris.last;
+      expect(uri.queryParameters['rid'], 'req-123');
     });
   });
 }
