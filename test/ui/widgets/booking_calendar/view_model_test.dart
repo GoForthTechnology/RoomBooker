@@ -185,14 +185,17 @@ void main() {
         bookingRepo: mockBookingRepo,
         orgState: mockOrgState,
         roomState: mockRoomState,
-        onDateTap: (_) {
-          called = true;
-        },
       );
+      viewModel.dateTapStream.listen((details) {
+        expect(details.date, date);
+        called = true;
+      });
 
       viewModel.handleTap(
         CalendarTapDetails(null, date, CalendarElement.calendarCell, null),
       );
+
+      await Future.delayed(Duration(milliseconds: 100));
 
       expect(called, isTrue);
     });
@@ -314,10 +317,10 @@ void main() {
           bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
-          onRequestTap: (_) {
-            eventFired = true;
-          },
         );
+        viewModel.dateTapStream.listen((_) {
+          eventFired = true;
+        });
 
         viewModel.handleTap(
           CalendarTapDetails(

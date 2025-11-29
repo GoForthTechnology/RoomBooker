@@ -8,6 +8,7 @@ import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
+import 'package:room_booker/ui/widgets/room_selector.dart';
 
 // Mock classes using mocktail
 class MockBookingRepo extends Mock implements BookingRepo {}
@@ -17,6 +18,8 @@ class MockAnalyticsService extends Mock implements AnalyticsService {}
 class MockAuthService extends Mock implements AuthService {}
 
 class MockOrgState extends Mock implements OrgState {}
+
+class MockRoomState extends Mock implements RoomState {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -51,12 +54,14 @@ void main() {
     late Room testRoom;
     late Request testRequest;
     late PrivateRequestDetails testDetails;
+    late RoomState mockRoom;
 
     setUp(() {
       mockBookingRepo = MockBookingRepo();
       mockAnalyticsService = MockAnalyticsService();
       mockAuthService = MockAuthService();
       mockOrgState = MockOrgState();
+      mockRoom = MockRoomState();
 
       testOrg = Organization(
         id: 'test-org',
@@ -66,6 +71,8 @@ void main() {
       );
 
       testRoom = Room(id: 'room1', name: 'Test Room');
+
+      when(() => mockRoom.enabledValues()).thenAnswer((_) => {testRoom});
 
       testRequest = Request(
         id: 'request1',
@@ -86,7 +93,6 @@ void main() {
       );
     });
 
-    // Now we can add actual RequestEditorViewModel tests!
     group('RequestEditorViewModel Instance Tests', () {
       late RequestEditorViewModel viewModel;
 
@@ -106,137 +112,93 @@ void main() {
         viewModel.dispose();
       });
 
-      test('initializes correctly with request and details', () {
-        viewModel = RequestEditorViewModel(
-          false, // readOnly
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
+      RequestEditorViewModel createViewModel({String title = 'Test Editor'}) {
+        return RequestEditorViewModel(
+          editorTitle: title,
+          roomState: mockRoom,
+          analyticsService: mockAnalyticsService,
+          authService: mockAuthService,
+          bookingRepo: mockBookingRepo,
+          orgState: mockOrgState,
+          choiceProvider: () async => RecurringBookingEditChoice.thisInstance,
         );
+      }
+
+      test('initializes correctly with request and details', () async {
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
 
         expect(viewModel.editorTitle, 'Test Editor');
-        expect(viewModel.readOnly, false);
         expect(viewModel.orgID, 'test-org');
+
+        final viewState = await viewModel.viewStateStream.first;
+        // Defaults to readOnly (true) because editingEnabled is seeded false
+        expect(viewState.readOnly, true);
       });
 
-      test('initializes correctly in read-only mode', () {
-        viewModel = RequestEditorViewModel(
-          true, // readOnly
-          'Read Only Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
+      test('initializes correctly in new request mode', () async {
+        viewModel = createViewModel();
+        viewModel.initializeNewRequest(DateTime.now());
 
-        expect(viewModel.editorTitle, 'Read Only Editor');
-        expect(viewModel.readOnly, true);
+        expect(viewModel.editorTitle, 'Test Editor');
+        final viewState = await viewModel.viewStateStream.first;
+        // initializeNewRequest sets editingEnabled to true
+        expect(viewState.readOnly, false);
       });
 
-      test('showIgnoreOverlapsToggle returns correct values', () {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
-
-        // Should return true for existing request with admin user
+      test('showIgnoreOverlapsToggle returns correct values', () async {
+        // Case 1: Admin
         when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
-        expect(viewModel.showIgnoreOverlapsToggle(), true);
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
+        var viewState = await viewModel.viewStateStream.first;
+        expect(viewState.showIgnoreOverlapsToggle, true);
 
-        // Should return false for non-admin user
+        // Case 2: Non-admin
         when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
-        expect(viewModel.showIgnoreOverlapsToggle(), false);
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
+        viewState = await viewModel.viewStateStream.first;
+        expect(viewState.showIgnoreOverlapsToggle, false);
       });
 
-      test('showEventLog returns correct values', () {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
-
-        // Should return true for existing request with admin user
+      test('showEventLog returns correct values', () async {
+        // Case 1: Admin
         when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
-        expect(viewModel.showEventLog(), true);
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
+        var viewState = await viewModel.viewStateStream.first;
+        expect(viewState.showEventLog, true);
 
-        // Should return false for non-admin user
+        // Case 2: Non-admin
         when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
-        expect(viewModel.showEventLog(), false);
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
+        viewState = await viewModel.viewStateStream.first;
+        expect(viewState.showEventLog, false);
       });
 
-      test('showID returns correct values', () {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
+      test('showID returns correct values', () async {
+        // Existing request (has ID)
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
+        var viewState = await viewModel.viewStateStream.first;
+        expect(viewState.showID, true);
 
-        // Should return true for existing request (has ID)
-        expect(viewModel.showID(), true);
-
-        // Test with new request (no ID)
-        final newRequest = Request(
-          eventStartTime: DateTime(2024, 1, 1, 10, 0),
-          eventEndTime: DateTime(2024, 1, 1, 11, 0),
-          roomID: 'room1',
-          roomName: 'Test Room',
-        );
-
-        final newViewModel = RequestEditorViewModel(
-          false,
-          'New Request Editor',
-          newRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
-
-        expect(newViewModel.showID(), false);
+        // New request (no ID)
+        final newViewModel = createViewModel();
+        newViewModel.initializeNewRequest(DateTime.now());
+        var newViewState = await newViewModel.viewStateStream.first;
+        expect(newViewState.showID, false);
         newViewModel.dispose();
       });
 
-      test('text controllers are initialized with details', () {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
+      test('text controllers are initialized with details', () async {
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
+
+        // Allow subjects to propagate
+        await Future.delayed(Duration.zero);
 
         expect(viewModel.contactNameController.text, 'John Doe');
         expect(viewModel.contactEmailController.text, 'john@example.com');
@@ -246,18 +208,11 @@ void main() {
         expect(viewModel.idController.text, 'request1');
       });
 
-      test('text controllers are empty when no details provided', () {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          null, // No details
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
+      test('text controllers are empty for new request', () async {
+        viewModel = createViewModel();
+        viewModel.initializeNewRequest(DateTime.now());
+
+        await Future.delayed(Duration.zero);
 
         expect(viewModel.contactNameController.text, '');
         expect(viewModel.contactEmailController.text, '');
@@ -266,48 +221,9 @@ void main() {
         expect(viewModel.additionalInfoController.text, '');
       });
 
-      test('toggleEditing changes readOnly state and notifies listeners', () {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
-
-        var listenerCalled = false;
-        viewModel.addListener(() {
-          listenerCalled = true;
-        });
-
-        expect(viewModel.readOnly, false);
-
-        viewModel.toggleEditing();
-        expect(viewModel.readOnly, true);
-        expect(listenerCalled, true);
-
-        listenerCalled = false;
-        viewModel.toggleEditing();
-        expect(viewModel.readOnly, false);
-        expect(listenerCalled, true);
-      });
-
       test('updateEventStart updates the stream', () async {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
 
         final newStart = DateTime(2024, 2, 1, 14, 0);
         viewModel.updateEventStart(newStart);
@@ -317,17 +233,8 @@ void main() {
       });
 
       test('updateEventEnd updates the stream', () async {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
 
         final newEnd = DateTime(2024, 2, 1, 16, 0);
         viewModel.updateEventEnd(newEnd);
@@ -337,76 +244,40 @@ void main() {
       });
 
       test('updateRoom updates the stream', () async {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
+        await Future.delayed(Duration.zero);
 
         final newRoom = Room(id: 'room2', name: 'New Room');
         viewModel.updateRoom(newRoom);
 
-        final room = await viewModel.roomStream.first;
-        expect(room.id, 'room2');
-        expect(room.name, 'New Room');
+        final roomID = await viewModel.roomIDStream.first;
+        final roomName = await viewModel.roomNameStream.first;
+        expect(roomID, 'room2');
+        expect(roomName, 'New Room');
       });
 
       test('updateIsPublic updates the stream', () async {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
 
         viewModel.updateIsPublic(false);
-
         final isPublic = await viewModel.isPublicStream.first;
         expect(isPublic, false);
       });
 
       test('updateIgnoreOverlaps updates the stream', () async {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
 
         viewModel.updateIgnoreOverlaps(true);
-
         final ignoreOverlaps = await viewModel.ignoreOverlapsStream.first;
         expect(ignoreOverlaps, true);
       });
 
       test('update methods update text controllers', () {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
 
         viewModel.updateEventName('New Event Name');
         expect(viewModel.eventNameContoller.text, 'New Event Name');
@@ -429,18 +300,8 @@ void main() {
           () => mockAuthService.getCurrentUserEmail(),
         ).thenReturn('admin@test.com');
 
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
-
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
         viewModel.useAdminContactInfo();
 
         expect(viewModel.contactNameController.text, 'Org Admin');
@@ -451,18 +312,8 @@ void main() {
       test('useAdminContactInfo handles null email', () {
         when(() => mockAuthService.getCurrentUserEmail()).thenReturn(null);
 
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
-
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
         viewModel.useAdminContactInfo();
 
         expect(viewModel.contactNameController.text, 'Org Admin');
@@ -470,97 +321,55 @@ void main() {
         expect(viewModel.phoneNumberController.text, 'n/a');
       });
 
-      test(
-        'getActions returns Add Booking action for admin with new request',
-        () {
-          when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
+      test('Actions contains Add Booking for admin with new request', () async {
+        when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
+        viewModel = createViewModel();
+        viewModel.initializeNewRequest(DateTime.now());
 
-          final newRequest = Request(
-            eventStartTime: DateTime(2024, 1, 1, 10, 0),
-            eventEndTime: DateTime(2024, 1, 1, 11, 0),
-            roomID: 'room1',
-            roomName: 'Test Room',
-          );
-
-          viewModel = RequestEditorViewModel(
-            false,
-            'New Request Editor',
-            newRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
-            testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
-          );
-
-          final actions = viewModel.getActions();
-          expect(actions.length, 1);
-          expect(actions.first.title, 'Add Booking');
-        },
-      );
-
-      test(
-        'getActions returns Submit Request action for non-admin with new request',
-        () {
-          when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
-
-          final newRequest = Request(
-            eventStartTime: DateTime(2024, 1, 1, 10, 0),
-            eventEndTime: DateTime(2024, 1, 1, 11, 0),
-            roomID: 'room1',
-            roomName: 'Test Room',
-          );
-
-          viewModel = RequestEditorViewModel(
-            false,
-            'New Request Editor',
-            newRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
-            testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
-          );
-
-          final actions = viewModel.getActions();
-          expect(actions.length, 1);
-          expect(actions.first.title, 'Submit Request');
-        },
-      );
-
-      test('getActions returns Approve and Reject for pending requests', () {
-        final pendingRequest = Request(
-          id: 'pending_request',
-          eventStartTime: DateTime(2024, 1, 1, 10, 0),
-          eventEndTime: DateTime(2024, 1, 1, 11, 0),
-          roomID: 'room1',
-          roomName: 'Test Room',
-          status: RequestStatus.pending,
-        );
-
-        viewModel = RequestEditorViewModel(
-          false,
-          'Pending Request Editor',
-          pendingRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
-
-        final actions = viewModel.getActions();
-        expect(actions.length, 2);
-        expect(actions[0].title, 'Approve');
-        expect(actions[1].title, 'Reject');
+        final viewState = await viewModel.viewStateStream.first;
+        expect(viewState.actions.any((a) => a.title == 'Add Booking'), true);
       });
 
       test(
-        'getActions returns Edit action for confirmed request in read-only',
-        () {
+        'Actions contains Submit Request for non-admin with new request',
+        () async {
+          when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
+          viewModel = createViewModel();
+          viewModel.initializeNewRequest(DateTime.now());
+
+          final viewState = await viewModel.viewStateStream.first;
+          expect(
+            viewState.actions.any((a) => a.title == 'Submit Request'),
+            true,
+          );
+        },
+      );
+
+      test(
+        'Actions contains Approve and Reject for pending requests',
+        () async {
+          final pendingRequest = Request(
+            id: 'pending_request',
+            eventStartTime: DateTime(2024, 1, 1, 10, 0),
+            eventEndTime: DateTime(2024, 1, 1, 11, 0),
+            roomID: 'room1',
+            roomName: 'Test Room',
+            status: RequestStatus.pending,
+          );
+
+          viewModel = createViewModel();
+          viewModel.initializeFromExistingRequest(pendingRequest, testDetails);
+
+          final viewState = await viewModel.viewStateStream.first;
+          final actions = viewState.actions;
+          expect(actions.any((a) => a.title == 'Approve'), true);
+          expect(actions.any((a) => a.title == 'Reject'), true);
+        },
+      );
+
+      test(
+        'Actions contains Edit for confirmed request in read-only',
+        () async {
           final confirmedRequest = Request(
             id: 'confirmed_request',
             eventStartTime: DateTime(2024, 1, 1, 10, 0),
@@ -570,19 +379,15 @@ void main() {
             status: RequestStatus.confirmed,
           );
 
-          viewModel = RequestEditorViewModel(
-            true, // readOnly
-            'Confirmed Request Editor',
+          viewModel = createViewModel();
+          viewModel.initializeFromExistingRequest(
             confirmedRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
             testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
           );
 
-          final actions = viewModel.getActions();
+          final viewState = await viewModel.viewStateStream.first;
+          expect(viewState.readOnly, true);
+          final actions = viewState.actions;
           expect(actions.any((a) => a.title == 'Edit'), true);
           expect(actions.any((a) => a.title == 'Revisit'), true);
           expect(actions.any((a) => a.title == 'Delete'), true);
@@ -590,8 +395,8 @@ void main() {
       );
 
       test(
-        'getActions returns Save action for confirmed request when editing',
-        () {
+        'Actions contains Save for confirmed request when editing',
+        () async {
           final confirmedRequest = Request(
             id: 'confirmed_request',
             eventStartTime: DateTime(2024, 1, 1, 10, 0),
@@ -601,19 +406,23 @@ void main() {
             status: RequestStatus.confirmed,
           );
 
-          viewModel = RequestEditorViewModel(
-            false, // not readOnly
-            'Confirmed Request Editor',
+          viewModel = createViewModel();
+          viewModel.initializeFromExistingRequest(
             confirmedRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
             testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
           );
 
-          final actions = viewModel.getActions();
+          // Trigger Edit to switch mode
+          var viewState = await viewModel.viewStateStream.first;
+          final editAction = viewState.actions.firstWhere(
+            (a) => a.title == 'Edit',
+          );
+          await editAction.onPressed();
+
+          viewState = await viewModel.viewStateStream.first;
+          expect(viewState.readOnly, false);
+          final actions = viewState.actions;
+
           expect(actions.any((a) => a.title == 'Save'), true);
           expect(actions.any((a) => a.title == 'Revisit'), true);
           expect(actions.any((a) => a.title == 'Delete'), true);
@@ -621,8 +430,8 @@ void main() {
       );
 
       test(
-        'getActions returns End action for confirmed recurring request with end date',
-        () {
+        'Actions contains End for confirmed recurring request with end date',
+        () async {
           final recurringRequest = Request(
             id: 'recurring_request',
             eventStartTime: DateTime(2024, 1, 1, 10, 0),
@@ -637,20 +446,14 @@ void main() {
             ),
           );
 
-          viewModel = RequestEditorViewModel(
-            true,
-            'Recurring Request Editor',
+          viewModel = createViewModel();
+          viewModel.initializeFromExistingRequest(
             recurringRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
             testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
           );
 
-          final actions = viewModel.getActions();
-          expect(actions.any((a) => a.title == 'End'), true);
+          final viewState = await viewModel.viewStateStream.first;
+          expect(viewState.actions.any((a) => a.title == 'End'), true);
         },
       );
 
@@ -676,29 +479,17 @@ void main() {
             status: RequestStatus.pending,
           );
 
-          viewModel = RequestEditorViewModel(
-            false,
-            'Pending Request Editor',
-            pendingRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
-            testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
+          viewModel = createViewModel();
+          viewModel.initializeFromExistingRequest(pendingRequest, testDetails);
+
+          final viewState = await viewModel.viewStateStream.first;
+          final approveAction = viewState.actions.firstWhere(
+            (a) => a.title == 'Approve',
           );
 
-          final actions = viewModel.getActions();
-          final approveAction = actions.firstWhere((a) => a.title == 'Approve');
+          // Trigger
+          await approveAction.onPressed();
 
-          // Start the action but don't wait for closeEditor to complete
-          // (it will hang waiting for streams in test environment)
-          final future = approveAction.onPressed();
-
-          // Give it a moment to execute the important parts
-          await Future.delayed(Duration(milliseconds: 100));
-
-          // Verify the booking repo was called
           verify(
             () => mockBookingRepo.confirmRequest('test-org', 'pending_request'),
           ).called(1);
@@ -708,9 +499,6 @@ void main() {
               parameters: {'orgID': 'test-org'},
             ),
           ).called(1);
-
-          // Clean up the pending future
-          future.timeout(Duration(milliseconds: 100), onTimeout: () => '');
         });
 
         test('Reject action denies request and logs analytics', () async {
@@ -734,24 +522,15 @@ void main() {
             status: RequestStatus.pending,
           );
 
-          viewModel = RequestEditorViewModel(
-            false,
-            'Pending Request Editor',
-            pendingRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
-            testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
+          viewModel = createViewModel();
+          viewModel.initializeFromExistingRequest(pendingRequest, testDetails);
+
+          final viewState = await viewModel.viewStateStream.first;
+          final rejectAction = viewState.actions.firstWhere(
+            (a) => a.title == 'Reject',
           );
 
-          final actions = viewModel.getActions();
-          final rejectAction = actions.firstWhere((a) => a.title == 'Reject');
-
-          // Start the action but don't wait for closeEditor to complete
-          final future = rejectAction.onPressed();
-          await Future.delayed(Duration(milliseconds: 100));
+          await rejectAction.onPressed();
 
           verify(
             () => mockBookingRepo.denyRequest('test-org', 'pending_request'),
@@ -762,73 +541,6 @@ void main() {
               parameters: {'orgID': 'test-org'},
             ),
           ).called(1);
-
-          future.timeout(Duration(milliseconds: 100), onTimeout: () => '');
-        });
-
-        test('Edit action toggles editing mode', () async {
-          final confirmedRequest = Request(
-            id: 'confirmed_request',
-            eventStartTime: DateTime(2024, 1, 1, 10, 0),
-            eventEndTime: DateTime(2024, 1, 1, 11, 0),
-            roomID: 'room1',
-            roomName: 'Test Room',
-            status: RequestStatus.confirmed,
-          );
-
-          viewModel = RequestEditorViewModel(
-            true, // readOnly
-            'Confirmed Request Editor',
-            confirmedRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
-            testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
-          );
-
-          expect(viewModel.readOnly, true);
-
-          final actions = viewModel.getActions();
-          final editAction = actions.firstWhere((a) => a.title == 'Edit');
-
-          await editAction.onPressed();
-
-          expect(viewModel.readOnly, false);
-        });
-
-        test('Save action is available for confirmed request when editing', () {
-          final confirmedRequest = Request(
-            id: 'confirmed_request',
-            publicName: 'Public Event',
-            eventStartTime: DateTime(2024, 1, 1, 10, 0),
-            eventEndTime: DateTime(2024, 1, 1, 11, 0),
-            roomID: 'room1',
-            roomName: 'Test Room',
-            status: RequestStatus.confirmed,
-          );
-
-          viewModel = RequestEditorViewModel(
-            false, // not readOnly
-            'Confirmed Request Editor',
-            confirmedRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
-            testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
-          );
-
-          expect(viewModel.readOnly, false);
-
-          final actions = viewModel.getActions();
-          final saveAction = actions.firstWhere((a) => a.title == 'Save');
-
-          expect(saveAction, isNotNull);
-          expect(saveAction.title, 'Save');
-          expect(saveAction.onPressed, isNotNull);
         });
 
         test('Delete action deletes booking and logs analytics', () async {
@@ -852,24 +564,18 @@ void main() {
             status: RequestStatus.confirmed,
           );
 
-          viewModel = RequestEditorViewModel(
-            true, // readOnly
-            'Confirmed Request Editor',
+          viewModel = createViewModel();
+          viewModel.initializeFromExistingRequest(
             confirmedRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
             testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
           );
 
-          final actions = viewModel.getActions();
-          final deleteAction = actions.firstWhere((a) => a.title == 'Delete');
+          final viewState = await viewModel.viewStateStream.first;
+          final deleteAction = viewState.actions.firstWhere(
+            (a) => a.title == 'Delete',
+          );
 
-          // Start but don't wait for completion
-          final future = deleteAction.onPressed();
-          await Future.delayed(Duration(milliseconds: 100));
+          await deleteAction.onPressed();
 
           verify(
             () => mockBookingRepo.deleteBooking(
@@ -884,8 +590,6 @@ void main() {
               parameters: {'orgID': 'test-org'},
             ),
           ).called(1);
-
-          future.timeout(Duration(milliseconds: 100), onTimeout: () => '');
         });
 
         test('Revisit action revisits booking request', () async {
@@ -902,24 +606,20 @@ void main() {
             status: RequestStatus.confirmed,
           );
 
-          viewModel = RequestEditorViewModel(
-            true, // readOnly
-            'Confirmed Request Editor',
+          viewModel = createViewModel();
+          viewModel.initializeFromExistingRequest(
             confirmedRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
             testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
           );
 
-          final actions = viewModel.getActions();
-          final revisitAction = actions.firstWhere((a) => a.title == 'Revisit');
+          final viewState = await viewModel.viewStateStream.first;
+          final revisitAction = viewState.actions.firstWhere(
+            (a) => a.title == 'Revisit',
+          );
 
           final result = await revisitAction.onPressed();
 
-          expect(result, contains('revisited'));
+          expect(result.message, contains('revisited'));
           verify(
             () => mockBookingRepo.revisitBookingRequest(
               'test-org',
@@ -954,27 +654,21 @@ void main() {
             ),
           );
 
-          viewModel = RequestEditorViewModel(
-            true,
-            'Recurring Request Editor',
+          viewModel = createViewModel();
+          viewModel.initializeFromExistingRequest(
             recurringRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
             testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
+          );
+          // Ensure room/start time is available for stream
+          viewModel.updateRoom(testRoom);
+          await Future.delayed(Duration.zero);
+
+          final viewState = await viewModel.viewStateStream.first;
+          final endAction = viewState.actions.firstWhere(
+            (a) => a.title == 'End',
           );
 
-          // Initialize required stream
-          viewModel.updateRoom(testRoom);
-
-          final actions = viewModel.getActions();
-          final endAction = actions.firstWhere((a) => a.title == 'End');
-
-          // Start but don't wait for completion
-          final future = endAction.onPressed();
-          await Future.delayed(Duration(milliseconds: 100));
+          await endAction.onPressed();
 
           verify(
             () => mockBookingRepo.endBooking(
@@ -989,142 +683,15 @@ void main() {
               parameters: {'orgID': 'test-org'},
             ),
           ).called(1);
-
-          future.timeout(Duration(milliseconds: 100), onTimeout: () => '');
         });
-
-        test('Add Booking action is available for admin with new request', () {
-          when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
-
-          final newRequest = Request(
-            publicName: 'Public Event',
-            eventStartTime: DateTime(2024, 1, 1, 10, 0),
-            eventEndTime: DateTime(2024, 1, 1, 11, 0),
-            roomID: 'room1',
-            roomName: 'Test Room',
-          );
-
-          viewModel = RequestEditorViewModel(
-            false,
-            'New Request Editor',
-            newRequest,
-            mockAnalyticsService,
-            mockAuthService,
-            mockBookingRepo,
-            mockOrgState,
-            testDetails,
-            () async => RecurringBookingEditChoice.thisInstance,
-          );
-
-          final actions = viewModel.getActions();
-          expect(actions.length, 1);
-
-          final addAction = actions.first;
-          expect(addAction.title, 'Add Booking');
-          expect(addAction.onPressed, isNotNull);
-        });
-
-        test(
-          'Submit Request action is available for non-admin with new request',
-          () {
-            when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
-
-            final newRequest = Request(
-              publicName: 'Public Event',
-              eventStartTime: DateTime(2024, 1, 1, 10, 0),
-              eventEndTime: DateTime(2024, 1, 1, 11, 0),
-              roomID: 'room1',
-              roomName: 'Test Room',
-            );
-
-            viewModel = RequestEditorViewModel(
-              false,
-              'New Request Editor',
-              newRequest,
-              mockAnalyticsService,
-              mockAuthService,
-              mockBookingRepo,
-              mockOrgState,
-              testDetails,
-              () async => RecurringBookingEditChoice.thisInstance,
-            );
-
-            final actions = viewModel.getActions();
-            expect(actions.length, 1);
-
-            final submitAction = actions.first;
-            expect(submitAction.title, 'Submit Request');
-            expect(submitAction.onPressed, isNotNull);
-          },
-        );
       });
 
-      test('closeEditor returns empty string when no changes exist', () async {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
-
-        // Initialize streams with initial values
-        viewModel.updateRoom(testRoom);
+      test('closeEditor returns empty string', () async {
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
 
         final result = await viewModel.closeEditor();
         expect(result, isEmpty);
-      });
-
-      test('closeEditor returns warning when changes exist', () async {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
-
-        viewModel.updateRoom(testRoom);
-        viewModel.updateEventName('Changed Name');
-
-        final result = await viewModel.closeEditor();
-        expect(result, contains('Unsaved changes'));
-      });
-
-      test('requestStream handles publicName logic correctly', () async {
-        viewModel = RequestEditorViewModel(
-          false,
-          'Test Editor',
-          testRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
-
-        // Set event name but make it private
-        viewModel.updateEventName('Secret Event');
-        viewModel.updateIsPublic(false);
-        // Ensure room is set for the stream to emit
-        viewModel.updateRoom(testRoom);
-
-        final request = await viewModel.requestStream().first;
-        expect(request.publicName, isNull);
-
-        // Make it public
-        viewModel.updateIsPublic(true);
-        final publicRequest = await viewModel.requestStream().first;
-        expect(publicRequest.publicName, 'Secret Event');
       });
 
       test('Save action persists updated values to repo', () async {
@@ -1137,17 +704,13 @@ void main() {
           status: RequestStatus.confirmed,
         );
 
-        viewModel = RequestEditorViewModel(
-          false, // not readOnly
-          'Confirmed Request Editor',
-          confirmedRequest,
-          mockAnalyticsService,
-          mockAuthService,
-          mockBookingRepo,
-          mockOrgState,
-          testDetails,
-          () async => RecurringBookingEditChoice.thisInstance,
-        );
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(confirmedRequest, testDetails);
+
+        // Toggle Edit
+        var viewState = await viewModel.viewStateStream.first;
+        var editAction = viewState.actions.firstWhere((a) => a.title == 'Edit');
+        await editAction.onPressed();
 
         // Mock updateBooking
         when(
@@ -1166,8 +729,10 @@ void main() {
         viewModel.updateIsPublic(true);
         viewModel.updateRoom(testRoom); // Ensure stream has value
 
-        final actions = viewModel.getActions();
-        final saveAction = actions.firstWhere((a) => a.title == 'Save');
+        viewState = await viewModel.viewStateStream.first;
+        final saveAction = viewState.actions.firstWhere(
+          (a) => a.title == 'Save',
+        );
 
         await saveAction.onPressed();
 

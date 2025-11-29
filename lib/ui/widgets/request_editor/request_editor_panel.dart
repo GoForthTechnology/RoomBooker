@@ -254,6 +254,7 @@ class NewRequestPanelState extends State<NewRequestPanel> {
                 builder: (context, orgState, child) => LogsWidget(
                   org: orgState.org,
                   requestID: state.requestID()!,
+                  readOnly: readOnly,
                 ),
               ),
             _getButtons(state, panelState, roomState, repo),

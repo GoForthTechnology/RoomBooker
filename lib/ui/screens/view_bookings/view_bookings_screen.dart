@@ -1,30 +1,30 @@
-import 'dart:async';
 import 'dart:developer';
 import 'package:intl/intl.dart';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart' hide Badge;
-import 'package:flutter/services.dart';
+import 'package:flutter/material.dart' hide Badge, Action;
 import 'package:provider/provider.dart';
+import 'package:room_booker/data/analytics_service.dart';
+import 'package:room_booker/data/auth_service.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
+import 'package:room_booker/ui/screens/view_bookings/view_bookings_view_model.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
+import 'package:room_booker/ui/widgets/edit_recurring_booking_dialog.dart';
 import 'package:room_booker/ui/widgets/navigation_drawer.dart';
-import 'package:room_booker/ui/widgets/org_settings/org_details.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
-import 'package:room_booker/ui/widgets/request_editor/request_editor_panel.dart';
+import 'package:room_booker/ui/widgets/request_editor/request_editor.dart';
+import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:badges/badges.dart';
 
 @RoutePage()
-class ViewBookingsScreen extends StatefulWidget {
+class ViewBookingsScreen extends StatelessWidget {
   final String orgID;
   final String? view;
   final bool createRequest;
@@ -47,115 +47,67 @@ class ViewBookingsScreen extends StatefulWidget {
            : view);
 
   @override
-  State<ViewBookingsScreen> createState() => _ViewBookingsScreenState();
-}
-
-class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
-  bool showRoomSelector = true;
-  bool showEditorPanel = false;
-
-  void _toggleRoomSelector() {
-    setState(() {
-      showRoomSelector = !showRoomSelector;
-    });
-  }
-
-  void _toggleEditorPanel() {
-    setState(() {
-      showEditorPanel = !showEditorPanel;
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    FirebaseAnalytics.instance.logScreenView(
+    var analytics = Provider.of<FirebaseAnalyticsService>(
+      context,
+      listen: false,
+    );
+    analytics.logScreenView(
       screenName: "View Bookings",
-      parameters: {"orgID": widget.orgID},
+      parameters: {"orgID": orgID},
     );
-    var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
-    if (widget.requestID == null) {
-      return _content(context, null, null);
-    }
-    return StreamBuilder(
-      stream: Rx.combineLatest2(
-        bookingRepo.getRequestDetails(widget.orgID, widget.requestID!),
-        bookingRepo.getRequest(widget.orgID, widget.requestID!),
-        (details, request) => (details, request),
-      ),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          log(
-            "Error fetching request details: ${snapshot.error}",
-            error: snapshot.error,
-          );
-          return const Placeholder();
-        }
-        if (!snapshot.hasData) {
-          log("No data for request ID: ${widget.requestID}");
-          return const Placeholder();
-        }
-        var data = snapshot.data!;
-        return _content(context, data.$2, data.$1);
-      },
-    );
-  }
-
-  Widget _content(
-    BuildContext context,
-    Request? request,
-    PrivateRequestDetails? details,
-  ) {
     return OrgStateProvider(
-      orgID: widget.orgID,
+      orgID: orgID,
       child: Consumer<OrgState>(
-        builder: (context, orgState, child) => RequestStateProvider(
+        builder: (context, orgState, child) => RoomStateProvider(
           enableAllRooms: true,
-          orgState: orgState,
-          initialRequest: request,
-          initialDetails: details,
-          requestStartTime: widget.createRequest ? widget.targetDate : null,
+          org: orgState.org,
           builder: (context, _) => ChangeNotifierProvider.value(
-            value: _createViewModel(orgState, request, context),
-            builder: (context, child) =>
-                Consumer2<CalendarViewModel, RequestPanelSate>(
-                  builder: (context, viewModel, requestPanelState, child) =>
-                      _scaffold(orgState, viewModel, requestPanelState),
-                ),
+            value: _createCalendarViewModel(targetDate, context),
+            builder: (context, child) => ChangeNotifierProvider.value(
+              value: _createRequestEditorViewModel(context),
+              builder: (context, child) => ChangeNotifierProvider.value(
+                value: _createViewModel(context),
+                child: _content(orgState),
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Stream<Appointment?> _newAppointmentStrem(
-    RoomState roomState,
-    RequestEditorState requestEditorState,
-  ) {
-    var enabledRoom = roomState.enabledValue();
-    if (requestEditorState.roomID != "") {
-      enabledRoom = roomState.getRoom(requestEditorState.roomID!);
-    }
-    var newApointmentColor = enabledRoom == null
-        ? Colors.blue
-        : roomState.color(enabledRoom.id!);
-    var newAppointment = requestEditorState.getAppointment(newApointmentColor);
-    return Stream.value(newAppointment);
+  ViewBookingsViewModel _createViewModel(BuildContext context) {
+    return ViewBookingsViewModel(
+      readOnlyMode: readOnlyMode,
+      router: AutoRouter.of(context),
+      bookingRepo: context.read<BookingRepo>(),
+      authService: context.read<FirebaseAuthService>(),
+      sizeProvider: () => MediaQuery.sizeOf(context),
+      orgState: context.read<OrgState>(),
+      requestEditorViewModel: context.read<RequestEditorViewModel>(),
+      calendarViewModel: context.read<CalendarViewModel>(),
+      createRequest: createRequest,
+      existingRequestID: requestID,
+      showRoomSelector: true,
+      showRequestDialog: (request) => _showRequestDialog(request, context),
+      showEditorAsDialog: () =>
+          _showPannelAsDialog(context, context.read<RequestEditorViewModel>()),
+    );
   }
 
-  CalendarViewModel _createViewModel(
-    OrgState orgState,
-    Request? request,
+  CalendarViewModel _createCalendarViewModel(
+    DateTime? targetDate,
     BuildContext context,
   ) {
-    var targetDate =
-        widget.targetDate ?? request?.eventEndTime ?? DateTime.now();
-    var defaultView = widget.view;
+    var targetDate = this.targetDate ?? DateTime.now();
+    var defaultView = view;
     if (defaultView == null) {
       var prefRepo = Provider.of<PreferencesRepo>(context, listen: false);
       defaultView = prefRepo.defaultCalendarView.name;
     }
     return CalendarViewModel(
-      orgState: orgState,
+      orgState: context.read(),
       bookingRepo: context.read(),
       roomState: context.read(),
       targetDate: targetDate,
@@ -168,90 +120,103 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
         CalendarView.month,
         CalendarView.schedule,
       ],
-      includePrivateBookings: widget.showPrivateBookings,
-      showIgnoringOverlaps: !widget.readOnlyMode,
+      includePrivateBookings: showPrivateBookings,
+      showIgnoringOverlaps: !readOnlyMode,
       showDatePickerButton: true,
       allowViewNavigation: true,
-      onDateTap: (details) => _onTapDate(details.date, context, details.view),
-      onRequestTap: (request) => _onTapBooking(request, context),
-      newAppointment: _newAppointmentStrem(context.read(), context.read()),
+    );
+  }
+
+  Widget _content(OrgState orgState) {
+    return Consumer3<ViewBookingsViewModel, OrgState, CalendarViewModel>(
+      builder: (context, viewModel, orgState, calendarViewModel, _) =>
+          StreamBuilder(
+            stream: viewModel.viewStateStream,
+            builder: (context, snapshot) {
+              log('ViewBookingsScreen: Building with snapshot: $snapshot');
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                log("Error loading view state: ${snapshot.error}");
+                return Center(child: Text("Error: ${snapshot.error}"));
+              }
+              var viewState = snapshot.data!;
+              return _scaffold(
+                orgState,
+                viewModel,
+                calendarViewModel,
+                viewState,
+                context,
+              );
+            },
+          ),
     );
   }
 
   Widget _scaffold(
     OrgState orgState,
-    CalendarViewModel viewModel,
-    RequestPanelSate requestPanelState,
+    ViewBookingsViewModel viewModel,
+    CalendarViewModel calendarViewModel,
+    ViewState viewState,
+    BuildContext context,
   ) {
     return Scaffold(
       appBar: AppBar(
         title: Text(orgState.org.name),
-        actions: _actions(context, orgState),
-        leading: _isSmallView(context)
+        actions: _renderActions(viewModel.getActions(context)),
+        leading: viewModel.isSmallView()
             ? null
             : IconButton(
                 icon: const Icon(Icons.menu),
-                onPressed: _toggleRoomSelector,
+                onPressed: viewModel.toggleRoomSelector,
               ),
       ),
-      floatingActionButton: viewModel.controller.view != CalendarView.day
+      floatingActionButton:
+          calendarViewModel.controller.view != CalendarView.day
           ? FloatingActionButton(
-              onPressed: () => _onFabPressed(context, viewModel),
+              onPressed: () => _onFabPressed(context, calendarViewModel),
               child: const Icon(Icons.add),
             )
           : null,
-      drawer: _isSmallView(context) ? MyDrawer(org: orgState.org) : null,
+      drawer: viewModel.isSmallView() ? MyDrawer(org: orgState.org) : null,
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!_isSmallView(context) &&
-              showRoomSelector &&
-              !requestPanelState.active)
+          if (!viewModel.isSmallView() &&
+              viewState.showRoomSelector &&
+              !viewState.showEditor)
             Flexible(flex: 1, child: MyDrawer(org: orgState.org)),
           Flexible(flex: 3, child: BookingCalendarView()),
-          if (requestPanelState.active)
+          if (viewState.showEditor && !viewModel.isSmallView())
             Flexible(
               flex: 1,
-              child: SingleChildScrollView(
-                child: NewRequestPanel(orgID: widget.orgID),
-              ),
+              child: SingleChildScrollView(child: RequestEditor()),
             ),
         ],
       ),
     );
   }
 
-  void _onTapDate(
-    DateTime date,
-    BuildContext context,
-    CalendarView currentView,
-  ) {
-    if (widget.readOnlyMode) {
-      return;
-    }
-    if (currentView == CalendarView.month) {
-      AutoRouter.of(context).push(
-        ViewBookingsRoute(
-          orgID: widget.orgID,
-          view: CalendarView.day.name,
-          targetDate: date,
-        ),
+  List<Widget> _renderActions(List<Action> actions) {
+    return actions.map((action) {
+      Widget widget = IconButton(
+        tooltip: action.name,
+        icon: Icon(action.icon),
+        onPressed: () => action.onPressed(),
       );
-      return;
-    }
-
-    Provider.of<RequestEditorState>(context, listen: false)
-      ..clearAppointment()
-      ..createRequest(
-        date,
-        date.add(const Duration(hours: 1)),
-        Provider.of<RoomState>(context, listen: false).enabledValue()!,
-      );
-    if (_isSmallView(context)) {
-      _showPannelAsDialog(context);
-    } else {
-      Provider.of<RequestPanelSate>(context, listen: false).showPanel();
-    }
+      if (action.notificationCount > 0) {
+        widget = Badge(
+          badgeContent: Text(
+            "${action.notificationCount}",
+            style: TextStyle(color: Colors.white),
+          ),
+          badgeAnimation: const BadgeAnimation.slide(), // Optional animation
+          child: widget,
+        );
+      }
+      return Tooltip(message: action.name, child: widget);
+    }).toList();
   }
 
   void _onFabPressed(BuildContext context, CalendarViewModel viewModel) async {
@@ -289,7 +254,7 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
     );
     router.push(
       ViewBookingsRoute(
-        orgID: widget.orgID,
+        orgID: orgID,
         view: CalendarView.day.name,
         targetDate: startTime,
         createRequest: true,
@@ -297,11 +262,22 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
     );
   }
 
-  bool _isSmallView(BuildContext context) {
-    return MediaQuery.sizeOf(context).width < 650;
+  RequestEditorViewModel _createRequestEditorViewModel(BuildContext context) {
+    return RequestEditorViewModel(
+      editorTitle: "Request Editor",
+      analyticsService: context.read<FirebaseAnalyticsService>(),
+      authService: context.read<FirebaseAuthService>(),
+      bookingRepo: context.read<BookingRepo>(),
+      orgState: context.read<OrgState>(),
+      roomState: context.read<RoomState>(),
+      choiceProvider: () => showDialog<RecurringBookingEditChoice>(
+        context: context,
+        builder: (context) => EditRecurringBookingDialog(),
+      ),
+    );
   }
 
-  void _onTapBookingRO(Request request) {
+  void _showRequestDialog(Request request, BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -330,6 +306,27 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
     );
   }
 
+  void _showPannelAsDialog(
+    BuildContext context,
+    RequestEditorViewModel requestEditorViewModel,
+  ) {
+    var roomState = Provider.of<RoomState>(context, listen: false);
+    var orgState = Provider.of<OrgState>(context, listen: false);
+    showDialog(
+      context: context,
+      builder: (context) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: roomState),
+          ChangeNotifierProvider.value(value: requestEditorViewModel),
+          ChangeNotifierProvider.value(value: orgState),
+        ],
+        builder: (context, child) => Dialog.fullscreen(
+          child: RequestEditor(onClose: () => Navigator.pop(context)),
+        ),
+      ),
+    );
+  }
+
   String _getFormattedBookingRange(Request request) {
     final start = request.eventStartTime.toLocal();
     final end = request.eventEndTime.toLocal();
@@ -341,146 +338,5 @@ class _ViewBookingsScreenState extends State<ViewBookingsScreen> {
       return '${DateFormat.yMMMMEEEEd().format(start)} ⋅ ${DateFormat.jm().format(start)} - ${DateFormat.jm().format(end)}';
     }
     return '${DateFormat.yMd().add_jm().format(start)} - ${DateFormat.yMd().add_jm().format(end)}';
-  }
-
-  void _onTapBookingRW(Request request, BuildContext context) async {
-    var requestEditorState = Provider.of<RequestEditorState>(
-      context,
-      listen: false,
-    );
-    var requestPanelState = Provider.of<RequestPanelSate>(
-      context,
-      listen: false,
-    );
-
-    if (FirebaseAuth.instance.currentUser == null) {
-      return;
-    }
-    var isSmallView = _isSmallView(context);
-    var details = await Provider.of<BookingRepo>(
-      context,
-      listen: false,
-    ).getRequestDetails(widget.orgID, request.id!).first;
-    if (details == null) {
-      return;
-    }
-    requestEditorState.showRequest(request, details);
-    if (isSmallView && context.mounted) {
-      _showPannelAsDialog(context);
-    } else {
-      requestPanelState.showPanel();
-    }
-    SystemNavigator.routeInformationUpdated(
-      uri: Uri(path: "/view/${widget.orgID}?requestID=${request.id}"),
-    );
-    FirebaseAnalytics.instance.logEvent(name: "Start creating request");
-  }
-
-  void _onTapBooking(Request request, BuildContext context) async {
-    if (widget.readOnlyMode) {
-      return _onTapBookingRO(request);
-    } else {
-      return _onTapBookingRW(request, context);
-    }
-  }
-
-  void _showPannelAsDialog(BuildContext context) {
-    var requestEditorState = Provider.of<RequestEditorState>(
-      context,
-      listen: false,
-    );
-    var requestPanelState = Provider.of<RequestPanelSate>(
-      context,
-      listen: false,
-    );
-    var roomState = Provider.of<RoomState>(context, listen: false);
-    var orgState = Provider.of<OrgState>(context, listen: false);
-    showDialog(
-      context: context,
-      builder: (context) => MultiProvider(
-        providers: [
-          ChangeNotifierProvider.value(value: requestEditorState),
-          ChangeNotifierProvider.value(value: roomState),
-          ChangeNotifierProvider.value(value: requestPanelState),
-          ChangeNotifierProvider.value(value: orgState),
-        ],
-        builder: (context, child) =>
-            Dialog.fullscreen(child: NewRequestPanel(orgID: widget.orgID)),
-      ),
-    );
-  }
-
-  List<Widget> _actions(BuildContext context, OrgState orgState) {
-    if (FirebaseAuth.instance.currentUser != null) {
-      var privilegedActions = <Widget>[];
-      if (orgState.currentUserIsAdmin()) {
-        privilegedActions.add(ReviewBookingsAction(orgID: widget.orgID));
-        privilegedActions.add(
-          Tooltip(
-            message: "Settings",
-            child: IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () => AutoRouter.of(
-                context,
-              ).push(OrgSettingsRoute(orgID: widget.orgID)),
-            ),
-          ),
-        );
-      }
-      return [
-        ...privilegedActions,
-        Tooltip(
-          message: "Logout",
-          child: IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              var router = AutoRouter.of(context);
-              await FirebaseAuth.instance.signOut();
-              router.replace(ViewBookingsRoute(orgID: widget.orgID));
-            },
-          ),
-        ),
-      ];
-    }
-    return [
-      Tooltip(
-        message: "Login",
-        child: IconButton(
-          icon: const Icon(Icons.login),
-          onPressed: () =>
-              AutoRouter.of(context).push(LoginRoute(orgID: widget.orgID)),
-        ),
-      ),
-    ];
-  }
-}
-
-class ReviewBookingsAction extends StatelessWidget {
-  final String orgID;
-
-  const ReviewBookingsAction({super.key, required this.orgID});
-
-  @override
-  Widget build(BuildContext context) {
-    return OrgDetailsProvider(
-      orgID: orgID,
-      builder: (context, details) {
-        Widget widget = IconButton(
-          icon: const Icon(Icons.approval_rounded),
-          onPressed: () =>
-              AutoRouter.of(context).push(ReviewBookingsRoute(orgID: orgID)),
-        );
-        if (details != null) {
-          var total =
-              details.numPendingRequests + details.numConflictingRequests;
-          widget = Badge(
-            badgeContent: Text("$total", style: TextStyle(color: Colors.white)),
-            badgeAnimation: const BadgeAnimation.slide(), // Optional animation
-            child: widget,
-          );
-        }
-        return Tooltip(message: "Review Bookings", child: widget);
-      },
-    );
   }
 }

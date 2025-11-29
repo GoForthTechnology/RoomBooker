@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/auth_service.dart';
@@ -7,99 +9,216 @@ import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/controller_extensions.dart';
+import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:rxdart/rxdart.dart';
+
+class ActionResult {
+  final bool success;
+  final String message;
+  final bool shouldCloseEditor;
+
+  ActionResult(this.success, this.message, this.shouldCloseEditor);
+}
 
 class EditorAction {
   final String title;
-  final Future<String> Function() onPressed;
+  final Future<ActionResult> Function() onPressed;
 
   EditorAction(this.title, this.onPressed);
 }
 
+class EditorViewState {
+  final bool showIgnoreOverlapsToggle;
+  final bool showEventLog;
+  final bool showID;
+  final bool readOnly;
+  final List<EditorAction> actions;
+
+  EditorViewState(
+    this.readOnly, {
+    required this.showIgnoreOverlapsToggle,
+    required this.showEventLog,
+    required this.showID,
+    required this.actions,
+  });
+}
+
 class RequestEditorViewModel extends ChangeNotifier {
+  final Future<RecurringBookingEditChoice?> Function() _choiceProvider;
+  final String editorTitle;
+
   final BookingRepo _bookingRepo;
+  final OrgState _orgState;
+  final RoomState _roomState;
   final AnalyticsService _analyticsService;
   final AuthService _authService;
+
+  final _initialDataSubject =
+      BehaviorSubject<(Request?, PrivateRequestDetails?)>.seeded((null, null));
+  final _editingEnabledSubject = BehaviorSubject<bool>.seeded(false);
+
+  final _currentDataSubject =
+      BehaviorSubject<(Request?, PrivateRequestDetails?)>.seeded((null, null));
+
+  final eventNameContoller = TextEditingController(text: "");
+  final phoneNumberController = TextEditingController(text: "");
+  final contactNameController = TextEditingController(text: "");
+  final contactEmailController = TextEditingController(text: "");
+  final additionalInfoController = TextEditingController(text: "");
+  final idController = TextEditingController(text: "");
+  final _eventStartSubject = BehaviorSubject<DateTime?>();
+  final _eventEndSubject = BehaviorSubject<DateTime?>();
+  final _roomNameSubject = BehaviorSubject<String>.seeded("");
+  final _roomIDSubject = BehaviorSubject<String>.seeded("");
+  final _isPublicSubject = BehaviorSubject<bool>.seeded(false);
+  final _ignoreOverlapsSubject = BehaviorSubject<bool>.seeded(false);
+
   final formKey = GlobalKey<FormState>(); // Form key for validation
 
-  final OrgState _orgState;
-  final Request initialRequest;
-  final PrivateRequestDetails? _initialDetails;
+  final _closeSubject = BehaviorSubject<void>();
+  final _subscriptions = <StreamSubscription>[];
+  StreamSubscription? _currentDataSubscription;
 
-  final String editorTitle;
-  final eventNameContoller = TextEditingController();
-  final phoneNumberController = TextEditingController();
-  final contactNameController = TextEditingController();
-  final contactEmailController = TextEditingController();
-  final additionalInfoController = TextEditingController();
-  final idController = TextEditingController();
-  final _eventStartSubject = BehaviorSubject<DateTime>();
-  final _eventEndSubject = BehaviorSubject<DateTime>();
-  final _roomSubject = BehaviorSubject<Room>();
-
-  final _isPublicSubject = BehaviorSubject<bool>();
-  final _ignoreOverlapsSubject = BehaviorSubject<bool>();
-
-  final Future<RecurringBookingEditChoice?> Function() _choiceProvider;
-
-  bool readOnly;
-
-  RequestEditorViewModel(
-    this.readOnly,
-    this.editorTitle,
-    this.initialRequest,
-    AnalyticsService analyticsService,
-    AuthService authService,
-    BookingRepo bookingRepo,
-    OrgState orgState,
-    PrivateRequestDetails? initialDetails,
-    Future<RecurringBookingEditChoice?> Function() choiceProvider,
-  ) : _bookingRepo = bookingRepo,
-      _analyticsService = analyticsService,
-      _authService = authService,
-      _orgState = orgState,
-      _initialDetails = initialDetails,
-      _choiceProvider = choiceProvider {
-    contactNameController.text = initialDetails?.name ?? "";
-    contactEmailController.text = initialDetails?.email ?? "";
-    phoneNumberController.text = initialDetails?.phone ?? "";
-    eventNameContoller.text = initialDetails?.eventName ?? "";
-    additionalInfoController.text = initialDetails?.message ?? "";
-    _eventStartSubject.add(initialRequest.eventStartTime);
-    _eventEndSubject.add(initialRequest.eventEndTime);
-    _isPublicSubject.add(initialRequest.publicName != null);
-    _ignoreOverlapsSubject.add(initialRequest.ignoreOverlaps);
-    idController.text = initialRequest.id ?? "";
+  RequestEditorViewModel({
+    required this.editorTitle,
+    required AnalyticsService analyticsService,
+    required AuthService authService,
+    required BookingRepo bookingRepo,
+    required OrgState orgState,
+    required RoomState roomState,
+    required Future<RecurringBookingEditChoice?> Function() choiceProvider,
+  }) : _bookingRepo = bookingRepo,
+       _analyticsService = analyticsService,
+       _authService = authService,
+       _roomState = roomState,
+       _orgState = orgState,
+       _choiceProvider = choiceProvider {
+    _subscriptions.add(_closeSubject.listen((_) => _clearSubjects()));
   }
 
-  void toggleEditing() {
-    readOnly = !readOnly;
-    notifyListeners();
+  void _clearSubjects() {
+    _currentDataSubject.add((null, null));
+    _initialDataSubject.add((null, null));
+    _eventStartSubject.add(null);
+    _eventEndSubject.add(null);
+    _roomIDSubject.add("");
+    _roomNameSubject.add("");
+    _isPublicSubject.add(false);
+    _ignoreOverlapsSubject.add(false);
+
+    eventNameContoller.text = "";
+    contactNameController.text = "";
+    contactEmailController.text = "";
+    phoneNumberController.text = "";
+    additionalInfoController.text = "";
+  }
+
+  void _initializeSubjects(Request? request, PrivateRequestDetails? details) {
+    _initialDataSubject.add((request, details));
+
+    idController.text = request?.id ?? "";
+    _eventStartSubject.add(request?.eventStartTime);
+    _eventEndSubject.add(request?.eventEndTime);
+    _ignoreOverlapsSubject.add(request?.ignoreOverlaps ?? false);
+    _isPublicSubject.add(request?.publicName != null);
+    _roomIDSubject.add(request?.roomID ?? "");
+    _roomNameSubject.add(request?.roomName ?? "");
+
+    eventNameContoller.text = details?.eventName ?? "";
+    contactNameController.text = details?.name ?? "";
+    contactEmailController.text = details?.email ?? "";
+    phoneNumberController.text = details?.phone ?? "";
+    additionalInfoController.text = details?.message ?? "";
+  }
+
+  Stream<(Request?, PrivateRequestDetails?)> currentDataStream() =>
+      _currentDataSubject.stream;
+
+  Stream<EditorViewState> get viewStateStream => Rx.combineLatest2(
+    _initialDataSubject.stream,
+    _editingEnabledSubject.stream,
+    (data, editingEnabled) {
+      final initialRequest = data.$1;
+      List<EditorAction> actions = [];
+      if (initialRequest != null) {
+        actions.addAll(_getActions(initialRequest));
+      }
+      return EditorViewState(
+        !editingEnabled,
+        showIgnoreOverlapsToggle:
+            initialRequest != null && _orgState.currentUserIsAdmin(),
+        showEventLog: initialRequest != null && _orgState.currentUserIsAdmin(),
+        showID: initialRequest?.id != null,
+        actions: actions,
+      );
+    },
+  );
+
+  void _initializeCurrentDataSubscription() {
+    if (_currentDataSubscription != null) {
+      throw Exception("Current data subscription already initialized!");
+    }
+    _currentDataSubscription = Rx.combineLatest2(
+      _requestStream(),
+      _detailsStream(),
+      (request, details) => (request, details),
+    ).listen((data) => _currentDataSubject.add(data));
+  }
+
+  void _cancelCurrentDataSubscription() {
+    _currentDataSubscription?.cancel();
+    _currentDataSubscription = null;
+  }
+
+  void initializeNewRequest(DateTime targetDate) {
+    if (_roomState.enabledValues().isEmpty) {
+      throw Exception("No rooms available to create a new request.");
+    }
+    var defaultRoom = _roomState.enabledValues().first;
+    Request initialRequest = Request(
+      eventStartTime: targetDate,
+      eventEndTime: targetDate.add(Duration(hours: 1)),
+      ignoreOverlaps: false,
+      roomID: defaultRoom.id!,
+      roomName: defaultRoom.name,
+    );
+    _initializeSubjects(initialRequest, null);
+    _editingEnabledSubject.add(true);
+    _initializeCurrentDataSubscription();
+  }
+
+  void initializeFromExistingRequest(
+    Request existingRequest,
+    PrivateRequestDetails existingDetails,
+  ) {
+    _initializeSubjects(existingRequest, existingDetails);
+    _initializeCurrentDataSubscription();
   }
 
   String get orgID => _orgState.org.id!;
 
-  Stream<DateTime> get eventStartStream => _eventStartSubject.stream;
-  Stream<DateTime> get eventEndStream => _eventEndSubject.stream;
-  Stream<Room> get roomStream => _roomSubject.stream;
+  Stream<DateTime?> get eventStartStream => _eventStartSubject.stream;
+  Stream<DateTime?> get eventEndStream => _eventEndSubject.stream;
+  Stream<String> get roomIDStream => _roomIDSubject.stream;
+  Stream<String> get roomNameStream => _roomNameSubject.stream;
   Stream<bool> get isPublicStream => _isPublicSubject.stream;
   Stream<bool> get ignoreOverlapsStream => _ignoreOverlapsSubject.stream;
 
   Stream<(DateTime, DateTime)> get eventTimeStream => Rx.combineLatest2(
-    eventStartStream,
-    eventEndStream,
+    eventStartStream.where((d) => d != null).cast<DateTime>(),
+    eventEndStream.where((d) => d != null).cast<DateTime>(),
     (start, end) => (start, end),
   );
 
-  List<EditorAction> getActions() {
+  List<EditorAction> _getActions(Request initialRequest) {
     if (initialRequest.id == null) {
       return _getActionsForNewRequest();
     } else if (initialRequest.status == RequestStatus.pending) {
-      return _getActiosnForPendingRequest();
+      return _getActiosnForPendingRequest(initialRequest);
     } else if (initialRequest.status == RequestStatus.confirmed) {
-      return _getActionsForConfirmedRequest();
+      return _getActionsForConfirmedRequest(initialRequest);
     }
-    return [];
+    throw Exception("Unknown request status! ${initialRequest.status}");
   }
 
   List<EditorAction> _getActionsForNewRequest() {
@@ -119,16 +238,20 @@ class RequestEditorViewModel extends ChangeNotifier {
           );
           var closeMessage = await closeEditor();
           if (closeMessage.isNotEmpty) {
-            return "Could not close editor: $closeMessage";
+            return ActionResult(
+              false,
+              "Could not close editor: $closeMessage",
+              false,
+            );
           }
-          return "Successfully added booking.";
+          return ActionResult(true, "Successfully added booking.", true);
         }
-        return "Failed to add booking.";
+        return ActionResult(false, "Failed to add booking.", false);
       }),
     ];
   }
 
-  List<EditorAction> _getActiosnForPendingRequest() {
+  List<EditorAction> _getActiosnForPendingRequest(Request initialRequest) {
     return [
       EditorAction("Approve", () async {
         var orgID = _orgState.org.id!;
@@ -139,9 +262,13 @@ class RequestEditorViewModel extends ChangeNotifier {
         );
         var closeMessage = await closeEditor();
         if (closeMessage.isNotEmpty) {
-          return "Could not close editor: $closeMessage";
+          return ActionResult(
+            false,
+            "Could not close editor: $closeMessage",
+            false,
+          );
         }
-        return "Booking approved.";
+        return ActionResult(true, "Booking approved.", true);
       }),
       EditorAction("Reject", () async {
         var orgID = _orgState.org.id!;
@@ -152,27 +279,38 @@ class RequestEditorViewModel extends ChangeNotifier {
         );
         var closeMessage = await closeEditor();
         if (closeMessage.isNotEmpty) {
-          return "Could not close editor: $closeMessage";
+          return ActionResult(
+            false,
+            "Could not close editor: $closeMessage",
+            false,
+          );
         }
-        return "Booking rejected.";
+        return ActionResult(true, "Booking rejected.", true);
       }),
     ];
   }
 
-  List<EditorAction> _getActionsForConfirmedRequest() {
+  List<EditorAction> _getActionsForConfirmedRequest(Request initialRequest) {
     List<EditorAction> actions = [];
-    if (readOnly) {
+    if (_editingEnabledSubject.value == false) {
       actions.add(
         EditorAction("Edit", () async {
-          toggleEditing();
-          return "";
+          _editingEnabledSubject.add(true);
+          return ActionResult(true, "Editing enabled.", false);
         }),
       );
     } else {
       actions.add(
         EditorAction("Save", () async {
-          var request = await requestStream().first;
-          var details = await detailsStream().first;
+          var currentData = _currentDataSubject.value;
+          Request? request = currentData.$1;
+          PrivateRequestDetails? details = currentData.$2;
+          if (request == null) {
+            return ActionResult(false, "Invalid request data.", false);
+          }
+          if (details == null) {
+            return ActionResult(false, "Invalid details data.", false);
+          }
 
           await _bookingRepo.updateBooking(
             orgID,
@@ -186,15 +324,15 @@ class RequestEditorViewModel extends ChangeNotifier {
             name: "Booking Updated",
             parameters: {"orgID": orgID},
           );
-          toggleEditing();
-          return "Booking updated.";
+          closeEditor();
+          return ActionResult(true, "Booking updated.", true);
         }),
       );
     }
     actions.add(
       EditorAction("Revisit", () async {
         await _bookingRepo.revisitBookingRequest(orgID, initialRequest);
-        return "Booking request revisited.";
+        return ActionResult(true, "Booking request revisited.", true);
       }),
     );
     actions.add(
@@ -210,9 +348,13 @@ class RequestEditorViewModel extends ChangeNotifier {
         );
         var closeMessage = await closeEditor();
         if (closeMessage.isNotEmpty) {
-          return "Could not close editor: $closeMessage";
+          return ActionResult(
+            false,
+            "Could not close editor: $closeMessage",
+            false,
+          );
         }
-        return "Booking deleted.";
+        return ActionResult(true, "Booking deleted.", true);
       }),
     );
     if ((initialRequest.recurrancePattern?.frequency ?? Frequency.never) !=
@@ -221,6 +363,9 @@ class RequestEditorViewModel extends ChangeNotifier {
       actions.add(
         EditorAction("End", () async {
           var endDate = await eventStartStream.first;
+          if (endDate == null) {
+            return ActionResult(false, "No end date selected!", false);
+          }
           await _bookingRepo.endBooking(orgID, initialRequest.id!, endDate);
           _analyticsService.logEvent(
             name: "Recurring Booking Ended",
@@ -228,9 +373,13 @@ class RequestEditorViewModel extends ChangeNotifier {
           );
           var closeMessage = await closeEditor();
           if (closeMessage.isNotEmpty) {
-            return "Could not close editor: $closeMessage";
+            return ActionResult(
+              false,
+              "Could not close editor: $closeMessage",
+              false,
+            );
           }
-          return "Recurring booking ended.";
+          return ActionResult(true, "Recurring booking ended.", true);
         }),
       );
     }
@@ -238,13 +387,19 @@ class RequestEditorViewModel extends ChangeNotifier {
   }
 
   Future<String> closeEditor() async {
+    /*print("Closing editor, checking for unsaved changes...");
     var request = await requestStream().first;
     var details = await detailsStream().first;
 
-    if (request != initialRequest || details != _initialDetails) {
+    var (initialRequest, initialDetails) = _initialDataSubject.value;
+
+    if (request != initialRequest || details != initialDetails) {
       return "Unsaved changes will be lost. Are you sure you want to close?";
-    }
+    }*/
     // All good, no changes.
+    _cancelCurrentDataSubscription();
+    _closeSubject.add(null);
+    _editingEnabledSubject.add(false);
     return "";
   }
 
@@ -252,8 +407,14 @@ class RequestEditorViewModel extends ChangeNotifier {
     if (!formKey.currentState!.validate()) {
       return false;
     }
-    final request = await requestStream().first;
-    final details = await detailsStream().first;
+
+    var currentData = _currentDataSubject.value;
+    Request? request = currentData.$1;
+    PrivateRequestDetails? details = currentData.$2;
+    if (request == null || details == null) {
+      return false;
+    }
+
     var orgID = _orgState.org.id!;
     if (_orgState.currentUserIsAdmin()) {
       await _bookingRepo.addBooking(orgID, request, details);
@@ -263,22 +424,35 @@ class RequestEditorViewModel extends ChangeNotifier {
     return true;
   }
 
-  Stream<Request> requestStream() {
-    return Rx.combineLatest6(
+  Stream<Request?> get initialRequestStream =>
+      _initialDataSubject.stream.map((data) => data.$1);
+
+  Stream<Request?> _requestStream() {
+    return Rx.combineLatest8(
+      _initialDataSubject.stream.map((data) => data.$1),
       eventStartStream,
       eventEndStream,
-      roomStream,
+      roomIDStream,
+      roomNameStream,
       isPublicStream,
       ignoreOverlapsStream,
       eventNameContoller.textStream,
       (
-        DateTime start,
-        DateTime end,
-        room,
+        Request? initialRequest,
+        DateTime? start,
+        DateTime? end,
+        roomID,
+        roomName,
         isPublic,
         ignoreOverlaps,
         eventName,
       ) {
+        if (initialRequest == null) {
+          return null;
+        }
+        if (start == null || end == null) {
+          return null;
+        }
         return Request(
           id: initialRequest.id,
           status: initialRequest.status,
@@ -286,8 +460,8 @@ class RequestEditorViewModel extends ChangeNotifier {
           recurranceOverrides: initialRequest.recurranceOverrides,
           eventStartTime: start,
           eventEndTime: end,
-          roomID: room.id!,
-          roomName: room.name,
+          roomID: roomID,
+          roomName: roomName,
           publicName: isPublic ? eventName : null,
           ignoreOverlaps: ignoreOverlaps,
         );
@@ -295,7 +469,7 @@ class RequestEditorViewModel extends ChangeNotifier {
     );
   }
 
-  Stream<PrivateRequestDetails> detailsStream() {
+  Stream<PrivateRequestDetails> _detailsStream() {
     return Rx.combineLatest5(
       eventNameContoller.textStream,
       contactNameController.textStream,
@@ -314,18 +488,6 @@ class RequestEditorViewModel extends ChangeNotifier {
     );
   }
 
-  bool showIgnoreOverlapsToggle() {
-    return initialRequest.id != null && _orgState.currentUserIsAdmin();
-  }
-
-  bool showEventLog() {
-    return initialRequest.id != null && _orgState.currentUserIsAdmin();
-  }
-
-  bool showID() {
-    return initialRequest.id != null;
-  }
-
   void useAdminContactInfo() {
     final adminEmail = _authService.getCurrentUserEmail() ?? "";
     updateContactName("Org Admin");
@@ -342,7 +504,8 @@ class RequestEditorViewModel extends ChangeNotifier {
   }
 
   void updateRoom(Room newRoom) {
-    _roomSubject.add(newRoom);
+    _roomIDSubject.add(newRoom.id!);
+    _roomNameSubject.add(newRoom.name);
   }
 
   void updateIsPublic(bool isPublic) {
@@ -377,8 +540,17 @@ class RequestEditorViewModel extends ChangeNotifier {
   void dispose() {
     _eventStartSubject.close();
     _eventEndSubject.close();
-    _roomSubject.close();
+    _roomIDSubject.close();
+    _roomNameSubject.close();
     _isPublicSubject.close();
+    _ignoreOverlapsSubject.close();
+    _closeSubject.close();
+    _initialDataSubject.close();
+    _editingEnabledSubject.close();
+    _currentDataSubject.close();
+    for (var s in _subscriptions) {
+      s.cancel();
+    }
     super.dispose();
   }
 }

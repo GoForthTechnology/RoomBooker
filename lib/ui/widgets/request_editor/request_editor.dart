@@ -11,26 +11,34 @@ import 'package:room_booker/ui/widgets/time_field.dart';
 import 'logs_widget.dart';
 
 class RequestEditor extends StatelessWidget {
-  const RequestEditor({super.key});
+  final VoidCallback? onClose;
+
+  const RequestEditor({super.key, this.onClose});
 
   @override
   Widget build(BuildContext context) {
     var orgState = Provider.of<OrgState>(context, listen: false);
     var localizations = MaterialLocalizations.of(context);
     return Consumer2<RoomState, RequestEditorViewModel>(
-      builder: (context, roomState, viewModel, child) {
-        var formContents = Column(
-          children: [
-            _title(viewModel, context),
-            _roomSelector(viewModel),
-            _eventNameSelector(viewModel),
-            _isPublicSelector(viewModel),
-            if (viewModel.showIgnoreOverlapsToggle())
-              _ignoreOverlapsSelector(viewModel)!,
-            _eventDateSelector(viewModel),
-            _eventStartTimeSelector(viewModel, localizations),
-            _eventEndTimeSelector(viewModel, localizations),
-            /*RepeatBookingsSelector(
+      builder: (context, roomState, viewModel, child) => StreamBuilder(
+        stream: viewModel.viewStateStream,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          var state = snapshot.data!;
+          var formContents = Column(
+            children: [
+              _title(viewModel, context),
+              _roomSelector(viewModel, state.readOnly),
+              _eventNameSelector(viewModel, state.readOnly),
+              _isPublicSelector(viewModel, state.readOnly),
+              if (state.showIgnoreOverlapsToggle)
+                _ignoreOverlapsSelector(viewModel, state.readOnly)!,
+              _eventDateSelector(viewModel, state.readOnly),
+              _eventStartTimeSelector(viewModel, localizations, state.readOnly),
+              _eventEndTimeSelector(viewModel, localizations, state.readOnly),
+              /*RepeatBookingsSelector(
               readOnly: readOnly,
               startTime: state.startTime!,
               isCustom: state.isCustomRecurrencePattern,
@@ -51,7 +59,7 @@ class RequestEditor extends StatelessWidget {
               toggleDay: state.toggleWeekday,
               frequency: state.recurrancePattern.frequency,
             ),*/
-            /*if (state.recurrancePattern.frequency != Frequency.never)
+              /*if (state.recurrancePattern.frequency != Frequency.never)
               DateField(
                 initialValue: state.recurrancePattern.end,
                 labelText: "End on or before",
@@ -59,26 +67,28 @@ class RequestEditor extends StatelessWidget {
                 readOnly: readOnly,
                 clearable: true,
               ),*/
-            const Divider(),
-            _contactNameSelector(viewModel),
-            _contactEmailSelector(viewModel),
-            _contactPhoneSelector(viewModel),
-            if (orgState.currentUserIsAdmin())
-              _adminContactInfoButton(viewModel, orgState)!,
-            const Divider(),
-            _additionalInfoSelector(viewModel),
-            if (viewModel.showID()) _requestIDField(viewModel)!,
-            if (viewModel.showEventLog()) _requestLogWidget(viewModel)!,
-            _getButtons(viewModel, context),
-          ],
-        );
-        return SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(4),
-            child: Form(key: viewModel.formKey, child: formContents),
-          ),
-        );
-      },
+              const Divider(),
+              _contactNameSelector(viewModel, state.readOnly),
+              _contactEmailSelector(viewModel, state.readOnly),
+              _contactPhoneSelector(viewModel, state.readOnly),
+              if (orgState.currentUserIsAdmin())
+                _adminContactInfoButton(viewModel, orgState, state.readOnly)!,
+              const Divider(),
+              _additionalInfoSelector(viewModel, state.readOnly),
+              if (state.showID) _requestIDField(viewModel)!,
+              if (state.showEventLog)
+                _requestLogWidget(viewModel, state.readOnly)!,
+              _getButtons(state, context),
+            ],
+          );
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Form(key: viewModel.formKey, child: formContents),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -88,37 +98,40 @@ class RequestEditor extends StatelessWidget {
       actions: [
         IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => viewModel.closeEditor(),
+          onPressed: () async {
+            await viewModel.closeEditor();
+            if (onClose != null) {
+              onClose!();
+            }
+          },
         ),
       ],
       automaticallyImplyLeading: false,
     );
   }
 
-  Widget _roomSelector(RequestEditorViewModel viewModel) {
+  Widget _roomSelector(RequestEditorViewModel viewModel, bool readOnly) {
     return RoomDropdownSelector(
-      readOnly: viewModel.readOnly,
+      readOnly: readOnly,
       orgID: viewModel.orgID,
       onChanged: (room) {
         if (room != null) {
           viewModel.updateRoom(room);
         }
       },
-      initialRoomID: viewModel.initialRequest.roomID,
     );
   }
 
-  Widget _eventNameSelector(RequestEditorViewModel viewModel) {
+  Widget _eventNameSelector(RequestEditorViewModel viewModel, bool readOnly) {
     return SimpleTextFormField(
-      readOnly: viewModel.readOnly,
+      readOnly: readOnly,
       controller: viewModel.eventNameContoller,
       labelText: "Event Name",
       validationMessage: "Please provide a name",
-      onChanged: viewModel.updateEventName,
     );
   }
 
-  Widget _isPublicSelector(RequestEditorViewModel viewModel) {
+  Widget _isPublicSelector(RequestEditorViewModel viewModel, bool readOnly) {
     return StreamBuilder(
       stream: viewModel.isPublicStream,
       builder: (context, snapshot) {
@@ -126,16 +139,16 @@ class RequestEditor extends StatelessWidget {
         return SwitchListTile(
           title: Text("Show name on parish calendar"),
           value: isPublic,
-          onChanged: viewModel.readOnly ? null : viewModel.updateIsPublic,
+          onChanged: readOnly ? null : viewModel.updateIsPublic,
         );
       },
     );
   }
 
-  Widget? _ignoreOverlapsSelector(RequestEditorViewModel viewModel) {
-    if (!viewModel.showIgnoreOverlapsToggle()) {
-      return null;
-    }
+  Widget? _ignoreOverlapsSelector(
+    RequestEditorViewModel viewModel,
+    bool readOnly,
+  ) {
     return StreamBuilder(
       stream: viewModel.ignoreOverlapsStream,
       builder: (context, snapshot) {
@@ -143,20 +156,20 @@ class RequestEditor extends StatelessWidget {
         return SwitchListTile(
           title: Text("Ignore overlapping events"),
           value: isIgnoreOverlaps,
-          onChanged: viewModel.readOnly ? null : viewModel.updateIgnoreOverlaps,
+          onChanged: readOnly ? null : viewModel.updateIgnoreOverlaps,
         );
       },
     );
   }
 
-  Widget _eventDateSelector(RequestEditorViewModel viewModel) {
+  Widget _eventDateSelector(RequestEditorViewModel viewModel, bool readOnly) {
     return StreamBuilder(
       stream: viewModel.eventStartStream,
       builder: (context, snapshot) {
         var startTime = snapshot.data;
         return DateField(
           initialValue: startTime,
-          readOnly: viewModel.readOnly,
+          readOnly: readOnly,
           labelText: 'Event Date',
           validationMessage: 'Please select a date',
           onChanged: (newDate) {
@@ -178,6 +191,7 @@ class RequestEditor extends StatelessWidget {
   Widget _eventStartTimeSelector(
     RequestEditorViewModel viewModel,
     MaterialLocalizations localizations,
+    bool readOnly,
   ) {
     return StreamBuilder<(DateTime, DateTime)>(
       stream: viewModel.eventTimeStream,
@@ -187,7 +201,7 @@ class RequestEditor extends StatelessWidget {
           return const SizedBox.shrink();
         }
         return TimeField(
-          readOnly: viewModel.readOnly,
+          readOnly: readOnly,
           labelText: 'Start Time',
           initialValue: TimeOfDay.fromDateTime(startTime),
           localizations: localizations,
@@ -213,6 +227,7 @@ class RequestEditor extends StatelessWidget {
   Widget _eventEndTimeSelector(
     RequestEditorViewModel viewModel,
     MaterialLocalizations localizations,
+    bool readOnly,
   ) {
     return StreamBuilder<(DateTime, DateTime)>(
       stream: viewModel.eventTimeStream,
@@ -222,7 +237,7 @@ class RequestEditor extends StatelessWidget {
           return const SizedBox.shrink();
         }
         return TimeField(
-          readOnly: viewModel.readOnly,
+          readOnly: readOnly,
           labelText: 'End Time',
           initialValue: TimeOfDay.fromDateTime(endTime),
           localizations: localizations,
@@ -242,9 +257,9 @@ class RequestEditor extends StatelessWidget {
     );
   }
 
-  Widget _contactNameSelector(RequestEditorViewModel viewModel) {
+  Widget _contactNameSelector(RequestEditorViewModel viewModel, bool readOnly) {
     return SimpleTextFormField(
-      readOnly: viewModel.readOnly,
+      readOnly: readOnly,
       controller: viewModel.contactNameController,
       labelText: "Your Name",
       validationMessage: "Please provide your name",
@@ -252,9 +267,12 @@ class RequestEditor extends StatelessWidget {
     );
   }
 
-  Widget _contactEmailSelector(RequestEditorViewModel viewModel) {
+  Widget _contactEmailSelector(
+    RequestEditorViewModel viewModel,
+    bool readOnly,
+  ) {
     return SimpleTextFormField(
-      readOnly: viewModel.readOnly,
+      readOnly: readOnly,
       controller: viewModel.contactEmailController,
       labelText: "Your Email",
       validationMessage: "Please provide your email",
@@ -265,9 +283,12 @@ class RequestEditor extends StatelessWidget {
     );
   }
 
-  Widget _contactPhoneSelector(RequestEditorViewModel viewModel) {
+  Widget _contactPhoneSelector(
+    RequestEditorViewModel viewModel,
+    bool readOnly,
+  ) {
     return SimpleTextFormField(
-      readOnly: viewModel.readOnly,
+      readOnly: readOnly,
       controller: viewModel.phoneNumberController,
       labelText: "Your Phone Number",
       validationMessage: "Please provide your phone number",
@@ -278,21 +299,27 @@ class RequestEditor extends StatelessWidget {
   Widget? _adminContactInfoButton(
     RequestEditorViewModel viewModel,
     OrgState orgState,
+    bool readOnly,
   ) {
     if (!orgState.currentUserIsAdmin()) {
       return null;
     }
     return ElevatedButton(
-      onPressed: () {
-        viewModel.useAdminContactInfo();
-      },
+      onPressed: readOnly
+          ? null
+          : () {
+              viewModel.useAdminContactInfo();
+            },
       child: Text("Use My Info"),
     );
   }
 
-  Widget _additionalInfoSelector(RequestEditorViewModel viewModel) {
+  Widget _additionalInfoSelector(
+    RequestEditorViewModel viewModel,
+    bool readOnly,
+  ) {
     return SimpleTextFormField(
-      readOnly: viewModel.readOnly,
+      readOnly: readOnly,
       controller: viewModel.additionalInfoController,
       labelText: "Additional Info",
       onChanged: viewModel.updateAdditionalInfo,
@@ -300,9 +327,6 @@ class RequestEditor extends StatelessWidget {
   }
 
   Widget? _requestIDField(RequestEditorViewModel viewModel) {
-    if (!viewModel.showID()) {
-      return null;
-    }
     return SimpleTextFormField(
       readOnly: true,
       controller: viewModel.idController,
@@ -310,31 +334,42 @@ class RequestEditor extends StatelessWidget {
     );
   }
 
-  Widget? _requestLogWidget(RequestEditorViewModel viewModel) {
-    if (!viewModel.showEventLog()) {
-      return null;
-    }
+  Widget? _requestLogWidget(RequestEditorViewModel viewModel, bool readOnly) {
     return Consumer<OrgState>(
-      builder: (context, orgState, child) => LogsWidget(
-        org: orgState.org,
-        requestID: viewModel.initialRequest.id!,
+      builder: (context, orgState, child) => FutureBuilder(
+        future: viewModel.currentDataStream().first,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData || snapshot.data!.$1 == null) {
+            return const SizedBox.shrink();
+          }
+          var request = snapshot.data!.$1!;
+          return LogsWidget(
+            org: orgState.org,
+            requestID: request.id!,
+            readOnly: readOnly,
+          );
+        },
       ),
     );
   }
 
-  Widget _getButtons(RequestEditorViewModel viewModel, BuildContext context) {
+  Widget _getButtons(EditorViewState viewState, BuildContext context) {
     var messenger = ScaffoldMessenger.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.max,
-      children: viewModel
-          .getActions()
+      children: viewState.actions
           .map(
             (action) => ElevatedButton(
               onPressed: () async {
-                var message = await action.onPressed();
-                if (message.isNotEmpty) {
-                  messenger.showSnackBar(SnackBar(content: Text(message)));
+                var result = await action.onPressed();
+                if (result.message.isNotEmpty) {
+                  messenger.showSnackBar(
+                    SnackBar(content: Text(result.message)),
+                  );
+                }
+                if (result.shouldCloseEditor && onClose != null) {
+                  onClose!();
                 }
               },
               child: Text(action.title),

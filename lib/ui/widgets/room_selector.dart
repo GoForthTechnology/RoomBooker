@@ -12,10 +12,13 @@ class RoomState extends ChangeNotifier {
   final Set<String> _activeIDs;
 
   RoomState(List<Room> rooms, Set<Room> activeRooms, this.globalRoomID)
-      : _rooms = Map.fromEntries(rooms.map((r) => MapEntry(r.id!, r))),
-        _activeIDs = activeRooms.map((r) => r.id!).toSet();
+    : _rooms = Map.fromEntries(rooms.map((r) => MapEntry(r.id!, r))),
+      _activeIDs = activeRooms.map((r) => r.id!).toSet();
 
   Color color(String roomID) {
+    if (roomID.isEmpty) {
+      throw ArgumentError("Room ID cannot be empty");
+    }
     if (roomID == globalRoomID) {
       return Colors.black; // Global room color
     }
@@ -90,27 +93,28 @@ class RoomStateProvider extends StatelessWidget {
   final bool enableAllRooms;
   final Widget Function(BuildContext, Widget?) builder;
 
-  const RoomStateProvider(
-      {super.key,
-      required this.org,
-      required this.builder,
-      this.enableAllRooms = false});
+  const RoomStateProvider({
+    super.key,
+    required this.org,
+    required this.builder,
+    this.enableAllRooms = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     var roomRepo = Provider.of<RoomRepo>(context, listen: false);
     return FutureBuilder(
-        future: roomRepo.listRooms(org.id!).first,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const CircularProgressIndicator();
-          }
-          var rooms = snapshot.data!;
-          var activeRooms = enableAllRooms ? rooms.toSet() : {rooms.first};
-          var roomState = RoomState(rooms, activeRooms, org.globalRoomID);
-          return ChangeNotifierProvider.value(
-              value: roomState, builder: builder);
-        });
+      future: roomRepo.listRooms(org.id!).first,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const CircularProgressIndicator();
+        }
+        var rooms = snapshot.data!;
+        var activeRooms = enableAllRooms ? rooms.toSet() : {rooms.first};
+        var roomState = RoomState(rooms, activeRooms, org.globalRoomID);
+        return ChangeNotifierProvider.value(value: roomState, builder: builder);
+      },
+    );
   }
 }
 
@@ -120,29 +124,33 @@ class RoomCardSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer<RoomState>(
-        builder: (context, state, child) => SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                const Text("Active Rooms:"),
-                ...state
-                    .allRooms(includeGlobalRoom: true)
-                    .mapIndexed((i, e) => RoomCard(
-                          color: !state.isEnabled(e.id!)
-                              ? Colors.grey
-                              : state.color(e.id!),
-                          room: e,
-                          onClick: (room) {
-                            state.toggleRoom(room);
-                          },
-                          onDoubleTap: (room) {
-                            state.toggleSolorRoom(room);
-                          },
-                        )),
-              ],
-            )));
+      builder: (context, state, child) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            const Text("Active Rooms:"),
+            ...state
+                .allRooms(includeGlobalRoom: true)
+                .mapIndexed(
+                  (i, e) => RoomCard(
+                    color: !state.isEnabled(e.id!)
+                        ? Colors.grey
+                        : state.color(e.id!),
+                    room: e,
+                    onClick: (room) {
+                      state.toggleRoom(room);
+                    },
+                    onDoubleTap: (room) {
+                      state.toggleSolorRoom(room);
+                    },
+                  ),
+                ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -152,12 +160,13 @@ class RoomCard extends StatelessWidget {
   final Function(Room) onClick;
   final Function(Room) onDoubleTap;
 
-  const RoomCard(
-      {super.key,
-      required this.color,
-      required this.room,
-      required this.onClick,
-      required this.onDoubleTap});
+  const RoomCard({
+    super.key,
+    required this.color,
+    required this.room,
+    required this.onClick,
+    required this.onDoubleTap,
+  });
 
   @override
   Widget build(BuildContext context) {

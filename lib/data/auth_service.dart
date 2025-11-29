@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 abstract class AuthService {
   String? getCurrentUserID();
   String? getCurrentUserEmail();
+  void logout();
 }
 
 class FirebaseAuthService extends ChangeNotifier implements AuthService {
@@ -15,5 +16,10 @@ class FirebaseAuthService extends ChangeNotifier implements AuthService {
   @override
   String? getCurrentUserID() {
     return FirebaseAuth.instance.currentUser?.uid;
+  }
+
+  @override
+  void logout() {
+    FirebaseAuth.instance.signOut();
   }
 }

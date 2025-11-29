@@ -10,27 +10,6 @@ import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
-class CalendarViewState {
-  final bool allowAppointmentResize;
-  final bool allowDragAndDrop;
-  final CalendarDataSource dataSource;
-  final List<TimeRegion> specialRegions;
-
-  CalendarViewState({
-    required this.allowAppointmentResize,
-    required this.allowDragAndDrop,
-    required this.specialRegions,
-    required this.dataSource,
-  });
-}
-
-class VisibleWindow {
-  final DateTime start;
-  final DateTime end;
-
-  VisibleWindow({required this.start, required this.end});
-}
-
 class CalendarViewModel extends ChangeNotifier {
   final CalendarController controller = CalendarController();
 
@@ -38,8 +17,15 @@ class CalendarViewModel extends ChangeNotifier {
       BehaviorSubject();
   final BehaviorSubject<Map<String, Request>> _requestIndex = BehaviorSubject();
 
-  final Function(Request)? onRequestTap;
-  final Function(DateTapDetails)? onDateTap;
+  final BehaviorSubject<Appointment?> _newAppointmentSubject =
+      BehaviorSubject.seeded(null);
+
+  final PublishSubject<DateTapDetails> _dateTapSubject = PublishSubject();
+  Stream<DateTapDetails> get dateTapStream => _dateTapSubject.stream;
+
+  final PublishSubject<Request> _requestTapSubject = PublishSubject();
+  Stream<Request> get requestTapStream => _requestTapSubject.stream;
+
   final Function(DragDetails)? onDragEnd;
   final Function(ResizeDetails)? onResizeEnd;
 
@@ -53,7 +39,6 @@ class CalendarViewModel extends ChangeNotifier {
   final bool showIgnoringOverlaps;
   final bool allowViewNavigation;
   final List<CalendarView> allowedViews;
-  final Stream<Appointment?> _newAppointment;
 
   bool initialized = false;
 
@@ -68,7 +53,6 @@ class CalendarViewModel extends ChangeNotifier {
     CalendarView defaultView = CalendarView.week,
     bool allowAppointmentResize = false,
     bool allowDragAndDrop = false,
-    Stream<Appointment?>? newAppointment,
     DateTime? targetDate,
     this.includePrivateBookings = false,
     this.showNavigationArrow = false,
@@ -77,10 +61,8 @@ class CalendarViewModel extends ChangeNotifier {
     this.appendRoomName = false,
     this.showIgnoringOverlaps = false,
     this.allowViewNavigation = false,
-    this.onDateTap,
     this.onDragEnd,
     this.onResizeEnd,
-    this.onRequestTap,
     this.allowedViews = const [
       CalendarView.day,
       CalendarView.week,
@@ -91,9 +73,7 @@ class CalendarViewModel extends ChangeNotifier {
        _allowDragAndDrop = allowDragAndDrop,
        _bookingRepo = bookingRepo,
        _orgState = orgState,
-       _roomState = roomState,
-       _newAppointment = (newAppointment ?? Stream.value(null))
-           .asBroadcastStream() {
+       _roomState = roomState {
     controller.view = defaultView;
     controller.displayDate = targetDate ?? DateTime.now();
     var currentWindow = VisibleWindow(start: startOfView, end: endOfView);
@@ -114,13 +94,35 @@ class CalendarViewModel extends ChangeNotifier {
     );
   }
 
+  StreamSubscription? _newAppointmentSubscription;
+
+  void registerNewAppointmentStream(
+    Stream<(Request?, PrivateRequestDetails?)> stream,
+  ) {
+    if (_newAppointmentSubscription != null) {
+      _newAppointmentSubscription!.cancel();
+    }
+    _newAppointmentSubscription = stream.listen((data) {
+      var request = data.$1;
+      var details = data.$2;
+      var appointment = request?.toAppointment(
+        subject: details?.eventName,
+        _roomState,
+        diminish: false,
+        appendRoomName: appendRoomName,
+        showIngnoringOverlaps: showIgnoringOverlaps,
+      );
+      _newAppointmentSubject.add(appointment);
+    });
+  }
+
   Stream<CalendarViewState> _viewStateStream(
     BookingRepo bookingRepo,
     OrgState orgState,
     RoomState roomState,
   ) {
     return Rx.combineLatest3(
-      _newAppointment.startWith(null),
+      _newAppointmentSubject.stream.distinct(),
       _buildAppointmentStream(
         bookingRepo,
         orgState,
@@ -131,7 +133,15 @@ class CalendarViewModel extends ChangeNotifier {
           .startWith(const []),
       (newAppointment, appointments, blackoutWindows) {
         List<Appointment> out = [];
+        if (newAppointment != null) {
+          out.add(newAppointment);
+        }
         for (var appointment in appointments.keys) {
+          if (newAppointment != null &&
+              _isSameAs(appointment, newAppointment)) {
+            // Skip the new appointment to avoid duplication
+            continue;
+          }
           out.add(appointment);
         }
         return CalendarViewState(
@@ -150,30 +160,28 @@ class CalendarViewModel extends ChangeNotifier {
     OrgState orgState,
     RoomState roomState,
   ) {
-    return Rx.combineLatest2(
-      _visibleWindowController,
-      _newAppointment.startWith(null),
-      (window, newAppointment) => bookingRepo
+    return _visibleWindowController.distinct().switchMap(
+      (window) => bookingRepo
           .listRequests(
             orgID: orgState.org.id!,
             startTime: window.start,
             endTime: window.end,
             includeStatuses: {RequestStatus.pending, RequestStatus.confirmed},
           )
-          .flatMap(
+          .switchMap(
             (requests) => _detailStream(orgState, requests, bookingRepo)
-                .startWith([])
                 .map(
                   (details) => _convertRequests(
                     requests,
                     details,
                     window,
                     roomState,
-                    newAppointment,
+                    _newAppointmentSubject.valueOrNull,
                   ),
-                ),
+                )
+                .startWith({}),
           ),
-    ).flatMap((s) => s).startWith({});
+    );
   }
 
   Map<Appointment, Request> _convertRequests(
@@ -397,16 +405,20 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   void _handleRequestTap(CalendarTapDetails details) {
-    if (onRequestTap == null) {
-      return;
-    }
     for (var appointment in details.appointments ?? []) {
       var request = _requestIndex.valueOrNull?[_appointmentID(appointment)];
       if (request == null) {
         log("Appointment not found in state");
         continue;
       }
-      onRequestTap!(request);
+      _requestTapSubject.add(
+        // This could be a repeated request, so we create a new copy with
+        // the correct start and end time.
+        request.copyWith(
+          eventStartTime: appointment.startTime,
+          eventEndTime: appointment.endTime,
+        ),
+      );
     }
   }
 
@@ -414,9 +426,7 @@ class CalendarViewModel extends ChangeNotifier {
     if (date == null) {
       return;
     }
-    if (onDateTap != null) {
-      onDateTap!(DateTapDetails(date: date, view: controller.view!));
-    }
+    _dateTapSubject.add(DateTapDetails(date: date, view: controller.view!));
   }
 }
 
@@ -465,6 +475,25 @@ extension on BlackoutWindow {
   }
 }
 
+bool _isSameAs(Appointment a, Appointment b) {
+  return _id(a) == _id(b) &&
+      a.startTime == b.startTime &&
+      a.endTime == b.endTime;
+}
+
+String? _id(Appointment appointment) {
+  var ids = appointment.resourceIds;
+  if (ids == null) {
+    return null;
+  }
+  if (ids.isEmpty) {
+    return null;
+  }
+  return ids.first.toString();
+}
+
+extension on Appointment {}
+
 DateTime stripTime(DateTime date) {
   return DateTime(date.year, date.month, date.day);
 }
@@ -496,4 +525,41 @@ extension on Request {
       resourceIds: [id!],
     );
   }
+}
+
+class CalendarViewState {
+  final bool allowAppointmentResize;
+  final bool allowDragAndDrop;
+  final CalendarDataSource dataSource;
+  final List<TimeRegion> specialRegions;
+
+  CalendarViewState({
+    required this.allowAppointmentResize,
+    required this.allowDragAndDrop,
+    required this.specialRegions,
+    required this.dataSource,
+  });
+}
+
+class VisibleWindow {
+  final DateTime start;
+  final DateTime end;
+
+  VisibleWindow({required this.start, required this.end});
+
+  @override
+  String toString() {
+    return "VisibleWindow(start: $start, end: $end)";
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! VisibleWindow) {
+      return false;
+    }
+    return start == other.start && end == other.end;
+  }
+
+  @override
+  int get hashCode => Object.hash(start, end);
 }

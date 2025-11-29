@@ -6,8 +6,14 @@ import 'package:room_booker/ui/widgets/request_logs_widget.dart';
 class LogsWidget extends StatelessWidget {
   final Organization org;
   final String requestID;
+  final bool readOnly;
 
-  const LogsWidget({super.key, required this.org, required this.requestID});
+  const LogsWidget({
+    super.key,
+    required this.org,
+    required this.requestID,
+    required this.readOnly,
+  });
 
   static final dateFormat = DateFormat('MM/dd/yyyy');
   static final timeFormat = DateFormat('HH:mm');
@@ -16,6 +22,7 @@ class LogsWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return ExpansionTile(
       title: Text("Request Log"),
+      enabled: !readOnly,
       children: [
         RequestLogsWidget(
           org: org,
