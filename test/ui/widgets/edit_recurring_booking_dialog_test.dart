@@ -20,12 +20,10 @@ void main() {
       expect(find.text('OK'), findsOneWidget);
 
       // Check default selection
-      final radio = tester.widget<Radio<RecurringBookingEditChoice>>(
-        find.byWidgetPredicate((widget) =>
-            widget is Radio<RecurringBookingEditChoice> &&
-            widget.value == RecurringBookingEditChoice.thisInstance),
+      final radioGroup = tester.widget<RadioGroup<RecurringBookingEditChoice>>(
+        find.byType(RadioGroup<RecurringBookingEditChoice>),
       );
-      expect(radio.groupValue, RecurringBookingEditChoice.thisInstance);
+      expect(radioGroup.groupValue, RecurringBookingEditChoice.thisInstance);
     });
 
     testWidgets('allows changing selection', (tester) async {
@@ -40,12 +38,10 @@ void main() {
       await tester.pump();
 
       // Check updated selection
-      final radio = tester.widget<Radio<RecurringBookingEditChoice>>(
-        find.byWidgetPredicate((widget) =>
-            widget is Radio<RecurringBookingEditChoice> &&
-            widget.value == RecurringBookingEditChoice.all),
+      final radioGroup = tester.widget<RadioGroup<RecurringBookingEditChoice>>(
+        find.byType(RadioGroup<RecurringBookingEditChoice>),
       );
-      expect(radio.groupValue, RecurringBookingEditChoice.all);
+      expect(radioGroup.groupValue, RecurringBookingEditChoice.all);
     });
 
     testWidgets('returns null when Cancel is pressed', (tester) async {
