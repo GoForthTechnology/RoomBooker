@@ -1,6 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:room_booker/data/entities/log_entry.dart';
+import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
@@ -18,945 +20,165 @@ class MockBookingFilterViewModel extends Mock
     implements BookingFilterViewModel {}
 
 void main() {
-  late BookingListViewModel viewModel;
   late MockBookingRepo mockBookingRepo;
   late MockLogRepo mockLogRepo;
   late MockRoomState mockRoomState;
-  late MockBookingFilterViewModel mockBookingFilterViewModel;
+  late MockBookingFilterViewModel mockFilterViewModel;
+  late BookingListViewModel viewModel;
+
+  final orgID = 'org1';
+  final statusList = [RequestStatus.pending];
+  final room = Room(name: 'Room A', id: 'room1');
+  final request = Request(
+    id: 'req1',
+    roomID: 'room1',
+    roomName: 'Room A',
+    eventStartTime: DateTime.now(),
+    eventEndTime: DateTime.now().add(Duration(hours: 1)),
+    status: RequestStatus.pending,
+  );
+  final requestDetails = PrivateRequestDetails(
+    id: 'req1',
+    name: 'John Doe',
+    email: 'john@example.com',
+    phone: '1234567890',
+    eventName: 'Meeting',
+  );
 
   setUp(() {
     mockBookingRepo = MockBookingRepo();
     mockLogRepo = MockLogRepo();
     mockRoomState = MockRoomState();
-    mockBookingFilterViewModel = MockBookingFilterViewModel();
+    mockFilterViewModel = MockBookingFilterViewModel();
 
-    when(() => mockBookingFilterViewModel.searchQuery).thenReturn('');
+    when(() => mockRoomState.enabledValues()).thenReturn({room});
+    when(() => mockFilterViewModel.searchQuery).thenReturn('');
+    when(() => mockFilterViewModel.addListener(any())).thenReturn(null);
+    when(() => mockFilterViewModel.removeListener(any())).thenReturn(null);
+
+    // Default empty stream
     when(
-      () => mockBookingFilterViewModel.addListener(any()),
-    ).thenAnswer((_) {});
+      () => mockBookingRepo.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+        includeStatuses: any(named: 'includeStatuses'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
   });
 
-  group('BookingListViewModel', () {
-    test('initializes with empty list of requests', () {
-      // Arrange
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.value([]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
-
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.pending],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-      );
-
-      // Assert
-      expect(viewModel.renderedRequests, emits([]));
-    });
-
-    test('emits rendered requests', () {
-      // Arrange
-      final request = Request(
-        id: 'req_1',
-        roomID: 'room_1',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Test Room',
-      );
-      final details = PrivateRequestDetails(
-        id: 'req_1',
-        eventName: 'Test Event',
-        name: 'Test User',
-        email: 'test@test.com',
-        phone: '12345',
-      );
-
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.value([request]));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_1'),
-      ).thenAnswer((_) => Stream.value(details));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_1'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
-
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-      );
-
-      // Assert
-      expect(
-        viewModel.renderedRequests,
-        emits(
-          isA<List<RenderedRequest>>().having((p0) => p0.length, 'length', 1),
-        ),
-      );
-    });
-
-    test('filters requests by eventName', () async {
-      // Arrange
-      final request1 = Request(
-        id: 'req_1',
-        roomID: 'room_1',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room A',
-      );
-      final request2 = Request(
-        id: 'req_2',
-        roomID: 'room_2',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room B',
-      );
-      final details1 = PrivateRequestDetails(
-        id: 'req_1',
-        eventName: 'Meeting with John',
-        name: 'Test User',
-        email: 'test@test.com',
-        phone: '12345',
-      );
-      final details2 = PrivateRequestDetails(
-        id: 'req_2',
-        eventName: 'Team Sync',
-        name: 'Test User',
-        email: 'test@test.com',
-        phone: '12345',
-      );
-
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.value([request1, request2]));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_1'),
-      ).thenAnswer((_) => Stream.value(details1));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_2'),
-      ).thenAnswer((_) => Stream.value(details2));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_1'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_2'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
-      when(() => mockBookingFilterViewModel.searchQuery).thenReturn('john');
-
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-      );
-
-      // Assert
-      await expectLater(
-        viewModel.renderedRequests,
-        emits(
-          isA<List<RenderedRequest>>()
-              .having((p0) => p0.length, 'length', 1)
-              .having((p0) => p0.first.request.id, 'first request id', 'req_1'),
-        ),
-      );
-    });
-
-    test('filters requests by roomName', () async {
-      // Arrange
-      final request1 = Request(
-        id: 'req_1',
-        roomID: 'room_1',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room A',
-      );
-      final request2 = Request(
-        id: 'req_2',
-        roomID: 'room_2',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room B',
-      );
-      final details1 = PrivateRequestDetails(
-        id: 'req_1',
-        eventName: 'Meeting with John',
-        name: 'Test User',
-        email: 'test@test.com',
-        phone: '12345',
-      );
-      final details2 = PrivateRequestDetails(
-        id: 'req_2',
-        eventName: 'Team Sync',
-        name: 'Test User',
-        email: 'test@test.com',
-        phone: '12345',
-      );
-
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.value([request1, request2]));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_1'),
-      ).thenAnswer((_) => Stream.value(details1));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_2'),
-      ).thenAnswer((_) => Stream.value(details2));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_1'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_2'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
-      when(() => mockBookingFilterViewModel.searchQuery).thenReturn('room a');
-
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-      );
-
-      // Assert
-      await expectLater(
-        viewModel.renderedRequests,
-        emits(
-          isA<List<RenderedRequest>>()
-              .having((p0) => p0.length, 'length', 1)
-              .having((p0) => p0.first.request.id, 'first request id', 'req_1'),
-        ),
-      );
-    });
-
-    test('uses override requests', () {
-      // Arrange
-      final request1 = Request(
-        id: 'req_1',
-        roomID: 'room_1',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Test Room',
-      );
-      final details1 = PrivateRequestDetails(
-        id: 'req_1',
-        eventName: 'Test Event 1',
-        name: 'Test User',
-        email: 'test@test.com',
-        phone: '12345',
-      );
-
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_1'),
-      ).thenAnswer((_) => Stream.value(details1));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_1'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
-
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        overrideRequests: [request1],
-        filterViewModel: mockBookingFilterViewModel,
-      );
-
-      // Assert
-      expect(
-        viewModel.renderedRequests,
-        emits(
-          isA<List<RenderedRequest>>().having((p0) => p0.length, 'length', 1),
-        ),
-      );
-      verifyNever(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      );
-    });
-
-    test('sorts requests by event start time', () {
-      // Arrange
-      final request1 = Request(
-        id: 'req_1',
-        roomID: 'room_1',
-        eventStartTime: DateTime.now().add(const Duration(hours: 1)),
-        eventEndTime: DateTime.now().add(const Duration(hours: 2)),
-        status: RequestStatus.confirmed,
-        roomName: 'Test Room',
-      );
-      final request2 = Request(
-        id: 'req_2',
-        roomID: 'room_2',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Test Room',
-      );
-      final details1 = PrivateRequestDetails(
-        id: 'req_1',
-        eventName: 'Test Event 1',
-        name: 'Test User',
-        email: 'test@test.com',
-        phone: '12345',
-      );
-      final details2 = PrivateRequestDetails(
-        id: 'req_2',
-        eventName: 'Test Event 2',
-        name: 'Test User',
-        email: 'test@test.com',
-        phone: '12345',
-      );
-
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.value([request1, request2]));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_1'),
-      ).thenAnswer((_) => Stream.value(details1));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_2'),
-      ).thenAnswer((_) => Stream.value(details2));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_1'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_2'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
-
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-      );
-
-      // Assert
-      expect(
-        viewModel.renderedRequests,
-        emits(
-          isA<List<RenderedRequest>>()
-              .having((p0) => p0.length, 'length', 2)
-              .having((p0) => p0[0].request.id, 'first request id', 'req_2')
-              .having((p0) => p0[1].request.id, 'second request id', 'req_1'),
-        ),
-      );
-    });
-
-    test('correctly associates log entries with requests', () async {
-      // Arrange
-      final request1 = Request(
-        id: 'req_1',
-        roomID: 'room_1',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room A',
-      );
-      final request2 = Request(
-        id: 'req_2',
-        roomID: 'room_2',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room B',
-      );
-      final details1 = PrivateRequestDetails(
-        id: 'req_1',
-        eventName: 'Event 1',
-        name: 'User 1',
-        email: '',
-        phone: '',
-      );
-      final details2 = PrivateRequestDetails(
-        id: 'req_2',
-        eventName: 'Event 2',
-        name: 'User 2',
-        email: '',
-        phone: '',
-      );
-      final logEntry1 = RequestLogEntry(
-        requestID: 'req_1',
-        action: Action.create,
-        timestamp: DateTime.now(),
-      );
-      final logEntry2 = RequestLogEntry(
-        requestID: 'req_2',
-        action: Action.approve,
-        timestamp: DateTime.now(),
-      );
-
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.value([request1, request2]));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_1'),
-      ).thenAnswer((_) => Stream.value(details1));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_2'),
-      ).thenAnswer((_) => Stream.value(details2));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_1'}),
-      ).thenAnswer((_) => Stream.value([logEntry1]));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_2'}),
-      ).thenAnswer((_) => Stream.value([logEntry2]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
-
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-      );
-
-      // Assert
-      await expectLater(
-        viewModel.renderedRequests,
-        emits(
-          isA<List<RenderedRequest>>()
-              .having((p0) => p0.length, 'length', 2)
-              .having(
-                (p0) => p0.first.logEntries.first.action,
-                'log action 1',
-                Action.create,
-              )
-              .having(
-                (p0) => p0.last.logEntries.first.action,
-                'log action 2',
-                Action.approve,
-              ),
-        ),
-      );
-    });
-    test('dispose removes listener from filter view model', () {
-      // Arrange
-      when(
-        () => mockBookingFilterViewModel.removeListener(any()),
-      ).thenAnswer((_) {});
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.value([]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.pending],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-      );
-
-      // Act
-      viewModel.dispose();
-
-      // Assert
-      verify(() => mockBookingFilterViewModel.removeListener(any())).called(1);
-    });
-
-    test('handles empty override requests', () {
-      // Arrange
-      when(() => mockRoomState.enabledValues()).thenReturn({});
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        overrideRequests: [],
-        filterViewModel: mockBookingFilterViewModel,
-      );
-
-      // Assert
-      expect(
-        viewModel.renderedRequests,
-        emits(
-          isA<List<RenderedRequest>>().having((p0) => p0.length, 'length', 0),
-        ),
-      );
-      verifyNever(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      );
-    });
-
-    test(
-      'calls listRequests with empty room IDs when no rooms are enabled',
-      () {
-        // Arrange
-        when(
-          () => mockBookingRepo.listRequests(
-            orgID: 'org_id',
-            startTime: any(named: 'startTime'),
-            endTime: any(named: 'endTime'),
-            includeRoomIDs: <String>{},
-            includeStatuses: {RequestStatus.pending},
-          ),
-        ).thenAnswer((_) => Stream.value([]));
-        when(() => mockRoomState.enabledValues()).thenReturn({});
-
-        // Act
-        viewModel = BookingListViewModel(
-          bookingRepo: mockBookingRepo,
-          logRepo: mockLogRepo,
-          orgID: 'org_id',
-          statusList: [RequestStatus.pending],
-          roomState: mockRoomState,
-          filterViewModel: mockBookingFilterViewModel,
-        );
-
-        // Assert
-        verify(
-          () => mockBookingRepo.listRequests(
-            orgID: 'org_id',
-            startTime: any(named: 'startTime'),
-            endTime: any(named: 'endTime'),
-            includeRoomIDs: <String>{},
-            includeStatuses: {RequestStatus.pending},
-          ),
-        ).called(1);
-      },
+  test('initializes with empty requests', () async {
+    viewModel = BookingListViewModel(
+      bookingRepo: mockBookingRepo,
+      logRepo: mockLogRepo,
+      orgID: orgID,
+      statusList: statusList,
+      roomState: mockRoomState,
+      filterViewModel: mockFilterViewModel,
     );
 
-    test('handles null details from getRequestDetails', () async {
-      // Arrange
-      final request1 = Request(
-        id: 'req_1',
-        roomID: 'room_1',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room A',
-      );
+    expect(await viewModel.renderedRequests.first, isEmpty);
+  });
 
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.value([request1]));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_1'),
-      ).thenAnswer((_) => Stream.value(null));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_1'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
+  test('loads requests and details', () async {
+    when(
+      () => mockBookingRepo.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+        includeStatuses: any(named: 'includeStatuses'),
+      ),
+    ).thenAnswer((_) => Stream.value([request]));
 
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-      );
+    when(
+      () => mockBookingRepo.getRequestDetails(orgID, request.id!),
+    ).thenAnswer((_) => Stream.value(requestDetails));
 
-      // Assert
-      await expectLater(
-        viewModel.renderedRequests,
-        emits(
-          isA<List<RenderedRequest>>()
-              .having((p0) => p0.length, 'length', 1)
-              .having((p0) => p0.first.details.name, 'details name', 'Unknown'),
-        ),
-      );
-    });
+    when(
+      () => mockLogRepo.getLogEntries(
+        orgID,
+        requestIDs: any(named: 'requestIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
 
-    test('handles error in listRequests stream', () {
-      // Arrange
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.error(Exception('test error')));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
+    viewModel = BookingListViewModel(
+      bookingRepo: mockBookingRepo,
+      logRepo: mockLogRepo,
+      orgID: orgID,
+      statusList: statusList,
+      roomState: mockRoomState,
+      filterViewModel: mockFilterViewModel,
+    );
 
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-      );
+    final rendered = await viewModel.renderedRequests.first;
+    expect(rendered.length, 1);
+    expect(rendered.first.request, request);
+    expect(rendered.first.details, requestDetails);
+  });
 
-      // Assert
-      expect(viewModel.renderedRequests, emitsError(isA<Exception>()));
-    });
+  test('filters requests by search query', () async {
+    when(
+      () => mockBookingRepo.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+        includeStatuses: any(named: 'includeStatuses'),
+      ),
+    ).thenAnswer((_) => Stream.value([request]));
 
-    test('filters requests with requestFilter', () async {
-      // Arrange
-      final request1 = Request(
-        id: 'req_1',
-        roomID: 'room_1',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room A',
-      );
-      final request2 = Request(
-        id: 'req_2',
-        roomID: 'room_2',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room B',
-      );
-      final details2 = PrivateRequestDetails(
-        id: 'req_2',
-        eventName: 'Team Sync',
-        name: 'Test User',
-        email: 'test@test.com',
-        phone: '12345',
-      );
+    when(
+      () => mockBookingRepo.getRequestDetails(orgID, request.id!),
+    ).thenAnswer((_) => Stream.value(requestDetails));
 
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.value([request1, request2]));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_2'),
-      ).thenAnswer((_) => Stream.value(details2));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_2'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
+    when(
+      () => mockLogRepo.getLogEntries(
+        orgID,
+        requestIDs: any(named: 'requestIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
 
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-        requestFilter: (r) => r.roomID == 'room_2',
-      );
+    when(() => mockFilterViewModel.searchQuery).thenReturn('nomatch');
 
-      // Assert
-      await expectLater(
-        viewModel.renderedRequests,
-        emits(
-          isA<List<RenderedRequest>>()
-              .having((p0) => p0.length, 'length', 1)
-              .having((p0) => p0.first.request.id, 'first request id', 'req_2'),
-        ),
-      );
-    });
+    viewModel = BookingListViewModel(
+      bookingRepo: mockBookingRepo,
+      logRepo: mockLogRepo,
+      orgID: orgID,
+      statusList: statusList,
+      roomState: mockRoomState,
+      filterViewModel: mockFilterViewModel,
+    );
 
-    test('search is case-insensitive', () async {
-      // Arrange
-      final request1 = Request(
-        id: 'req_1',
-        roomID: 'room_1',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room A',
-      );
-      final details1 = PrivateRequestDetails(
-        id: 'req_1',
-        eventName: 'Meeting with John',
-        name: 'Alice',
-        email: 'alice@test.com',
-        phone: '12345',
-      );
+    final rendered = await viewModel.renderedRequests.first;
+    expect(rendered, isEmpty);
+  });
 
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.value([request1]));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_1'),
-      ).thenAnswer((_) => Stream.value(details1));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_1'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
-      when(() => mockBookingFilterViewModel.searchQuery).thenReturn('JOHN');
+  test('uses overrideRequests if provided', () async {
+    viewModel = BookingListViewModel(
+      bookingRepo: mockBookingRepo,
+      logRepo: mockLogRepo,
+      orgID: orgID,
+      statusList: statusList,
+      roomState: mockRoomState,
+      filterViewModel: mockFilterViewModel,
+      overrideRequests: [request],
+    );
 
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-      );
+    when(
+      () => mockBookingRepo.getRequestDetails(orgID, request.id!),
+    ).thenAnswer((_) => Stream.value(requestDetails));
 
-      // Assert
-      await expectLater(
-        viewModel.renderedRequests,
-        emits(
-          isA<List<RenderedRequest>>()
-              .having((p0) => p0.length, 'length', 1)
-              .having((p0) => p0.first.request.id, 'first request id', 'req_1'),
-        ),
-      );
-    });
+    when(
+      () => mockLogRepo.getLogEntries(
+        orgID,
+        requestIDs: any(named: 'requestIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
 
-    test('filters requests by name', () async {
-      // Arrange
-      final request1 = Request(
-        id: 'req_1',
-        roomID: 'room_1',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room A',
-      );
-      final request2 = Request(
-        id: 'req_2',
-        roomID: 'room_2',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room B',
-      );
-      final details1 = PrivateRequestDetails(
-        id: 'req_1',
-        eventName: 'Meeting with John',
-        name: 'Alice',
-        email: 'test@test.com',
-        phone: '12345',
-      );
-      final details2 = PrivateRequestDetails(
-        id: 'req_2',
-        eventName: 'Team Sync',
-        name: 'Bob',
-        email: 'test@test.com',
-        phone: '12345',
-      );
-
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.value([request1, request2]));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_1'),
-      ).thenAnswer((_) => Stream.value(details1));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_2'),
-      ).thenAnswer((_) => Stream.value(details2));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_1'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_2'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
-      when(() => mockBookingFilterViewModel.searchQuery).thenReturn('alice');
-
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-      );
-
-      // Assert
-      await expectLater(
-        viewModel.renderedRequests,
-        emits(
-          isA<List<RenderedRequest>>()
-              .having((p0) => p0.length, 'length', 1)
-              .having((p0) => p0.first.request.id, 'first request id', 'req_1'),
-        ),
-      );
-    });
-
-    test('filters requests by email', () async {
-      // Arrange
-      final request1 = Request(
-        id: 'req_1',
-        roomID: 'room_1',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room A',
-      );
-      final request2 = Request(
-        id: 'req_2',
-        roomID: 'room_2',
-        eventStartTime: DateTime.now(),
-        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
-        status: RequestStatus.confirmed,
-        roomName: 'Room B',
-      );
-      final details1 = PrivateRequestDetails(
-        id: 'req_1',
-        eventName: 'Meeting with John',
-        name: 'Alice',
-        email: 'alice@test.com',
-        phone: '12345',
-      );
-      final details2 = PrivateRequestDetails(
-        id: 'req_2',
-        eventName: 'Team Sync',
-        name: 'Bob',
-        email: 'bob@test.com',
-        phone: '12345',
-      );
-
-      when(
-        () => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        ),
-      ).thenAnswer((_) => Stream.value([request1, request2]));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_1'),
-      ).thenAnswer((_) => Stream.value(details1));
-      when(
-        () => mockBookingRepo.getRequestDetails('org_id', 'req_2'),
-      ).thenAnswer((_) => Stream.value(details2));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_1'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(
-        () => mockLogRepo.getLogEntries('org_id', requestIDs: {'req_2'}),
-      ).thenAnswer((_) => Stream.value([]));
-      when(() => mockRoomState.enabledValues()).thenReturn({});
-      when(
-        () => mockBookingFilterViewModel.searchQuery,
-      ).thenReturn('alice@test.com');
-
-      // Act
-      viewModel = BookingListViewModel(
-        bookingRepo: mockBookingRepo,
-        logRepo: mockLogRepo,
-        orgID: 'org_id',
-        statusList: [RequestStatus.confirmed],
-        roomState: mockRoomState,
-        filterViewModel: mockBookingFilterViewModel,
-      );
-
-      // Assert
-      await expectLater(
-        viewModel.renderedRequests,
-        emits(
-          isA<List<RenderedRequest>>()
-              .having((p0) => p0.length, 'length', 1)
-              .having((p0) => p0.first.request.id, 'first request id', 'req_1'),
-        ),
-      );
-    });
+    final rendered = await viewModel.renderedRequests.first;
+    expect(rendered.length, 1);
+    expect(rendered.first.request, request);
   });
 }
