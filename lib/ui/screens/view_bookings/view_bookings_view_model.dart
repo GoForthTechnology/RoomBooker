@@ -12,6 +12,7 @@ import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.
 import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:intl/intl.dart';
+import 'package:room_booker/ui/utils/booking_date_helper.dart';
 
 class ViewBookingsViewModel extends ChangeNotifier {
   final String? _existingRequestID;
@@ -30,6 +31,8 @@ class ViewBookingsViewModel extends ChangeNotifier {
   final Size Function() sizeProvider;
   final Function(Request) showRequestDialog;
   final Function() showEditorAsDialog;
+  final Future<DateTime?> Function(DateTime, DateTime, DateTime) pickDate;
+  final Future<TimeOfDay?> Function(DateTime) pickTime;
 
   final _showRoomSelectorSubject = BehaviorSubject<bool>.seeded(false);
 
@@ -49,6 +52,8 @@ class ViewBookingsViewModel extends ChangeNotifier {
     required this.showRequestDialog,
     required this.showEditorAsDialog,
     required Function(Uri) updateUri,
+    required this.pickDate,
+    required this.pickTime,
   }) : _bookingRepo = bookingRepo,
        _authService = authService,
        _router = router,
@@ -226,6 +231,38 @@ class ViewBookingsViewModel extends ChangeNotifier {
   void toggleRoomSelector() {
     var current = _showRoomSelectorSubject.value;
     _showRoomSelectorSubject.add(!current);
+  }
+
+  void onAddNewBooking() async {
+    var focusDate = _calendarViewModel.controller.displayDate!;
+    var firstDate = BookingDateHelper.getFirstDate(focusDate);
+    var lastDate = BookingDateHelper.getLastDate(firstDate);
+
+    var targetDate = await pickDate(focusDate, firstDate, lastDate);
+    if (targetDate == null) {
+      return;
+    }
+
+    var eventTime = await pickTime(targetDate);
+    if (eventTime == null) {
+      return;
+    }
+
+    var startTime = DateTime(
+      targetDate.year,
+      targetDate.month,
+      targetDate.day,
+      eventTime.hour,
+      eventTime.minute,
+    );
+    _router.push(
+      ViewBookingsRoute(
+        orgID: orgID,
+        view: CalendarView.day.name,
+        targetDate: startTime,
+        createRequest: true,
+      ),
+    );
   }
 }
 

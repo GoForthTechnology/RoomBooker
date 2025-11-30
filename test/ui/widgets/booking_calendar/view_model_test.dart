@@ -123,12 +123,13 @@ void main() {
     );
 
     test('room name is appended when appendRoomName is true', () async {
+      final date = DateTime(2023, 10, 27, 10, 0);
       final List<Request> requests = [
         Request(
           id: 'req_1',
           roomID: 'room_1',
-          eventStartTime: DateTime.now(),
-          eventEndTime: DateTime.now().add(Duration(hours: 1)),
+          eventStartTime: date,
+          eventEndTime: date.add(Duration(hours: 1)),
           publicName: 'Public Event',
           status: RequestStatus.confirmed,
           roomName: 'Test Room',
@@ -160,14 +161,21 @@ void main() {
         orgState: mockOrgState,
         roomState: mockRoomState,
         appendRoomName: true,
+        targetDate: date,
       );
 
       await expectLater(
         viewModel.calendarViewState(),
         emitsThrough(
           isA<CalendarViewState>().having(
-            (state) =>
-                (state.dataSource.appointments!.first as Appointment).subject,
+            (state) {
+              if (state.dataSource.appointments == null ||
+                  state.dataSource.appointments!.isEmpty) {
+                return '';
+              }
+              return (state.dataSource.appointments!.first as Appointment)
+                  .subject;
+            },
             'first appointment subject',
             'Public Event (Test Room)',
           ),

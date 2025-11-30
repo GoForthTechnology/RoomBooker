@@ -97,32 +97,31 @@ void main() {
     when(
       () => mockRequestEditorViewModel.initialRequestStream,
     ).thenAnswer((_) => initialRequestController.stream);
-    when(() => mockRequestEditorViewModel.currentDataStream()).thenAnswer(
-      (_) => Stream<(Request?, PrivateRequestDetails?)>.value((null, null)),
-    );
+    when(
+      () => mockRequestEditorViewModel.currentDataStream(),
+    ).thenAnswer((_) => const Stream.empty());
     when(
       () => mockCalendarViewModel.calendarViewState(),
     ).thenAnswer((_) => calendarViewStateController.stream);
+    when(
+      () => mockCalendarViewModel.registerNewAppointmentStream(any()),
+    ).thenReturn(null);
 
     when(() => mockOrgState.org).thenReturn(mockOrganization);
-    when(() => mockOrganization.id).thenReturn('test-org-id');
-  });
-
-  tearDown(() {
-    dateTapController.close();
-    requestTapController.close();
-    initialRequestController.close();
-    calendarViewStateController.close();
+    when(() => mockOrganization.id).thenReturn('test_org_id');
   });
 
   ViewBookingsViewModel createViewModel({
-    required bool createRequest,
     bool readOnlyMode = false,
+    bool createRequest = false,
     bool showPrivateBookings = true,
-    Size? size,
+    String? existingRequestID,
     Function(Request)? showRequestDialog,
     Function()? showEditorAsDialog,
     Function(Uri)? updateUri,
+    Size? size,
+    Future<DateTime?> Function(DateTime, DateTime, DateTime)? pickDate,
+    Future<TimeOfDay?> Function(DateTime)? pickTime,
   }) {
     return ViewBookingsViewModel(
       bookingRepo: mockBookingRepo,
@@ -132,14 +131,18 @@ void main() {
       sizeProvider: () => size ?? const Size(1000, 800),
       calendarViewModel: mockCalendarViewModel,
       requestEditorViewModel: mockRequestEditorViewModel,
-      existingRequestID: null,
-      showRoomSelector: false,
+      existingRequestID: existingRequestID,
+      showRoomSelector: true,
       createRequest: createRequest,
       readOnlyMode: readOnlyMode,
       showPrivateBookings: showPrivateBookings,
       showRequestDialog: showRequestDialog ?? (_) {},
       showEditorAsDialog: showEditorAsDialog ?? () {},
       updateUri: updateUri ?? (_) {},
+      pickDate:
+          pickDate ?? (initial, first, last) async => DateTime(2023, 10, 27),
+      pickTime:
+          pickTime ?? (date) async => const TimeOfDay(hour: 10, minute: 0),
     );
   }
 
@@ -194,7 +197,7 @@ void main() {
       createViewModel(createRequest: false, readOnlyMode: false);
 
       when(
-        () => mockBookingRepo.getRequestDetails('test-org-id', 'req-1'),
+        () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
       ).thenAnswer((_) => Stream.value(details));
       when(
         () => mockRequestEditorViewModel.initializeFromExistingRequest(
@@ -206,10 +209,10 @@ void main() {
       requestTapController.add(request);
 
       await untilCalled(
-        () => mockBookingRepo.getRequestDetails('test-org-id', 'req-1'),
+        () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
       );
       verify(
-        () => mockBookingRepo.getRequestDetails('test-org-id', 'req-1'),
+        () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
       ).called(1);
 
       await untilCalled(
@@ -236,7 +239,7 @@ void main() {
       );
 
       when(
-        () => mockBookingRepo.getRequestDetails('test-org-id', 'req-1'),
+        () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
       ).thenAnswer((_) => Stream.value(details));
       when(
         () => mockRequestEditorViewModel.initializeFromExistingRequest(
@@ -341,10 +344,10 @@ void main() {
       final viewModel = createViewModel(createRequest: false);
 
       when(
-        () => mockBookingRepo.getRequest('test-org-id', 'req-1'),
+        () => mockBookingRepo.getRequest('test_org_id', 'req-1'),
       ).thenAnswer((_) => Stream.value(request));
       when(
-        () => mockBookingRepo.getRequestDetails('test-org-id', 'req-1'),
+        () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
       ).thenAnswer((_) => Stream.value(details));
       when(
         () => mockRequestEditorViewModel.initializeFromExistingRequest(
@@ -356,10 +359,10 @@ void main() {
       await viewModel.loadExistingRequest('req-1');
 
       verify(
-        () => mockBookingRepo.getRequest('test-org-id', 'req-1'),
+        () => mockBookingRepo.getRequest('test_org_id', 'req-1'),
       ).called(1);
       verify(
-        () => mockBookingRepo.getRequestDetails('test-org-id', 'req-1'),
+        () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
       ).called(1);
       verify(
         () => mockRequestEditorViewModel.initializeFromExistingRequest(
@@ -396,11 +399,11 @@ void main() {
 
       await Future.delayed(Duration.zero); // Wait for emission
       expect(states.isNotEmpty, true, reason: "Stream should have emitted");
-      expect(states.last.showRoomSelector, false);
+      expect(states.last.showRoomSelector, true);
 
       viewModel.toggleRoomSelector();
       await Future.delayed(Duration.zero);
-      expect(states.last.showRoomSelector, true);
+      expect(states.last.showRoomSelector, false);
     });
   });
 
@@ -453,7 +456,7 @@ void main() {
 
       expect(updatedUris.isNotEmpty, true);
       final uri = updatedUris.last;
-      expect(uri.path, '/view/test-org-id');
+      expect(uri.path, '/view/test_org_id');
       expect(uri.queryParameters['td'], '2023-10-27');
       expect(uri.queryParameters['v'], 'month');
       expect(uri.queryParameters.containsKey('ro'), false);
@@ -518,4 +521,36 @@ void main() {
       expect(uri.queryParameters['rid'], 'req-123');
     });
   });
+
+  group('onAddNewBooking', () {
+    test('onAddNewBooking navigates to create request', () async {
+      when(
+        () => mockCalendarViewModel.controller,
+      ).thenReturn(CalendarController());
+      // Mock the controller's displayDate
+      // Since CalendarController is not easily mockable for properties, we might need to rely on how it's used.
+      // However, in the test setup we mocked CalendarViewModel.
+      // Let's mock the controller property access.
+      final mockController = MockCalendarController();
+      when(() => mockCalendarViewModel.controller).thenReturn(mockController);
+      when(() => mockController.displayDate).thenReturn(DateTime(2023, 10, 27));
+
+      when(() => mockStackRouter.push(any())).thenAnswer((_) async => null);
+
+      final viewModel = createViewModel();
+      viewModel.onAddNewBooking();
+
+      // Wait for async operations
+      await Future.delayed(Duration.zero);
+
+      verify(() => mockStackRouter.push(any())).called(1);
+    });
+  });
+}
+
+class MockCalendarController extends Mock implements CalendarController {
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return super.toString();
+  }
 }

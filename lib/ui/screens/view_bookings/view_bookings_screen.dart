@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart' hide Badge, Action;
@@ -11,7 +10,6 @@ import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
-import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/screens/view_bookings/view_bookings_view_model.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
@@ -23,6 +21,7 @@ import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:badges/badges.dart';
+import 'package:room_booker/ui/utils/date_formatting.dart';
 
 @RoutePage()
 class ViewBookingsScreen extends StatelessWidget {
@@ -34,6 +33,12 @@ class ViewBookingsScreen extends StatelessWidget {
   final String? requestID;
   final bool showPrivateBookings;
 
+  final ViewBookingsViewModel Function(BuildContext)? createViewModel;
+  final CalendarViewModel Function(BuildContext, DateTime?)?
+  createCalendarViewModel;
+  final RequestEditorViewModel Function(BuildContext)?
+  createRequestEditorViewModel;
+
   ViewBookingsScreen({
     super.key,
     @PathParam('orgID') required this.orgID,
@@ -43,6 +48,9 @@ class ViewBookingsScreen extends StatelessWidget {
     this.createRequest = false,
     @QueryParam('td') this.targetDate,
     @QueryParam('v') String? view,
+    this.createViewModel,
+    this.createCalendarViewModel,
+    this.createRequestEditorViewModel,
   }) : view = (targetDate != null || requestID != null
            ? CalendarView.day.name
            : view);
@@ -64,11 +72,17 @@ class ViewBookingsScreen extends StatelessWidget {
           enableAllRooms: true,
           org: orgState.org,
           builder: (context, _) => ChangeNotifierProvider.value(
-            value: _createCalendarViewModel(targetDate, context),
+            value: createCalendarViewModel != null
+                ? createCalendarViewModel!(context, targetDate)
+                : _createCalendarViewModel(targetDate, context),
             builder: (context, child) => ChangeNotifierProvider.value(
-              value: _createRequestEditorViewModel(context),
+              value: createRequestEditorViewModel != null
+                  ? createRequestEditorViewModel!(context)
+                  : _createRequestEditorViewModel(context),
               builder: (context, child) => ChangeNotifierProvider.value(
-                value: _createViewModel(context),
+                value: createViewModel != null
+                    ? createViewModel!(context)
+                    : _createViewModel(context),
                 child: _content(orgState),
               ),
             ),
@@ -98,6 +112,17 @@ class ViewBookingsScreen extends StatelessWidget {
       updateUri: (uri) async {
         await SystemNavigator.routeInformationUpdated(uri: uri);
       },
+      pickDate: (initialDate, firstDate, lastDate) => showDatePicker(
+        context: context,
+        initialDate: initialDate,
+        firstDate: firstDate,
+        lastDate: lastDate,
+      ),
+      pickTime: (targetDate) => showTimePicker(
+        context: context,
+        helpText: "Select start time",
+        initialTime: TimeOfDay.fromDateTime(targetDate),
+      ),
     );
   }
 
@@ -180,7 +205,7 @@ class ViewBookingsScreen extends StatelessWidget {
       floatingActionButton:
           calendarViewModel.controller.view != CalendarView.day
           ? FloatingActionButton(
-              onPressed: () => _onFabPressed(context, calendarViewModel),
+              onPressed: viewModel.onAddNewBooking,
               child: const Icon(Icons.add),
             )
           : null,
@@ -224,49 +249,6 @@ class ViewBookingsScreen extends StatelessWidget {
     }).toList();
   }
 
-  void _onFabPressed(BuildContext context, CalendarViewModel viewModel) async {
-    var router = AutoRouter.of(context);
-
-    var focusDate = viewModel.controller.displayDate;
-    var firstDate = DateTime(focusDate!.year, focusDate.month);
-    var lastDate = firstDate.add(Duration(days: 365));
-
-    var targetDate = await showDatePicker(
-      context: context,
-      initialDate: focusDate,
-      firstDate: firstDate,
-      lastDate: lastDate,
-    );
-    if (targetDate == null || !context.mounted) {
-      return;
-    }
-
-    var eventTime = await showTimePicker(
-      context: context,
-      helpText: "Select start time",
-      initialTime: TimeOfDay.fromDateTime(targetDate),
-    );
-    if (eventTime == null) {
-      return;
-    }
-
-    var startTime = DateTime(
-      targetDate.year,
-      targetDate.month,
-      targetDate.day,
-      eventTime.hour,
-      eventTime.minute,
-    );
-    router.push(
-      ViewBookingsRoute(
-        orgID: orgID,
-        view: CalendarView.day.name,
-        targetDate: startTime,
-        createRequest: true,
-      ),
-    );
-  }
-
   RequestEditorViewModel _createRequestEditorViewModel(BuildContext context) {
     return RequestEditorViewModel(
       editorTitle: "Request Editor",
@@ -293,7 +275,7 @@ class ViewBookingsScreen extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Text(_getFormattedBookingRange(request)),
+              child: Text(getFormattedBookingRange(request)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -330,18 +312,5 @@ class ViewBookingsScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _getFormattedBookingRange(Request request) {
-    final start = request.eventStartTime.toLocal();
-    final end = request.eventEndTime.toLocal();
-    final isSameDay =
-        start.year == end.year &&
-        start.month == end.month &&
-        start.day == end.day;
-    if (isSameDay) {
-      return '${DateFormat.yMMMMEEEEd().format(start)} ⋅ ${DateFormat.jm().format(start)} - ${DateFormat.jm().format(end)}';
-    }
-    return '${DateFormat.yMd().add_jm().format(start)} - ${DateFormat.yMd().add_jm().format(end)}';
   }
 }
