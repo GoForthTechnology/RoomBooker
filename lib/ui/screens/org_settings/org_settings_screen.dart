@@ -3,6 +3,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
@@ -25,10 +26,10 @@ class OrgSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    FirebaseAnalytics.instance.logScreenView(
-      screenName: "Org Settings",
-      parameters: {"orgID": orgID},
-    );
+    Provider.of<FirebaseAnalyticsService>(
+      context,
+      listen: false,
+    ).logScreenView(screenName: "Org Settings", parameters: {"orgID": orgID});
     var roomRepo = Provider.of<RoomRepo>(context, listen: false);
     return Scaffold(
       appBar: AppBar(

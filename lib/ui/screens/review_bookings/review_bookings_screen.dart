@@ -1,9 +1,9 @@
 import 'dart:developer';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
@@ -33,7 +33,7 @@ class _ReviewBookingsScreenState extends State<ReviewBookingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    FirebaseAnalytics.instance.logScreenView(
+    Provider.of<FirebaseAnalyticsService>(context, listen: false).logScreenView(
       screenName: "Review Bookings",
       parameters: {"orgID": widget.orgID},
     );
