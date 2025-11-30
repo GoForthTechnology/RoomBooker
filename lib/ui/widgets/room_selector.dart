@@ -4,8 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
 
-List<Color> lightColors = [];
-
 class RoomState extends ChangeNotifier {
   final String? globalRoomID;
   final Map<String, Room> _rooms;
@@ -42,7 +40,8 @@ class RoomState extends ChangeNotifier {
   }
 
   Room? enabledValue() {
-    return _activeIDs.map((id) => _rooms[id]).first;
+    var id = _activeIDs.firstOrNull;
+    return id == null ? null : _rooms[id];
   }
 
   Set<Room> enabledValues() {
@@ -65,7 +64,7 @@ class RoomState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleSolorRoom(Room room) {
+  void toggleSoloRoom(Room room) {
     if (_activeIDs.length == 1) {
       _activeIDs.clear();
       activateAll();
@@ -143,7 +142,7 @@ class RoomCardSelector extends StatelessWidget {
                       state.toggleRoom(room);
                     },
                     onDoubleTap: (room) {
-                      state.toggleSolorRoom(room);
+                      state.toggleSoloRoom(room);
                     },
                   ),
                 ),
