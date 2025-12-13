@@ -13,15 +13,19 @@ import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:rxdart/rxdart.dart';
 
-typedef RecurringBookingEditChoiceProvider = Future<RecurringBookingEditChoice?>
-    Function();
+typedef RecurringBookingEditChoiceProvider =
+    Future<RecurringBookingEditChoice?> Function();
 
 class BookingRepo extends ChangeNotifier {
-  BookingRepo({required this.logRepo, FirebaseFirestore? db})
-      : _db = db ?? FirebaseFirestore.instance,
-        _analytics = FirebaseAnalytics.instance {
+  BookingRepo({
+    required this.logRepo,
+    FirebaseFirestore? db,
+    FirebaseAnalytics? analytics,
+  }) : _db = db ?? FirebaseFirestore.instance,
+       _analytics = analytics ?? FirebaseAnalytics.instance {
     _detailsCache = DetailCache(
-        (orgID, requestID) => _loadRequestDetails(orgID, requestID));
+      (orgID, requestID) => _loadRequestDetails(orgID, requestID),
+    );
   }
 
   final FirebaseFirestore _db;
@@ -30,8 +34,13 @@ class BookingRepo extends ChangeNotifier {
   late final DetailCache _detailsCache;
 
   Future<void> _log(
-      String orgID, String requestID, String eventName, Action action,
-      {Request? before, Request? after}) async {
+    String orgID,
+    String requestID,
+    String eventName,
+    Action action, {
+    Request? before,
+    Request? after,
+  }) async {
     try {
       await logRepo.addLogEntry(
         orgID: orgID,
@@ -41,13 +50,16 @@ class BookingRepo extends ChangeNotifier {
         before: before,
         after: after,
       );
-      _analytics.logEvent(name: eventName, parameters: {
-        "orgID": orgID,
-        "requestID": requestID,
-      });
+      _analytics.logEvent(
+        name: eventName,
+        parameters: {"orgID": orgID, "requestID": requestID},
+      );
     } catch (e, s) {
-      log("Error logging event $eventName for orgID: $orgID, requestID: $requestID",
-          error: e, stackTrace: s);
+      log(
+        "Error logging event $eventName for orgID: $orgID, requestID: $requestID",
+        error: e,
+        stackTrace: s,
+      );
       rethrow;
     }
   }
@@ -58,8 +70,11 @@ class BookingRepo extends ChangeNotifier {
     }
   }
 
-  Future<void> submitBookingRequest(String orgID, Request request,
-      PrivateRequestDetails privateDetails) async {
+  Future<void> submitBookingRequest(
+    String orgID,
+    Request request,
+    PrivateRequestDetails privateDetails,
+  ) async {
     validateRequest(request);
     var id = await _db.runTransaction((t) async {
       var requestRef = _pendingBookingsRef(orgID).doc();
@@ -89,26 +104,43 @@ class BookingRepo extends ChangeNotifier {
             break;
           case RequestStatus.confirmed:
             await _updateConfirmedBooking(
-                t, updatedRequest, privateDetails, orgID, choiceProvider);
+              t,
+              updatedRequest,
+              privateDetails,
+              orgID,
+              choiceProvider,
+            );
             break;
           case RequestStatus.unknown:
           case RequestStatus.denied:
             throw UnimplementedError();
         }
-        var privateDetailsRef =
-            _privateRequestDetailsRef(orgID, updatedRequest.id!);
+        var privateDetailsRef = _privateRequestDetailsRef(
+          orgID,
+
+          updatedRequest.id!,
+        );
         t.set(privateDetailsRef, privateDetails);
       } catch (e, s) {
         log("Error updating booking", error: e, stackTrace: s);
         rethrow;
       }
     });
-    await _log(orgID, updatedRequest.id!, "UpdateBooking", Action.update,
-        before: originalRequest, after: updatedRequest);
+    await _log(
+      orgID,
+      updatedRequest.id!,
+      "UpdateBooking",
+      Action.update,
+      before: originalRequest,
+      after: updatedRequest,
+    );
   }
 
-  Future<void> addBooking(String orgID, Request request,
-      PrivateRequestDetails privateDetails) async {
+  Future<void> addBooking(
+    String orgID,
+    Request request,
+    PrivateRequestDetails privateDetails,
+  ) async {
     validateRequest(request);
     var id = await _db.runTransaction((t) async {
       return _addBooking(orgID, request, privateDetails, t);
@@ -116,8 +148,12 @@ class BookingRepo extends ChangeNotifier {
     await _log(orgID, id, "AddBooking", Action.create);
   }
 
-  String _addBooking(String orgID, Request request,
-      PrivateRequestDetails privateDetails, Transaction t) {
+  String _addBooking(
+    String orgID,
+    Request request,
+    PrivateRequestDetails privateDetails,
+    Transaction t,
+  ) {
     var requestRef = _confirmedRequestsRef(orgID).doc();
     t.set(requestRef, request);
     var privateDetailsRef = _privateRequestDetailsRef(orgID, requestRef.id);
@@ -127,45 +163,51 @@ class BookingRepo extends ChangeNotifier {
 
   Future<void> endBooking(String orgID, String requestID, DateTime end) async {
     var trimmedEnd = DateTime(end.year, end.month, end.day, 0, 0);
-    await _confirmedRequestsRef(orgID).doc(requestID).update({
-      "recurrancePattern.end": trimmedEnd.toString(),
-    });
+    await _confirmedRequestsRef(
+      orgID,
+    ).doc(requestID).update({"recurrancePattern.end": trimmedEnd.toString()});
     await _log(orgID, requestID, "EndRecurring", Action.endRecurring);
   }
 
   Future<void> ignoreOverlaps(String orgID, String requestID) async {
-    await _confirmedRequestsRef(orgID).doc(requestID).update({
-      "ignoreOverlaps": true,
-    });
+    await _confirmedRequestsRef(
+      orgID,
+    ).doc(requestID).update({"ignoreOverlaps": true});
     await _log(orgID, requestID, "IgnoreOverlaps", Action.ignoreOverlaps);
   }
 
   Stream<List<DecoratedLogEntry>> decorateLogs(
-      String orgID, Stream<List<RequestLogEntry>> logStream) {
+    String orgID,
+    Stream<List<RequestLogEntry>> logStream,
+  ) {
     return logStream.asyncMap((logEntries) async {
-      var requests = await Future.wait(logEntries.map((e) async {
-        Request? request;
-        try {
-          request = await getRequest(orgID, e.requestID).first;
-        } catch (exception) {
-          throw Exception(
-              "Error fetching request for log entry ${e.id}: $exception");
-        }
-        if (request == null) {
-          return null;
-        }
-        PrivateRequestDetails? details;
-        try {
-          details = await getRequestDetails(orgID, e.requestID).first;
-        } catch (exception) {
-          throw Exception(
-              "Error fetching request details for log entry ${e.id}: $exception");
-        }
-        if (details == null) {
-          return null;
-        }
-        return DecoratedLogEntry(details, entry: e, request: request);
-      }));
+      var requests = await Future.wait(
+        logEntries.map((e) async {
+          Request? request;
+          try {
+            request = await getRequest(orgID, e.requestID).first;
+          } catch (exception) {
+            throw Exception(
+              "Error fetching request for log entry ${e.id}: $exception",
+            );
+          }
+          if (request == null) {
+            return null;
+          }
+          PrivateRequestDetails? details;
+          try {
+            details = await getRequestDetails(orgID, e.requestID).first;
+          } catch (exception) {
+            throw Exception(
+              "Error fetching request details for log entry ${e.id}: $exception",
+            );
+          }
+          if (details == null) {
+            return null;
+          }
+          return DecoratedLogEntry(details, entry: e, request: request);
+        }),
+      );
       return requests.nonNulls.toList();
     });
   }
@@ -192,12 +234,15 @@ class BookingRepo extends ChangeNotifier {
         case RecurringBookingEditChoice.thisAndFuture:
           return endBooking(orgID, request.id!, request.eventStartTime);
         case RecurringBookingEditChoice.thisInstance:
-          var originalRequestRef =
-              _confirmedRequestsRef(orgID).doc(request.id!);
+          var originalRequestRef = _confirmedRequestsRef(
+            orgID,
+          ).doc(request.id!);
           var snapshot = await originalRequestRef.get();
           var originalBooking = snapshot.data();
-          var udpatedBooking =
-              _deleteRecurrance(originalBooking!, request.eventEndTime);
+          var udpatedBooking = _deleteRecurrance(
+            originalBooking!,
+            request.eventEndTime,
+          );
           return originalRequestRef.set(udpatedBooking);
         case null:
           throw UnimplementedError();
@@ -222,47 +267,52 @@ class BookingRepo extends ChangeNotifier {
       return Stream.error("Request ID cannot be empty.");
     }
     debugPrint("Getting request: $requestID");
-    return _confirmedRequestsRef(orgID)
-        .doc(requestID)
-        .snapshots()
-        .map((s) => s.data())
-        .flatMap((request) {
+    return _confirmedRequestsRef(
+      orgID,
+    ).doc(requestID).snapshots().map((s) => s.data()).flatMap((request) {
       if (request != null) {
         return Stream.value(request);
       }
-      return _pendingBookingsRef(orgID)
-          .doc(requestID)
-          .snapshots()
-          .map((s) => s.data());
+      return _pendingBookingsRef(
+        orgID,
+      ).doc(requestID).snapshots().map((s) => s.data());
     });
   }
 
   Stream<PrivateRequestDetails?> getRequestDetails(
-      String orgID, String requestID) {
+    String orgID,
+    String requestID,
+  ) {
     return _detailsCache.get(orgID, requestID);
   }
 
   Stream<PrivateRequestDetails?> _loadRequestDetails(
-      String orgID, String requestID) {
-    return _privateRequestDetailsRef(orgID, requestID)
-        .snapshots()
-        .map((s) => s.data());
+    String orgID,
+    String requestID,
+  ) {
+    return _privateRequestDetailsRef(
+      orgID,
+      requestID,
+    ).snapshots().map((s) => s.data());
   }
 
-  Stream<List<Request>> listRequests(
-      {required String orgID,
-      required DateTime startTime,
-      required DateTime endTime,
-      Set<RequestStatus>? includeStatuses,
-      Set<String>? includeRoomIDs}) {
+  Stream<List<Request>> listRequests({
+    required String orgID,
+    required DateTime startTime,
+    required DateTime endTime,
+    Set<RequestStatus>? includeStatuses,
+    Set<String>? includeRoomIDs,
+  }) {
     debugPrint("Listing requests for org: $orgID");
     List<Query<Request>> queries = [];
-    var hasConfirmed = includeStatuses == null ||
+    var hasConfirmed =
+        includeStatuses == null ||
         includeStatuses.contains(RequestStatus.confirmed);
-    final frequencyPath = FieldPath(["recurrancePattern", "frequency"]);
+    final frequencyPath = "recurrancePattern.frequency";
     if (hasConfirmed) {
-      queries.add(_confirmedRequestsRef(orgID)
-          .where(frequencyPath, isEqualTo: "never"));
+      queries.add(
+        _confirmedRequestsRef(orgID).where(frequencyPath, isEqualTo: "never"),
+      );
     }
     if (includeStatuses == null ||
         includeStatuses.contains(RequestStatus.pending)) {
@@ -273,24 +323,35 @@ class BookingRepo extends ChangeNotifier {
       queries.add(_deniedRequestsRef(orgID));
     }
     queries = queries
-        .map((q) => q.where("eventStartTime",
-            isGreaterThanOrEqualTo: startTime.toString()))
+        .map(
+          (q) => q.where(
+            "eventStartTime",
+            isGreaterThanOrEqualTo: startTime.toIso8601String(),
+          ),
+        )
         .toList();
     // BEGIN spooky hack to get around DST shennanigans...
-    var endDateStr = endTime.add(Duration(hours: 1)).toString();
+    var endDateStr = endTime.add(Duration(hours: 1)).toIso8601String();
     // END spooky hack that should not be necessary...
     queries = queries
         .map((q) => q.where("eventEndTime", isLessThanOrEqualTo: endDateStr))
         .toList();
     // Add this one after the queries that are bound to the current time window
     if (hasConfirmed) {
-      final endPath = FieldPath(["recurrancePattern", "end"]);
-      queries.add(_confirmedRequestsRef(orgID)
-          .where(frequencyPath, isNotEqualTo: "never")
-          .where(Filter.or(
-            Filter(endPath, isNull: true),
-            Filter(endPath, isGreaterThanOrEqualTo: startTime.toString()),
-          )));
+      final endPath = "recurrancePattern.end";
+      queries.add(
+        _confirmedRequestsRef(orgID)
+            .where(frequencyPath, isNotEqualTo: "never")
+            .where(
+              Filter.or(
+                Filter(endPath, isNull: true),
+                Filter(
+                  endPath,
+                  isGreaterThanOrEqualTo: startTime.toIso8601String(),
+                ),
+              ),
+            ),
+      );
     }
     if (includeRoomIDs != null) {
       queries = queries
@@ -298,12 +359,15 @@ class BookingRepo extends ChangeNotifier {
           .toList();
     }
     var streams = queries
-        .map((q) =>
-            q.snapshots().map((s) => s.docs.map((d) => d.data()).toList()))
+        .map(
+          (q) => q.snapshots().map((s) => s.docs.map((d) => d.data()).toList()),
+        )
         .map((s) => s);
-    return Rx.combineLatestList(streams).map((listOfLists) {
-      return listOfLists.flattenedToList;
-    }).startWith([]);
+    return Rx.combineLatestList(streams)
+        .map((listOfLists) {
+          return listOfLists.flattenedToList;
+        })
+        .startWith([]);
   }
 
   final List<BlackoutWindow> _defaultBlackoutWindows = [
@@ -322,18 +386,21 @@ class BookingRepo extends ChangeNotifier {
   ];
 
   Stream<List<BlackoutWindow>> listBlackoutWindows(
-      Organization org, DateTime startTime, DateTime endTime) {
+    Organization org,
+    DateTime startTime,
+    DateTime endTime,
+  ) {
     Set<String>? roomIDs;
     if (org.globalRoomID != null) {
       roomIDs = {org.globalRoomID!};
     }
     return listRequests(
-            orgID: org.id!,
-            startTime: startTime,
-            endTime: endTime,
-            includeStatuses: {RequestStatus.confirmed},
-            includeRoomIDs: roomIDs)
-        .map((requests) {
+      orgID: org.id!,
+      startTime: startTime,
+      endTime: endTime,
+      includeStatuses: {RequestStatus.confirmed},
+      includeRoomIDs: roomIDs,
+    ).map((requests) {
       var windows = requests
           .where((r) => r.roomID == org.globalRoomID)
           .map((r) => BlackoutWindow.fromRequest(r))
@@ -391,11 +458,12 @@ class BookingRepo extends ChangeNotifier {
   }
 
   Future<void> _updateConfirmedBooking(
-      Transaction t,
-      Request request,
-      PrivateRequestDetails privateDetails,
-      String orgID,
-      RecurringBookingEditChoiceProvider choiceProvider) async {
+    Transaction t,
+    Request request,
+    PrivateRequestDetails privateDetails,
+    String orgID,
+    RecurringBookingEditChoiceProvider choiceProvider,
+  ) async {
     var recurrenceFrequency =
         request.recurrancePattern?.frequency ?? Frequency.never;
     if (recurrenceFrequency == Frequency.never) {
@@ -421,9 +489,11 @@ class BookingRepo extends ChangeNotifier {
       case RecurringBookingEditChoice.thisAndFuture:
         // End the orginal booking starting with the request start time
         var updatedPattern = originalBooking.recurrancePattern!.copyWith(
-            end: _stripTime(request.eventEndTime).subtract(Duration(days: 1)));
-        var updatedOrignalRequest =
-            originalBooking.copyWith(recurrancePattern: updatedPattern);
+          end: _stripTime(request.eventEndTime).subtract(Duration(days: 1)),
+        );
+        var updatedOrignalRequest = originalBooking.copyWith(
+          recurrancePattern: updatedPattern,
+        );
         t.set(originalRequestRef, updatedOrignalRequest);
 
         // Start a new Recurring booking with the new request
@@ -441,56 +511,74 @@ class BookingRepo extends ChangeNotifier {
   }
 
   DocumentReference<PrivateRequestDetails> _privateRequestDetailsRef(
-      String orgID, String requestID) {
+    String orgID,
+    String requestID,
+  ) {
     return _db
         .collection("orgs")
         .doc(orgID)
         .collection("request-details")
         .doc(requestID)
         .withConverter(
-          fromFirestore: (snapshot, _) =>
-              PrivateRequestDetails.fromJson(snapshot.data()!)
-                  .copyWith(id: snapshot.id),
+          fromFirestore: (snapshot, _) => PrivateRequestDetails.fromJson(
+            snapshot.data()!,
+          ).copyWith(id: snapshot.id),
           toFirestore: (details, _) => details.toJson(),
         );
   }
 
   CollectionReference<Request> _pendingBookingsRef(String orgID) {
     return _bookingCollectionRef(
-        orgID, "pending-requests", RequestStatus.pending);
+      orgID,
+      "pending-requests",
+      RequestStatus.pending,
+    );
   }
 
   CollectionReference<Request> _deniedRequestsRef(String orgID) {
     return _bookingCollectionRef(
-        orgID, "denied-requests", RequestStatus.denied);
+      orgID,
+      "denied-requests",
+      RequestStatus.denied,
+    );
   }
 
   CollectionReference<Request> _confirmedRequestsRef(String orgID) {
     return _bookingCollectionRef(
-        orgID, "confirmed-requests", RequestStatus.confirmed);
+      orgID,
+      "confirmed-requests",
+      RequestStatus.confirmed,
+    );
   }
 
   CollectionReference<Request> _bookingCollectionRef(
-      String orgID, String collectionName, RequestStatus status) {
+    String orgID,
+    String collectionName,
+    RequestStatus status,
+  ) {
     return _db
         .collection("orgs")
         .doc(orgID)
         .collection(collectionName)
         .withConverter(
-          fromFirestore: (snapshot, _) => Request.fromJson(snapshot.data()!)
-              .copyWith(id: snapshot.id)
-              .copyWith(status: status),
+          fromFirestore: (snapshot, _) => Request.fromJson(
+            snapshot.data()!,
+          ).copyWith(id: snapshot.id).copyWith(status: status),
           toFirestore: (request, _) => request.toJson(),
         );
   }
 
   Stream<List<OverlapPair>> findOverlappingBookings(
-      String orgID, DateTime startTime, DateTime endTime) {
+    String orgID,
+    DateTime startTime,
+    DateTime endTime,
+  ) {
     return listRequests(
-        orgID: orgID,
-        startTime: startTime,
-        endTime: endTime,
-        includeStatuses: {RequestStatus.confirmed}).map((requests) {
+      orgID: orgID,
+      startTime: startTime,
+      endTime: endTime,
+      includeStatuses: {RequestStatus.confirmed},
+    ).map((requests) {
       var overlaps = <OverlapPair>[];
       // Group requests by roomID
       var requestsByRoom = <String, List<Request>>{};
@@ -591,14 +679,17 @@ class DetailCache {
       var subject = BehaviorSubject<PrivateRequestDetails>();
       _cache[requestID] = subject;
       try {
-        _subs.add(_loader(orgID, requestID).listen(
-          (event) {
+        _subs.add(
+          _loader(orgID, requestID).listen((event) {
             if (event != null) subject.add(event);
-          },
-        ));
+          }),
+        );
       } catch (e, s) {
-        log("Error loading details for $orgID, $requestID",
-            error: e, stackTrace: s);
+        log(
+          "Error loading details for $orgID, $requestID",
+          error: e,
+          stackTrace: s,
+        );
         subject.addError(e);
       }
       yield* subject.stream;
