@@ -38,19 +38,24 @@ void main() {
       authController = StreamController<User?>.broadcast();
 
       // Default mock behaviors
-      when(() => mockAuth.authStateChanges())
-          .thenAnswer((_) => authController.stream);
+      when(
+        () => mockAuth.authStateChanges(),
+      ).thenAnswer((_) => authController.stream);
       when(() => mockAuth.currentUser).thenReturn(null);
-      when(() => mockPrefsRepo.isLoaded).thenReturn(true);
       when(() => mockPrefsRepo.lastOpenedOrgId).thenReturn(null);
-      when(() => mockAnalyticsService.logEvent(
+      when(
+        () => mockAnalyticsService.logEvent(
           name: any(named: 'name'),
-          parameters: any(named: 'parameters'))).thenAnswer((_) {});
-      when(() => mockOrgRepo.addOrgForCurrentUser(any()))
-          .thenAnswer((_) async => 'new-org-id');
+          parameters: any(named: 'parameters'),
+        ),
+      ).thenAnswer((_) {});
+      when(
+        () => mockOrgRepo.addOrgForCurrentUser(any()),
+      ).thenAnswer((_) async => 'new-org-id');
       when(() => mockAuth.signOut()).thenAnswer((_) async {});
-      when(() => mockPrefsRepo.setLastOpenedOrgId(any()))
-          .thenAnswer((_) async {});
+      when(
+        () => mockPrefsRepo.setLastOpenedOrgId(any()),
+      ).thenAnswer((_) async {});
     });
 
     LandingViewModel createSut() {
@@ -85,25 +90,30 @@ void main() {
 
       final event = await completer.future;
       expect(event, isA<NavigationEvent>());
-      verify(() => mockAnalyticsService.logEvent(
+      verify(
+        () => mockAnalyticsService.logEvent(
           name: 'screen_view',
-          parameters: {'screen_name': 'Landing'})).called(1);
+          parameters: {'screen_name': 'Landing'},
+        ),
+      ).called(1);
       sut.dispose();
     });
 
-    test('isLoggedIn updates and notifies listeners on auth state change',
-        () async {
-      final sut = createSut();
-      int callCount = 0;
-      sut.addListener(() => callCount++);
+    test(
+      'isLoggedIn updates and notifies listeners on auth state change',
+      () async {
+        final sut = createSut();
+        int callCount = 0;
+        sut.addListener(() => callCount++);
 
-      authController.add(mockUser);
-      await Future.value();
+        authController.add(mockUser);
+        await Future.value();
 
-      expect(sut.isLoggedIn, isTrue);
-      expect(callCount, 1);
-      sut.dispose();
-    });
+        expect(sut.isLoggedIn, isTrue);
+        expect(callCount, 1);
+        sut.dispose();
+      },
+    );
 
     test('signOut calls auth', () async {
       final sut = createSut();

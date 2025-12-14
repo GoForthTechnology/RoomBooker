@@ -27,10 +27,10 @@ class LandingViewModel extends ChangeNotifier {
     required PreferencesRepo prefsRepo,
     required OrgRepo orgRepo,
     required AnalyticsService analyticsService,
-  })  : _auth = auth,
-        _prefsRepo = prefsRepo,
-        _orgRepo = orgRepo,
-        _analyticsService = analyticsService {
+  }) : _auth = auth,
+       _prefsRepo = prefsRepo,
+       _orgRepo = orgRepo,
+       _analyticsService = analyticsService {
     _isLoggedIn = _auth.currentUser != null;
     _authSubscription = _auth.authStateChanges().listen((user) {
       _isLoggedIn = user != null;
@@ -54,29 +54,24 @@ class LandingViewModel extends ChangeNotifier {
   bool _isRedirecting = false;
 
   void init() {
-    _analyticsService
-        .logEvent(name: 'screen_view', parameters: {'screen_name': 'Landing'});
+    _analyticsService.logEvent(
+      name: 'screen_view',
+      parameters: {'screen_name': 'Landing'},
+    );
     _handleInitialNavigation();
   }
 
   void _handleInitialNavigation() {
-    if (_prefsRepo.isLoaded) {
-      _redirectIfNecessary(_prefsRepo);
-    } else {
-      _prefsRepo.addListener(() {
-        if (_prefsRepo.isLoaded) {
-          _redirectIfNecessary(_prefsRepo);
-        }
-      });
-    }
+    _redirectIfNecessary(_prefsRepo);
   }
 
   void _redirectIfNecessary(PreferencesRepo prefsRepo) {
     final orgId = prefsRepo.lastOpenedOrgId;
     if (orgId != null) {
       _isRedirecting = true;
-      _navigationController
-          .add(NavigationEvent(ViewBookingsRoute(orgID: orgId), replace: true));
+      _navigationController.add(
+        NavigationEvent(ViewBookingsRoute(orgID: orgId), replace: true),
+      );
       notifyListeners();
     }
   }
@@ -87,9 +82,12 @@ class LandingViewModel extends ChangeNotifier {
 
   Future<void> onOrgTapped(String orgId, String viewName) async {
     _prefsRepo.setLastOpenedOrgId(orgId);
-    _navigationController.add(NavigationEvent(
+    _navigationController.add(
+      NavigationEvent(
         ViewBookingsRoute(orgID: orgId, view: viewName),
-        replace: true));
+        replace: true,
+      ),
+    );
   }
 
   Future<void> createOrg(String name) async {

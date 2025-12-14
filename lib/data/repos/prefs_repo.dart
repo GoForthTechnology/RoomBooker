@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class PreferencesRepo extends ChangeNotifier {
+  final SharedPreferences _prefs;
   CalendarView _defaultCalendarView = CalendarView.month;
   static const String _defaultCalendarViewKey = 'default_calendar_view';
   String? _lastOpenedOrgId;
@@ -11,16 +12,14 @@ class PreferencesRepo extends ChangeNotifier {
   CalendarView get defaultCalendarView => _defaultCalendarView;
   String? get lastOpenedOrgId => _lastOpenedOrgId;
 
-  bool _isLoaded = false;
-  bool get isLoaded => _isLoaded;
+  bool get isLoaded => true;
 
-  PreferencesRepo() {
+  PreferencesRepo(this._prefs) {
     _loadPreferences();
   }
 
-  Future<void> _loadPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    final viewName = prefs.getString(_defaultCalendarViewKey);
+  void _loadPreferences() {
+    final viewName = _prefs.getString(_defaultCalendarViewKey);
     if (viewName != null) {
       try {
         _defaultCalendarView = CalendarView.values.firstWhere(
@@ -32,27 +31,23 @@ class PreferencesRepo extends ChangeNotifier {
         _defaultCalendarView = CalendarView.month;
       }
     }
-    _lastOpenedOrgId = prefs.getString(_lastOpenedOrgIdKey);
-    _isLoaded = true;
-    notifyListeners();
+    _lastOpenedOrgId = _prefs.getString(_lastOpenedOrgIdKey);
   }
 
   void setDefaultCalendarView(CalendarView view) async {
     _defaultCalendarView = view;
     notifyListeners();
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_defaultCalendarViewKey, view.name);
+    await _prefs.setString(_defaultCalendarViewKey, view.name);
   }
 
   void setLastOpenedOrgId(String? orgId) async {
     _lastOpenedOrgId = orgId;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
     if (orgId == null) {
-      await prefs.remove(_lastOpenedOrgIdKey);
+      await _prefs.remove(_lastOpenedOrgIdKey);
     } else {
-      await prefs.setString(_lastOpenedOrgIdKey, orgId);
+      await _prefs.setString(_lastOpenedOrgIdKey, orgId);
     }
   }
 }

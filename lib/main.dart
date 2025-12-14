@@ -19,12 +19,14 @@ import 'package:room_booker/router.dart';
 import 'package:room_booker/auth.dart';
 import 'firebase_options.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 bool useEmulator = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  final prefs = await SharedPreferences.getInstance();
 
   if (useEmulator && kDebugMode) {
     try {
@@ -38,7 +40,7 @@ void main() async {
   if (kDebugMode) {
     // App is running in debug mode
     debugPrint('App is running in debug mode, not initializing Sentry');
-    runApp(MyApp());
+    runApp(MyApp(prefs: prefs));
   } else {
     await SentryFlutter.init((options) {
       options.enableLogs = true;
@@ -56,12 +58,14 @@ void main() async {
       options.attachScreenshot = true;
       options.replay.sessionSampleRate = 1.0;
       options.replay.onErrorSampleRate = 1.0;
-    }, appRunner: () => runApp(SentryWidget(child: MyApp())));
+    }, appRunner: () => runApp(SentryWidget(child: MyApp(prefs: prefs))));
   }
 }
 
 class MyApp extends StatelessWidget {
-  MyApp({super.key});
+  final SharedPreferences prefs;
+
+  MyApp({super.key, required this.prefs});
 
   final _appRouter = AppRouter();
 
@@ -75,7 +79,7 @@ class MyApp extends StatelessWidget {
       var bookingRepo = BookingRepo(logRepo: logRepo);
       var roomRepo = RoomRepo();
       var userRepo = UserRepo();
-      var prefsRepo = PreferencesRepo();
+      var prefsRepo = PreferencesRepo(prefs);
       var orgRepo = OrgRepo(userRepo: userRepo, roomRepo: roomRepo);
       var analyticsService = FirebaseAnalyticsService();
       var authService = FirebaseAuthService();
