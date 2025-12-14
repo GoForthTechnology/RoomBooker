@@ -1,5 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/router.dart';
@@ -27,7 +28,9 @@ class PendingBookings extends StatelessWidget {
               orgID: orgID,
               requestID: request.id!,
               view: CalendarView.day.name,
-              targetDate: request.eventStartTime,
+              targetDateStr: DateFormat(
+                "yyyy-MM-dd",
+              ).format(request.eventStartTime),
             ),
           ),
         ),

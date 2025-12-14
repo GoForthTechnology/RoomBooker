@@ -749,6 +749,24 @@ void main() {
           ),
         ).called(1);
       });
+
+      test('EditorViewState properties for new request (no ID)', () async {
+        // Even if user is admin
+        when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
+
+        viewModel = createViewModel();
+        viewModel.initializeNewRequest(DateTime.now());
+
+        final viewState = await viewModel.viewStateStream.first;
+
+        // Should be editable
+        expect(viewState.readOnly, false);
+
+        // Should not show ID related fields even if admin
+        expect(viewState.showID, false);
+        expect(viewState.showIgnoreOverlapsToggle, false);
+        expect(viewState.showEventLog, false);
+      });
     });
   });
 }

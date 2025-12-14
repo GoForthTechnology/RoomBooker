@@ -311,8 +311,12 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
     bool showPrivateBookings = true,
     bool readOnlyMode = false,
     bool createRequest = false,
-    DateTime? targetDate,
+    String? targetDateStr,
     String? view,
+    ViewBookingsViewModel Function(BuildContext)? createViewModel,
+    CalendarViewModel Function(BuildContext, DateTime?)?
+    createCalendarViewModel,
+    RequestEditorViewModel Function(BuildContext)? createRequestEditorViewModel,
     List<PageRouteInfo>? children,
   }) : super(
          ViewBookingsRoute.name,
@@ -323,15 +327,18 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
            showPrivateBookings: showPrivateBookings,
            readOnlyMode: readOnlyMode,
            createRequest: createRequest,
-           targetDate: targetDate,
+           targetDateStr: targetDateStr,
            view: view,
+           createViewModel: createViewModel,
+           createCalendarViewModel: createCalendarViewModel,
+           createRequestEditorViewModel: createRequestEditorViewModel,
          ),
          rawPathParams: {'orgID': orgID},
          rawQueryParams: {
            'rid': requestID,
            'spb': showPrivateBookings,
            'ro': readOnlyMode,
-           'td': targetDate,
+           'td': targetDateStr,
            'v': view,
          },
          initialChildren: children,
@@ -350,7 +357,7 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
           requestID: queryParams.optString('rid'),
           showPrivateBookings: queryParams.getBool('spb', true),
           readOnlyMode: queryParams.getBool('ro', false),
-          targetDate: queryParams.get('td'),
+          targetDateStr: queryParams.optString('td'),
           view: queryParams.optString('v'),
         ),
       );
@@ -361,8 +368,11 @@ class ViewBookingsRoute extends PageRouteInfo<ViewBookingsRouteArgs> {
         showPrivateBookings: args.showPrivateBookings,
         readOnlyMode: args.readOnlyMode,
         createRequest: args.createRequest,
-        targetDate: args.targetDate,
+        targetDateStr: args.targetDateStr,
         view: args.view,
+        createViewModel: args.createViewModel,
+        createCalendarViewModel: args.createCalendarViewModel,
+        createRequestEditorViewModel: args.createRequestEditorViewModel,
       );
     },
   );
@@ -376,8 +386,11 @@ class ViewBookingsRouteArgs {
     this.showPrivateBookings = true,
     this.readOnlyMode = false,
     this.createRequest = false,
-    this.targetDate,
+    this.targetDateStr,
     this.view,
+    this.createViewModel,
+    this.createCalendarViewModel,
+    this.createRequestEditorViewModel,
   });
 
   final Key? key;
@@ -392,13 +405,21 @@ class ViewBookingsRouteArgs {
 
   final bool createRequest;
 
-  final DateTime? targetDate;
+  final String? targetDateStr;
 
   final String? view;
 
+  final ViewBookingsViewModel Function(BuildContext)? createViewModel;
+
+  final CalendarViewModel Function(BuildContext, DateTime?)?
+  createCalendarViewModel;
+
+  final RequestEditorViewModel Function(BuildContext)?
+  createRequestEditorViewModel;
+
   @override
   String toString() {
-    return 'ViewBookingsRouteArgs{key: $key, orgID: $orgID, requestID: $requestID, showPrivateBookings: $showPrivateBookings, readOnlyMode: $readOnlyMode, createRequest: $createRequest, targetDate: $targetDate, view: $view}';
+    return 'ViewBookingsRouteArgs{key: $key, orgID: $orgID, requestID: $requestID, showPrivateBookings: $showPrivateBookings, readOnlyMode: $readOnlyMode, createRequest: $createRequest, targetDateStr: $targetDateStr, view: $view, createViewModel: $createViewModel, createCalendarViewModel: $createCalendarViewModel, createRequestEditorViewModel: $createRequestEditorViewModel}';
   }
 
   @override
@@ -411,7 +432,7 @@ class ViewBookingsRouteArgs {
         showPrivateBookings == other.showPrivateBookings &&
         readOnlyMode == other.readOnlyMode &&
         createRequest == other.createRequest &&
-        targetDate == other.targetDate &&
+        targetDateStr == other.targetDateStr &&
         view == other.view;
   }
 
@@ -423,6 +444,6 @@ class ViewBookingsRouteArgs {
       showPrivateBookings.hashCode ^
       readOnlyMode.hashCode ^
       createRequest.hashCode ^
-      targetDate.hashCode ^
+      targetDateStr.hashCode ^
       view.hashCode;
 }

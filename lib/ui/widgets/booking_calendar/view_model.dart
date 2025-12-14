@@ -519,12 +519,16 @@ extension on Request {
     if (ignoreOverlaps && showIngnoringOverlaps) {
       s += "\n(Ignoring Overlaps!)";
     }
+    List<String> resourceIDs = [];
+    if (id != null) {
+      resourceIDs.add(id!);
+    }
     return Appointment(
       subject: s,
       color: color,
       startTime: eventStartTime,
       endTime: eventEndTime,
-      resourceIds: [id!],
+      resourceIds: resourceIDs,
     );
   }
 }

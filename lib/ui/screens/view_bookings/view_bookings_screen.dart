@@ -29,9 +29,10 @@ class ViewBookingsScreen extends StatelessWidget {
   final String? view;
   final bool createRequest;
   final bool readOnlyMode;
-  final DateTime? targetDate;
+  final String? targetDateStr;
   final String? requestID;
   final bool showPrivateBookings;
+  final DateTime? targetDate;
 
   final ViewBookingsViewModel Function(BuildContext)? createViewModel;
   final CalendarViewModel Function(BuildContext, DateTime?)?
@@ -46,14 +47,14 @@ class ViewBookingsScreen extends StatelessWidget {
     @QueryParam('spb') this.showPrivateBookings = true,
     @QueryParam('ro') this.readOnlyMode = false,
     this.createRequest = false,
-    @QueryParam('td') this.targetDate,
-    @QueryParam('v') String? view,
+    @QueryParam('td') this.targetDateStr,
+    @QueryParam('v') String? this.view,
     this.createViewModel,
     this.createCalendarViewModel,
     this.createRequestEditorViewModel,
-  }) : view = (targetDate != null || requestID != null
-           ? CalendarView.day.name
-           : view);
+  }) : targetDate = targetDateStr != null
+           ? DateTime.tryParse(targetDateStr)
+           : null;
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +154,8 @@ class ViewBookingsScreen extends StatelessWidget {
       includePrivateBookings: showPrivateBookings,
       showIgnoringOverlaps: !readOnlyMode,
       showDatePickerButton: true,
-      allowViewNavigation: true,
+      allowViewNavigation:
+          false, // This must be false for Month -> Day navigvation to work properly
     );
   }
 
@@ -163,7 +165,6 @@ class ViewBookingsScreen extends StatelessWidget {
           StreamBuilder(
             stream: viewModel.viewStateStream,
             builder: (context, snapshot) {
-              log('ViewBookingsScreen: Building with snapshot: $snapshot');
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }

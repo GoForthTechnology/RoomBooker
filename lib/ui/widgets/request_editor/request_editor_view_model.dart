@@ -97,22 +97,26 @@ class RequestEditorViewModel extends ChangeNotifier {
        _orgState = orgState,
        _choiceProvider = choiceProvider {
     _subscriptions.add(_closeSubject.listen((_) => _clearSubjects()));
-    
+
     // Initialize with default/empty state. It will be re-initialized in _initializeSubjects.
     repeatBookingsViewModel = RepeatBookingsViewModel(
       startTime: DateTime.now(),
       readOnly: true,
     );
-    
-    _subscriptions.add(_editingEnabledSubject.listen((enabled) {
-      repeatBookingsViewModel.setReadOnly(!enabled);
-    }));
-    
-     _subscriptions.add(_eventStartSubject.listen((startTime) {
-      if(startTime != null) {
-        repeatBookingsViewModel.updateStartTime(startTime);
-      }
-    }));
+
+    _subscriptions.add(
+      _editingEnabledSubject.listen((enabled) {
+        repeatBookingsViewModel.setReadOnly(!enabled);
+      }),
+    );
+
+    _subscriptions.add(
+      _eventStartSubject.listen((startTime) {
+        if (startTime != null) {
+          repeatBookingsViewModel.updateStartTime(startTime);
+        }
+      }),
+    );
   }
 
   void _clearSubjects() {
@@ -130,7 +134,7 @@ class RequestEditorViewModel extends ChangeNotifier {
     contactEmailController.text = "";
     phoneNumberController.text = "";
     additionalInfoController.text = "";
-    
+
     // Reset VM to clean state
     repeatBookingsViewModel.dispose();
     repeatBookingsViewModel = RepeatBookingsViewModel(
@@ -164,9 +168,9 @@ class RequestEditorViewModel extends ChangeNotifier {
     // No, the listeners in constructor are on subjects which we don't replace.
     // But we need to listen to the VM? No, we just pass it to the UI.
     // Wait, _requestStream needs the pattern from the VM.
-    
+
     // Let's recreate it to be safe and clean.
-    repeatBookingsViewModel.dispose(); 
+    repeatBookingsViewModel.dispose();
     repeatBookingsViewModel = RepeatBookingsViewModel(
       startTime: request?.eventStartTime ?? DateTime.now(),
       initialPattern: request?.recurrancePattern,
@@ -195,8 +199,9 @@ class RequestEditorViewModel extends ChangeNotifier {
       return EditorViewState(
         !editingEnabled,
         showIgnoreOverlapsToggle:
-            initialRequest != null && _orgState.currentUserIsAdmin(),
-        showEventLog: initialRequest != null && _orgState.currentUserIsAdmin(),
+            initialRequest?.id != null && _orgState.currentUserIsAdmin(),
+        showEventLog:
+            initialRequest?.id != null && _orgState.currentUserIsAdmin(),
         showID: initialRequest?.id != null,
         actions: actions,
       );

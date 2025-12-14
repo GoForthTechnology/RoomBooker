@@ -520,6 +520,30 @@ void main() {
       final uri = updatedUris.last;
       expect(uri.queryParameters['rid'], 'req-123');
     });
+
+    test('updates URI without request ID when request ID is null', () async {
+      final updatedUris = <Uri>[];
+      createViewModel(createRequest: false, updateUri: updatedUris.add);
+
+      final request = Request(
+        id: null,
+        eventStartTime: DateTime.now(),
+        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
+        roomID: 'r1',
+        roomName: 'Room',
+      );
+
+      final viewState = createViewState();
+
+      initialRequestController.add(request);
+      calendarViewStateController.add(viewState);
+
+      await Future.delayed(Duration.zero);
+
+      expect(updatedUris.isNotEmpty, true);
+      final uri = updatedUris.last;
+      expect(uri.queryParameters.containsKey('rid'), false);
+    });
   });
 
   group('onAddNewBooking', () {

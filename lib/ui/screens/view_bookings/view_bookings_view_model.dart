@@ -34,6 +34,8 @@ class ViewBookingsViewModel extends ChangeNotifier {
   final Future<DateTime?> Function(DateTime, DateTime, DateTime) pickDate;
   final Future<TimeOfDay?> Function(DateTime) pickTime;
 
+  static final dateFormat = DateFormat('yyyy-MM-dd');
+
   final _showRoomSelectorSubject = BehaviorSubject<bool>.seeded(false);
 
   ViewBookingsViewModel({
@@ -88,8 +90,8 @@ class ViewBookingsViewModel extends ChangeNotifier {
         if (createRequest) {
           params["createRequest"] = "true";
         }
-        if (initialRequest != null) {
-          params["rid"] = initialRequest.id!;
+        if (initialRequest?.id != null) {
+          params["rid"] = initialRequest!.id!;
         }
         return Uri(path: "/view/${_orgState.org.id!}", queryParameters: params);
       },
@@ -114,23 +116,24 @@ class ViewBookingsViewModel extends ChangeNotifier {
   }
 
   void _onTapDate(DateTapDetails details) {
+    log("Date tapped: ${details.date}");
     if (readOnlyMode) {
       return;
     }
     if (details.view == CalendarView.month) {
+      log("Changing to day view for date ${details.date}");
       _router.push(
         ViewBookingsRoute(
           orgID: orgID,
           view: CalendarView.day.name,
-          targetDate: details.date,
+          targetDateStr: dateFormat.format(details.date),
           createRequest: false,
         ),
       );
       return;
     }
-    if (createRequest) {
-      loadNewRequest(details.date);
-    }
+    log("Loading new request for date ${details.date}");
+    loadNewRequest(details.date);
   }
 
   Future<void> loadExistingRequest(String requestID) async {
@@ -259,7 +262,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
       ViewBookingsRoute(
         orgID: orgID,
         view: CalendarView.day.name,
-        targetDate: startTime,
+        targetDateStr: dateFormat.format(startTime),
         createRequest: true,
       ),
     );
