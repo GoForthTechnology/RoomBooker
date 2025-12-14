@@ -12,6 +12,7 @@
 const functions = require("firebase-functions/v1");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const { calculateOverlaps } = require("./overlap_calculator");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -75,6 +76,76 @@ exports.onBookingUpdated = functions.firestore
             `);
       }
     });
+
+exports.onBookingWrite = functions.firestore
+    .document("orgs/{orgID}/confirmed-requests/{bookingID}")
+    .onWrite(async (change, context) => {
+      const orgID = context.params.orgID;
+      const bookingID = context.params.bookingID;
+
+      // If deleted, remove overlaps involving this booking
+      if (!change.after.exists) {
+        await removeOverlaps(orgID, bookingID);
+        return;
+      }
+
+      const booking = change.after.data();
+      booking.id = bookingID; // Ensure ID is present
+
+      // Fetch all other confirmed bookings for the same room
+      const snapshot = await db.collection("orgs").doc(orgID)
+          .collection("confirmed-requests")
+          .where("roomID", "==", booking.roomID)
+          .get();
+
+      const otherBookings = [];
+      snapshot.forEach((doc) => {
+        if (doc.id !== bookingID) {
+          const data = doc.data();
+          data.id = doc.id;
+          otherBookings.push(data);
+        }
+      });
+
+      const overlaps = calculateOverlaps(booking, bookingID, otherBookings);
+
+      // Save overlaps
+      // First, delete existing overlaps for this booking to avoid stale data
+      await removeOverlaps(orgID, bookingID);
+
+      const batch = db.batch();
+      const overlapsRef = db.collection("orgs").doc(orgID).collection("overlaps");
+
+      for (const overlap of overlaps) {
+        const docRef = overlapsRef.doc();
+        batch.set(docRef, overlap);
+
+        const reverseOverlap = {
+          bookingID1: overlap.bookingID2,
+          bookingID2: overlap.bookingID1,
+          startTime: overlap.startTime2,
+          endTime: overlap.endTime2,
+          startTime2: overlap.startTime,
+          endTime2: overlap.endTime,
+          roomID: overlap.roomID,
+        };
+        const reverseDocRef = overlapsRef.doc();
+        batch.set(reverseDocRef, reverseOverlap);
+      }
+
+      await batch.commit();
+    });
+
+async function removeOverlaps(orgID, bookingID) {
+  const overlapsRef = db.collection("orgs").doc(orgID).collection("overlaps");
+  const snapshot1 = await overlapsRef.where("bookingID1", "==", bookingID).get();
+  const snapshot2 = await overlapsRef.where("bookingID2", "==", bookingID).get();
+
+  const batch = db.batch();
+  snapshot1.forEach((doc) => batch.delete(doc.ref));
+  snapshot2.forEach((doc) => batch.delete(doc.ref));
+  await batch.commit();
+}
 
 exports.onNewAdminRequest = functions.firestore
     .document("orgs/{orgID}/admin-requests/{requestID}")

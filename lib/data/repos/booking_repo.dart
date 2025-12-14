@@ -9,6 +9,7 @@ import 'package:room_booker/data/entities/blackout_window.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
+import 'package:room_booker/data/entities/overlap.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:rxdart/rxdart.dart';
@@ -573,56 +574,58 @@ class BookingRepo extends ChangeNotifier {
     DateTime startTime,
     DateTime endTime,
   ) {
-    return listRequests(
-      orgID: orgID,
-      startTime: startTime,
-      endTime: endTime,
-      includeStatuses: {RequestStatus.confirmed},
-    ).map((requests) {
-      var overlaps = <OverlapPair>[];
-      // Group requests by roomID
-      var requestsByRoom = <String, List<Request>>{};
-      for (var request in requests) {
-        if (request.ignoreOverlaps) {
-          continue;
-        }
-        requestsByRoom
-            .putIfAbsent(request.roomID, () => [])
-            .addAll(request.expand(startTime, endTime));
-      }
-      for (var roomID in requestsByRoom.keys) {
-        overlaps.addAll(findOverlaps(requestsByRoom[roomID]!));
-      }
-      return overlaps;
-    });
-  }
-}
+    return _db
+        .collection("orgs")
+        .doc(orgID)
+        .collection("overlaps")
+        .where("startTime", isGreaterThanOrEqualTo: startTime.toIso8601String())
+        .withConverter(
+          fromFirestore: (s, _) => Overlap.fromJson(s.data()!),
+          toFirestore: (o, _) => o.toJson(),
+        )
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((d) => d.data()).toList())
+        .switchMap((overlaps) {
+          if (overlaps.isEmpty) return Stream.value([]);
 
-List<OverlapPair> findOverlaps(List<Request> requests) {
-  var overlaps = <OverlapPair>[];
-  requests.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
-  for (var i = 0; i < requests.length; i++) {
-    var l = requests[i];
-    for (var j = i + 1; j < requests.length; j++) {
-      var r = requests[j];
-      if (r.eventStartTime.isAfter(l.eventEndTime)) {
-        break;
-      }
-      if (_doRequestsOverlap(l, r)) {
-        overlaps.add(OverlapPair(l, r));
-      }
-    }
-  }
-  return overlaps;
-}
+          var ids = <String>{};
+          for (var o in overlaps) {
+            ids.add(o.bookingID1);
+            ids.add(o.bookingID2);
+          }
 
-bool _doRequestsOverlap(Request a, Request b) {
-  if (a.roomID != b.roomID) return false;
-  if (!a.eventStartTime.isBefore(b.eventEndTime) ||
-      !b.eventStartTime.isBefore(a.eventEndTime)) {
-    return false;
+          var requestStreams = ids.map((id) => getRequest(orgID, id)).toList();
+
+          return Rx.combineLatestList(requestStreams).map((requests) {
+            var requestMap = {
+              for (var r in requests)
+                if (r != null) r.id!: r,
+            };
+
+            var pairs = <OverlapPair>[];
+            for (var o in overlaps) {
+              var r1 = requestMap[o.bookingID1];
+              var r2 = requestMap[o.bookingID2];
+              if (r1 != null && r2 != null) {
+                var inst1 = r1.copyWith(
+                  eventStartTime: o.startTime,
+                  eventEndTime: o.endTime,
+                  recurrancePattern: null,
+                  recurranceOverrides: null,
+                );
+                var inst2 = r2.copyWith(
+                  eventStartTime: o.startTime2,
+                  eventEndTime: o.endTime2,
+                  recurrancePattern: null,
+                  recurranceOverrides: null,
+                );
+                pairs.add(OverlapPair(inst1, inst2));
+              }
+            }
+            return pairs;
+          });
+        });
   }
-  return true;
 }
 
 DateTime _stripTime(DateTime dt) {
