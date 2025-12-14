@@ -9,36 +9,35 @@ import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/data/repos/user_repo.dart';
 import 'package:rxdart/rxdart.dart';
 
-enum RecurringBookingEditChoice {
-  thisInstance,
-  thisAndFuture,
-  all,
-}
+enum RecurringBookingEditChoice { thisInstance, thisAndFuture, all }
 
 class OrgRepo extends ChangeNotifier {
-  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseAnalytics _analytics;
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
   final UserRepo _userRepo;
   final RoomRepo _roomRepo;
 
-  OrgRepo({required UserRepo userRepo, required RoomRepo roomRepo})
-      : _userRepo = userRepo,
-        _roomRepo = roomRepo;
+  OrgRepo({
+    required UserRepo userRepo,
+    required RoomRepo roomRepo,
+    FirebaseFirestore? firestore,
+    FirebaseAnalytics? analytics,
+    FirebaseAuth? auth,
+  }) : _userRepo = userRepo,
+       _roomRepo = roomRepo,
+       _db = firestore ?? FirebaseFirestore.instance,
+       _analytics = analytics ?? FirebaseAnalytics.instance,
+       _auth = auth ?? FirebaseAuth.instance;
 
   Future<void> enableGlobalBookings(String orgID) async {
-    var roomID = await _roomRepo.addRoom(
-        orgID,
-        Room(
-          name: "All Rooms",
-        ));
+    var roomID = await _roomRepo.addRoom(orgID, Room(name: "All Rooms"));
 
-    await _db.collection("orgs").doc(orgID).update({
-      "globalRoomID": roomID,
-    });
+    await _db.collection("orgs").doc(orgID).update({"globalRoomID": roomID});
   }
 
   Future<String> addOrgForCurrentUser(String orgName) async {
-    var user = FirebaseAuth.instance.currentUser;
+    var user = _auth.currentUser;
     if (user == null) {
       return Future.error("User not logged in!");
     }
@@ -46,8 +45,9 @@ class OrgRepo extends ChangeNotifier {
       name: orgName,
       ownerID: user.uid,
       acceptingAdminRequests: false,
-      notificationSettings:
-          NotificationSettings.defaultSettings(user.email ?? ""),
+      notificationSettings: NotificationSettings.defaultSettings(
+        user.email ?? "",
+      ),
     );
     // TODO: add an initial room for the organization
     var orgID = await _db.runTransaction((t) async {
@@ -55,24 +55,25 @@ class OrgRepo extends ChangeNotifier {
       _userRepo.addOrg(t, user.uid, orgRef.id);
       return orgRef.id;
     });
-    _analytics.logEvent(name: "AddOrg", parameters: {
-      "orgID": orgID,
-    });
+    _analytics.logEvent(name: "AddOrg", parameters: {"orgID": orgID});
     return orgID;
   }
 
   Future<void> updateNotificationSettings(
-      String orgID, NotificationSettings settings) async {
+    String orgID,
+    NotificationSettings settings,
+  ) async {
     await _db.collection("orgs").doc(orgID).update({
       "notificationSettings": settings.toJson(),
     });
     _analytics.logEvent(
-        name: "UpdateNotificationSettings",
-        parameters: {"orgID": orgID, "settings": settings.toJson()});
+      name: "UpdateNotificationSettings",
+      parameters: {"orgID": orgID, "settings": settings.toJson()},
+    );
   }
 
   Future<void> addAdminRequestForCurrentUser(String orgID) async {
-    var user = FirebaseAuth.instance.currentUser;
+    var user = _auth.currentUser;
     if (user == null) {
       return Future.error("User not logged in!");
     }
@@ -84,24 +85,24 @@ class OrgRepo extends ChangeNotifier {
       _userRepo.addOrg(t, user.uid, orgID);
       t.set(_adminRequestRef(orgID, user.uid), entry);
     });
-    _analytics.logEvent(name: "AddAdminRequest", parameters: {
-      "orgID": orgID,
-      "userID": user.uid,
-    });
+    _analytics.logEvent(
+      name: "AddAdminRequest",
+      parameters: {"orgID": orgID, "userID": user.uid},
+    );
   }
 
   Stream<List<AdminEntry>> adminRequests(String orgID) {
-    return _adminRequestsRef(orgID)
-        .snapshots()
-        .map((s) => s.docs.map((d) => d.data()).toList());
+    return _adminRequestsRef(
+      orgID,
+    ).snapshots().map((s) => s.docs.map((d) => d.data()).toList());
   }
 
   Future<void> denyAdminRequest(String orgID, String userID) async {
     await _adminRequestRef(orgID, userID).delete();
-    _analytics.logEvent(name: "DenyAdminRequest", parameters: {
-      "orgID": orgID,
-      "userID": userID,
-    });
+    _analytics.logEvent(
+      name: "DenyAdminRequest",
+      parameters: {"orgID": orgID, "userID": userID},
+    );
   }
 
   Future<void> approveAdminRequest(String orgID, String userID) async {
@@ -115,10 +116,10 @@ class OrgRepo extends ChangeNotifier {
       t.delete(requestRef);
       t.set(_activeAdminRef(orgID, userID), request!);
     });
-    _analytics.logEvent(name: "ApproveAdminRequest", parameters: {
-      "orgID": orgID,
-      "userID": userID,
-    });
+    _analytics.logEvent(
+      name: "ApproveAdminRequest",
+      parameters: {"orgID": orgID, "userID": userID},
+    );
   }
 
   Future<void> removeAdmin(String orgID, String userID) async {
@@ -127,16 +128,16 @@ class OrgRepo extends ChangeNotifier {
       t.delete(adminRef);
       //_userRepo.removeOrg(t, userID, orgID);
     });
-    _analytics.logEvent(name: "RemoveAdmin", parameters: {
-      "orgID": orgID,
-      "userID": userID,
-    });
+    _analytics.logEvent(
+      name: "RemoveAdmin",
+      parameters: {"orgID": orgID, "userID": userID},
+    );
   }
 
   Stream<List<AdminEntry>> activeAdmins(String orgID) {
-    return _activeAdminsRef(orgID)
-        .snapshots()
-        .map((s) => s.docs.map((d) => d.data()).toList());
+    return _activeAdminsRef(
+      orgID,
+    ).snapshots().map((s) => s.docs.map((d) => d.data()).toList());
   }
 
   Future<void> enableAdminRequests(String orgID) async {
@@ -152,19 +153,15 @@ class OrgRepo extends ChangeNotifier {
   }
 
   Future<void> publishOrg(String orgID) async {
-    return _db.collection("orgs").doc(orgID).update({
-      "publiclyVisible": true,
-    });
+    return _db.collection("orgs").doc(orgID).update({"publiclyVisible": true});
   }
 
   Future<void> hideOrg(String orgID) async {
-    return _db.collection("orgs").doc(orgID).update({
-      "publiclyVisible": false,
-    });
+    return _db.collection("orgs").doc(orgID).update({"publiclyVisible": false});
   }
 
   Future<void> removeOrg(String orgID) async {
-    var user = FirebaseAuth.instance.currentUser;
+    var user = _auth.currentUser;
     if (user == null) {
       return Future.error("User not logged in!");
     }
@@ -177,9 +174,7 @@ class OrgRepo extends ChangeNotifier {
       await orgRef.delete();
       _userRepo.removeOrg(t, user.uid, orgID);
     });
-    _analytics.logEvent(name: "RemoveOrg", parameters: {
-      "orgID": orgID,
-    });
+    _analytics.logEvent(name: "RemoveOrg", parameters: {"orgID": orgID});
   }
 
   Stream<Organization?> getOrg(String orgID) async* {
@@ -197,7 +192,7 @@ class OrgRepo extends ChangeNotifier {
   Stream<List<Organization>> getOrgs({bool excludeOwned = false}) async* {
     debugPrint("Listing orgs");
     Set<String> ownedOrgs = {};
-    var user = FirebaseAuth.instance.currentUser;
+    var user = _auth.currentUser;
     if (excludeOwned && user != null) {
       var profile = await _userRepo.getUser(user.uid);
       ownedOrgs = Set.from(profile?.orgIDs ?? []);
@@ -211,16 +206,18 @@ class OrgRepo extends ChangeNotifier {
           toFirestore: (org, _) => org.toJson(),
         )
         .snapshots()
-        .map((s) => s.docs
-            .map((d) => d.data())
-            .toList()
-            .where((o) => !ownedOrgs.contains(o.id!))
-            .toList());
+        .map(
+          (s) => s.docs
+              .map((d) => d.data())
+              .toList()
+              .where((o) => !ownedOrgs.contains(o.id!))
+              .toList(),
+        );
   }
 
   Stream<List<Organization>> getOrgsForCurrentUser() async* {
     debugPrint("Listing orgs for current user");
-    var user = FirebaseAuth.instance.currentUser;
+    var user = _auth.currentUser;
     if (user == null) {
       log("foo");
       yield* Stream.value([]);
@@ -232,8 +229,9 @@ class OrgRepo extends ChangeNotifier {
         .map((profile) {
           var orgIDs = profile?.orgIDs ?? [];
           var streams = orgIDs.map(getOrg).toList();
-          return Rx.combineLatestList(streams).map(
-              (orgs) => orgs.where((o) => o != null).map((o) => o!).toList());
+          return Rx.combineLatestList(
+            streams,
+          ).map((orgs) => orgs.where((o) => o != null).map((o) => o!).toList());
         })
         .switchMap((s) => s)
         .startWith([]);
