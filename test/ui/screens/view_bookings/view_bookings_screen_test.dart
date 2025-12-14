@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/auth_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
+import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
@@ -13,7 +14,11 @@ import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/ui/screens/view_bookings/view_bookings_screen.dart';
 import 'package:room_booker/ui/screens/view_bookings/view_bookings_view_model.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
+import 'package:room_booker/ui/widgets/navigation_drawer.dart';
+import 'package:room_booker/ui/widgets/request_editor/repeat_booking_selector/repeat_bookings_view_model.dart';
+import 'package:room_booker/ui/widgets/request_editor/request_editor.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class MockOrgRepo extends Mock implements OrgRepo {}
@@ -38,6 +43,9 @@ class MockCalendarViewModel extends Mock implements CalendarViewModel {}
 class MockRequestEditorViewModel extends Mock
     implements RequestEditorViewModel {}
 
+class MockRepeatBookingsViewModel extends Mock
+    implements RepeatBookingsViewModel {}
+
 class FakeBuildContext extends Fake implements BuildContext {}
 
 class FakeDataSource extends CalendarDataSource {
@@ -55,6 +63,8 @@ class FakeAppointmentDragEndDetails extends Fake
 class FakeCalendarTapDetails extends Fake implements CalendarTapDetails {}
 
 void main() {
+  Provider.debugCheckInvalidValueType = null;
+
   setUpAll(() {
     registerFallbackValue(FakeBuildContext());
     registerFallbackValue(FakeAppointmentResizeEndDetails());
@@ -73,6 +83,7 @@ void main() {
   late MockViewBookingsViewModel mockViewModel;
   late MockCalendarViewModel mockCalendarViewModel;
   late MockRequestEditorViewModel mockRequestEditorViewModel;
+  late MockRepeatBookingsViewModel mockRepeatBookingsViewModel;
 
   setUp(() {
     mockOrgRepo = MockOrgRepo();
@@ -86,6 +97,7 @@ void main() {
     mockViewModel = MockViewBookingsViewModel();
     mockCalendarViewModel = MockCalendarViewModel();
     mockRequestEditorViewModel = MockRequestEditorViewModel();
+    mockRepeatBookingsViewModel = MockRepeatBookingsViewModel();
 
     // Default stubs
     when(
@@ -102,6 +114,87 @@ void main() {
     when(() => mockViewModel.getActions(any())).thenReturn([]);
     when(() => mockViewModel.toggleRoomSelector()).thenReturn(null);
     when(() => mockViewModel.onAddNewBooking()).thenReturn(null);
+
+    // Mock RequestEditorViewModel
+    when(
+      () => mockRequestEditorViewModel.repeatBookingsViewModel,
+    ).thenReturn(mockRepeatBookingsViewModel);
+    when(
+      () => mockRequestEditorViewModel.editorTitle,
+    ).thenReturn("Test Editor");
+    when(() => mockRequestEditorViewModel.orgID).thenReturn("org1");
+    when(
+      () => mockRequestEditorViewModel.eventNameContoller,
+    ).thenReturn(TextEditingController());
+    when(
+      () => mockRequestEditorViewModel.contactNameController,
+    ).thenReturn(TextEditingController());
+    when(
+      () => mockRequestEditorViewModel.contactEmailController,
+    ).thenReturn(TextEditingController());
+    when(
+      () => mockRequestEditorViewModel.phoneNumberController,
+    ).thenReturn(TextEditingController());
+    when(
+      () => mockRequestEditorViewModel.additionalInfoController,
+    ).thenReturn(TextEditingController());
+    when(
+      () => mockRequestEditorViewModel.idController,
+    ).thenReturn(TextEditingController());
+
+    when(
+      () => mockRequestEditorViewModel.isPublicStream,
+    ).thenAnswer((_) => Stream.value(true));
+    when(
+      () => mockRequestEditorViewModel.ignoreOverlapsStream,
+    ).thenAnswer((_) => Stream.value(false));
+    when(
+      () => mockRequestEditorViewModel.eventStartStream,
+    ).thenAnswer((_) => Stream.value(DateTime.now()));
+    when(() => mockRequestEditorViewModel.eventEndStream).thenAnswer(
+      (_) => Stream.value(DateTime.now().add(const Duration(hours: 1))),
+    );
+    when(() => mockRequestEditorViewModel.eventTimeStream).thenAnswer(
+      (_) => Stream.value((
+        DateTime.now(),
+        DateTime.now().add(const Duration(hours: 1)),
+      )),
+    );
+    when(
+      () => mockRequestEditorViewModel.roomIDStream,
+    ).thenAnswer((_) => Stream.value("room1"));
+    when(
+      () => mockRequestEditorViewModel.roomNameStream,
+    ).thenAnswer((_) => Stream.value("Room 1"));
+
+    when(() => mockRequestEditorViewModel.viewStateStream).thenAnswer(
+      (_) => Stream.value(
+        EditorViewState(
+          false,
+          showIgnoreOverlapsToggle: false,
+          showEventLog: false,
+          showID: false,
+          actions: [],
+        ),
+      ),
+    );
+    when(
+      () => mockRequestEditorViewModel.formKey,
+    ).thenReturn(GlobalKey<FormState>());
+
+    // Mock RepeatBookingsViewModel
+    when(
+      () => mockRepeatBookingsViewModel.patternStream,
+    ).thenAnswer((_) => Stream.value(RecurrancePattern.daily()));
+    when(
+      () => mockRepeatBookingsViewModel.isCustomStream,
+    ).thenAnswer((_) => Stream.value(false));
+    when(
+      () => mockRepeatBookingsViewModel.startTimeStream,
+    ).thenAnswer((_) => Stream.value(DateTime.now()));
+    when(
+      () => mockRepeatBookingsViewModel.readOnlyStream,
+    ).thenAnswer((_) => Stream.value(false));
 
     when(
       () => mockCalendarViewModel.controller,
@@ -162,9 +255,7 @@ void main() {
         ChangeNotifierProvider<PreferencesRepo>.value(
           value: mockPreferencesRepo,
         ),
-        ChangeNotifierProvider<FirebaseAuthService>.value(
-          value: mockAuthService,
-        ),
+        Provider<AuthService>.value(value: mockAuthService),
         ChangeNotifierProvider<FirebaseAnalyticsService>.value(
           value: mockAnalyticsService,
         ),
@@ -216,5 +307,78 @@ void main() {
 
     await tester.tap(menuButton);
     verify(() => mockViewModel.toggleRoomSelector()).called(1);
+  });
+
+  testWidgets('ViewBookingsScreen animates drawer visibility', (tester) async {
+    final viewStateSubject = BehaviorSubject<ViewState>.seeded(
+      ViewState(showRoomSelector: false, showEditor: false),
+    );
+    when(
+      () => mockViewModel.viewStateStream,
+    ).thenAnswer((_) => viewStateSubject.stream);
+
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pumpAndSettle();
+
+    // Verify drawer width is 0
+    var drawerFinder = find.byType(MyDrawer);
+    var drawerContainer = tester.widget<AnimatedContainer>(
+      find
+          .ancestor(of: drawerFinder, matching: find.byType(AnimatedContainer))
+          .first,
+    );
+    expect(drawerContainer.constraints!.maxWidth, 0.0);
+
+    // Show drawer
+    viewStateSubject.add(ViewState(showRoomSelector: true, showEditor: false));
+    await tester.pump(); // Start animation
+    await tester.pumpAndSettle(); // Finish animation
+
+    // Verify drawer width is panelWidth (800 / 4 = 200)
+    drawerContainer = tester.widget<AnimatedContainer>(
+      find
+          .ancestor(of: drawerFinder, matching: find.byType(AnimatedContainer))
+          .first,
+    );
+    // AnimatedContainer uses constraints to animate width if width is provided
+    // But wait, if width is 0, constraints.maxWidth is 0.
+    // If width is 200, constraints.maxWidth is 200.
+    // However, AnimatedContainer passes `width` to `Container`, which creates `BoxConstraints.tightFor(width: width)`.
+    // So checking constraints.maxWidth is correct.
+    expect(drawerContainer.constraints!.maxWidth, 200.0);
+  });
+
+  testWidgets('ViewBookingsScreen animates editor visibility', (tester) async {
+    final viewStateSubject = BehaviorSubject<ViewState>.seeded(
+      ViewState(showRoomSelector: false, showEditor: false),
+    );
+    when(
+      () => mockViewModel.viewStateStream,
+    ).thenAnswer((_) => viewStateSubject.stream);
+
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pumpAndSettle();
+
+    // Verify editor width is 0
+    var editorFinder = find.byType(RequestEditor);
+    var editorContainer = tester.widget<AnimatedContainer>(
+      find
+          .ancestor(of: editorFinder, matching: find.byType(AnimatedContainer))
+          .first,
+    );
+    expect(editorContainer.constraints!.maxWidth, 0.0);
+
+    // Show editor
+    viewStateSubject.add(ViewState(showRoomSelector: false, showEditor: true));
+    await tester.pump(); // Start animation
+    await tester.pumpAndSettle(); // Finish animation
+
+    // Verify editor width is panelWidth (800 / 4 = 200)
+    editorContainer = tester.widget<AnimatedContainer>(
+      find
+          .ancestor(of: editorFinder, matching: find.byType(AnimatedContainer))
+          .first,
+    );
+    expect(editorContainer.constraints!.maxWidth, 200.0);
   });
 }

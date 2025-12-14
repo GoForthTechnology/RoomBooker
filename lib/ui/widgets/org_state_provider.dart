@@ -1,26 +1,31 @@
 import 'dart:developer';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/data/auth_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 
 class OrgState extends ChangeNotifier {
   final Organization org;
   final Map<String, AdminEntry> admins;
+  final AuthService authService;
 
-  OrgState({required this.org, required this.admins});
+  OrgState({
+    required this.org,
+    required this.admins,
+    required this.authService,
+  });
 
   bool currentUserIsAdmin() {
-    var user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    var userID = authService.getCurrentUserID();
+    if (userID == null) {
       return false; // not logged in
     }
-    if (user.uid == org.ownerID) {
+    if (userID == org.ownerID) {
       return true; // owner is always an admin
     }
-    return admins.containsKey(user.uid);
+    return admins.containsKey(userID);
   }
 }
 
@@ -33,35 +38,20 @@ class OrgStateProvider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var orgRepo = Provider.of<OrgRepo>(context, listen: false);
-    // TEMPORARY DEBUG: Bypass Rx.combineLatest2
-    /*
-    return FutureBuilder<OrgState?>(
-      future: Rx.combineLatest2(
-        orgRepo.getOrg(orgID),
-        orgRepo.activeAdmins(orgID),
-        (org, admins) {
-          print("DEBUG: combineLatest2 called with org: $org, admins: $admins");
-          if (org == null) {
-            return null;
-          }
-          return OrgState(org: org, admins: {for (var a in admins) a.id!: a});
-        },
-      ).first,
-      */
+    var authService = Provider.of<AuthService>(context, listen: false);
+
     return FutureBuilder<OrgState?>(
       future: Future.delayed(Duration.zero, () async {
         var org = await orgRepo.getOrg(orgID).first;
         var admins = await orgRepo.activeAdmins(orgID).first;
         if (org == null) return null;
-        return OrgState(org: org, admins: {for (var a in admins) a.id!: a});
+        return OrgState(
+          org: org,
+          admins: {for (var a in admins) a.id!: a},
+          authService: authService,
+        );
       }),
       builder: (context, snapshot) {
-        print(
-          "DEBUG: FutureBuilder snapshot: ${snapshot.connectionState}, hasData: ${snapshot.hasData}, error: ${snapshot.error}",
-        );
-        if (snapshot.hasData) {
-          print("DEBUG: FutureBuilder has data: ${snapshot.data}");
-        }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }

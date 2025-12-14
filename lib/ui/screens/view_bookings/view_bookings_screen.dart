@@ -192,6 +192,12 @@ class ViewBookingsScreen extends StatelessWidget {
     ViewState viewState,
     BuildContext context,
   ) {
+    var isSmall = viewModel.isSmallView();
+    var showDrawer =
+        !isSmall && viewState.showRoomSelector && !viewState.showEditor;
+    var showEditor = !isSmall && viewState.showEditor;
+    var panelWidth = MediaQuery.sizeOf(context).width / 4;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(orgState.org.name),
@@ -214,16 +220,33 @@ class ViewBookingsScreen extends StatelessWidget {
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!viewModel.isSmallView() &&
-              viewState.showRoomSelector &&
-              !viewState.showEditor)
-            Flexible(flex: 1, child: MyDrawer(org: orgState.org)),
-          Flexible(flex: 3, child: BookingCalendarView()),
-          if (viewState.showEditor && !viewModel.isSmallView())
-            Flexible(
-              flex: 1,
-              child: SingleChildScrollView(child: RequestEditor()),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            width: showDrawer ? panelWidth : 0,
+            child: ClipRect(
+              child: OverflowBox(
+                minWidth: panelWidth,
+                maxWidth: panelWidth,
+                alignment: Alignment.centerRight,
+                child: MyDrawer(org: orgState.org),
+              ),
             ),
+          ),
+          Expanded(child: BookingCalendarView()),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            width: showEditor ? panelWidth : 0,
+            child: ClipRect(
+              child: OverflowBox(
+                minWidth: panelWidth,
+                maxWidth: panelWidth,
+                alignment: Alignment.centerLeft,
+                child: SingleChildScrollView(child: RequestEditor()),
+              ),
+            ),
+          ),
         ],
       ),
     );
