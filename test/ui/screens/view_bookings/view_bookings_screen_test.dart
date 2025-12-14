@@ -255,7 +255,7 @@ void main() {
         ChangeNotifierProvider<PreferencesRepo>.value(
           value: mockPreferencesRepo,
         ),
-        Provider<AuthService>.value(value: mockAuthService),
+        Provider<FirebaseAuthService>.value(value: mockAuthService),
         ChangeNotifierProvider<FirebaseAnalyticsService>.value(
           value: mockAnalyticsService,
         ),
