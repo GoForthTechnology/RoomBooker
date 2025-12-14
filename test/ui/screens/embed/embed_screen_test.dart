@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/data/auth_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
@@ -15,6 +16,8 @@ class MockOrgRepo extends Mock implements OrgRepo {}
 class MockRoomRepo extends Mock implements RoomRepo {}
 
 class MockBookingRepo extends Mock implements BookingRepo {}
+
+class MockAuthService extends Mock implements AuthService {}
 
 class FakeAppointmentResizeEndDetails extends Fake
     implements AppointmentResizeEndDetails {}
@@ -30,6 +33,7 @@ void main() {
   late MockOrgRepo mockOrgRepo;
   late MockRoomRepo mockRoomRepo;
   late MockBookingRepo mockBookingRepo;
+  late MockAuthService mockAuthService;
 
   setUpAll(() {
     registerFallbackValue(FakeAppointmentResizeEndDetails());
@@ -43,6 +47,9 @@ void main() {
     mockOrgRepo = MockOrgRepo();
     mockRoomRepo = MockRoomRepo();
     mockBookingRepo = MockBookingRepo();
+    mockAuthService = MockAuthService();
+
+    when(() => mockAuthService.getCurrentUserID()).thenReturn(null);
 
     // Default BookingRepo stubs
     when(
@@ -65,6 +72,7 @@ void main() {
         ChangeNotifierProvider<OrgRepo>.value(value: mockOrgRepo),
         ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
         ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+        Provider<AuthService>.value(value: mockAuthService),
       ],
       child: MaterialApp(
         home: EmbedScreen(orgID: 'org1', view: view),
@@ -98,9 +106,9 @@ void main() {
 
     // Act
     await tester.pumpWidget(createWidgetUnderTest());
-    
+
     // Pump to settle OrgStateProvider
-    await tester.pump(); 
+    await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 
     // Pump to settle RoomStateProvider
@@ -113,20 +121,25 @@ void main() {
   });
 
   testWidgets('EmbedScreen shows loading indicator initially', (tester) async {
-     // Arrange - delay the response
+    // Arrange - delay the response
     when(() => mockOrgRepo.getOrg('org1')).thenAnswer(
-      (_) => Stream.fromFuture(Future.delayed(const Duration(seconds: 2), () => Organization(
-          id: 'org1',
-          name: 'Test Org',
-          ownerID: 'owner1',
-          acceptingAdminRequests: true,
-        ))),
+      (_) => Stream.fromFuture(
+        Future.delayed(
+          const Duration(seconds: 2),
+          () => Organization(
+            id: 'org1',
+            name: 'Test Org',
+            ownerID: 'owner1',
+            acceptingAdminRequests: true,
+          ),
+        ),
+      ),
     );
     when(
       () => mockOrgRepo.activeAdmins('org1'),
     ).thenAnswer((_) => Stream.value([]));
 
-     when(() => mockRoomRepo.listRooms('org1')).thenAnswer(
+    when(() => mockRoomRepo.listRooms('org1')).thenAnswer(
       (_) => Stream.value([
         Room(id: 'room1', name: 'Room 1', colorHex: '#0000FF'),
       ]),
@@ -138,16 +151,16 @@ void main() {
 
     // Assert
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    
+
     // Finish
     await tester.pump(const Duration(seconds: 2));
   });
 
   testWidgets('EmbedScreen shows error when org not found', (tester) async {
     // Arrange
-    when(() => mockOrgRepo.getOrg('org1')).thenAnswer(
-      (_) => Stream.value(null),
-    );
+    when(
+      () => mockOrgRepo.getOrg('org1'),
+    ).thenAnswer((_) => Stream.value(null));
     when(
       () => mockOrgRepo.activeAdmins('org1'),
     ).thenAnswer((_) => Stream.value([]));
@@ -191,7 +204,7 @@ void main() {
     await tester.pump(const Duration(seconds: 1)); // RoomState loaded
 
     // Assert
-    // Verify that the calendar is in month view. 
+    // Verify that the calendar is in month view.
     // Since we can't easily inspect the internal state of SfCalendar created by BookingCalendar directly
     // without more complex finding, we rely on BookingCalendar being created.
     // However, createViewModel is called inside build.

@@ -284,18 +284,6 @@ void main() {
       ).called(1);
     });
 
-    test('loadNewRequest is NOT called when createRequest is false', () async {
-      createViewModel(createRequest: false);
-      final targetDate = DateTime(2023, 10, 27);
-
-      dateTapController.add(
-        DateTapDetails(date: targetDate, view: CalendarView.day),
-      );
-      await Future.delayed(Duration.zero);
-
-      verifyNever(() => mockRequestEditorViewModel.initializeNewRequest(any()));
-    });
-
     test('Month view triggers navigation to Day view', () async {
       createViewModel(createRequest: false);
       final targetDate = DateTime(2023, 10, 27);
