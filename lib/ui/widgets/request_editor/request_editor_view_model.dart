@@ -287,7 +287,7 @@ class RequestEditorViewModel extends ChangeNotifier {
             name: "Booking Added",
             parameters: {
               "orgID": orgID,
-              "isAdmin": _orgState.currentUserIsAdmin(),
+              "isAdmin": _orgState.currentUserIsAdmin().toString(),
             },
           );
           var closeMessage = await closeEditor();

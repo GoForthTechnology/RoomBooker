@@ -70,6 +70,10 @@ class ViewBookingsViewModel extends ChangeNotifier {
     _calendarViewModel.dateTapStream.listen(_onTapDate);
     _calendarViewModel.requestTapStream.listen(_onTapBooking);
     _currentUriStream().listen(updateUri);
+
+    if (_existingRequestID != null) {
+      loadExistingRequest(_existingRequestID);
+    }
   }
 
   Stream<Uri> _currentUriStream() {

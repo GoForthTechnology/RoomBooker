@@ -359,6 +359,42 @@ void main() {
         ),
       ).called(1);
     });
+
+    test(
+      'is called on initialization when existingRequestID is provided',
+      () async {
+        when(
+          () => mockBookingRepo.getRequest('test_org_id', 'req-1'),
+        ).thenAnswer((_) => Stream.value(request));
+        when(
+          () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
+        ).thenAnswer((_) => Stream.value(details));
+        when(
+          () => mockRequestEditorViewModel.initializeFromExistingRequest(
+            request,
+            details,
+          ),
+        ).thenAnswer((_) {});
+
+        createViewModel(createRequest: false, existingRequestID: 'req-1');
+
+        // Allow async init to complete
+        await Future.delayed(Duration.zero);
+
+        verify(
+          () => mockBookingRepo.getRequest('test_org_id', 'req-1'),
+        ).called(1);
+        verify(
+          () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
+        ).called(1);
+        verify(
+          () => mockRequestEditorViewModel.initializeFromExistingRequest(
+            request,
+            details,
+          ),
+        ).called(1);
+      },
+    );
   });
 
   group('viewStateStream', () {

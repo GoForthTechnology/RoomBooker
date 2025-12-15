@@ -64,7 +64,14 @@ class ViewBookingsScreen extends StatelessWidget {
     );
     analytics.logScreenView(
       screenName: "View Bookings",
-      parameters: {"orgID": orgID},
+      parameters: {
+        "orgID": orgID,
+        "rid": requestID ?? "",
+        "spb": showPrivateBookings.toString(),
+        "ro": readOnlyMode.toString(),
+        "td": targetDateStr ?? "",
+        "v": view ?? "",
+      },
     );
     return OrgStateProvider(
       orgID: orgID,
