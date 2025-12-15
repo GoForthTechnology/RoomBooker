@@ -20,6 +20,7 @@ import 'package:room_booker/auth.dart';
 import 'firebase_options.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:room_booker/app_router_observer.dart';
 
 bool useEmulator = false;
 
@@ -101,7 +102,9 @@ class MyApp extends StatelessWidget {
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             useMaterial3: true,
           ),
-          routerConfig: _appRouter.config(),
+          routerConfig: _appRouter.config(
+            navigatorObservers: () => [AppRouterObserver()],
+          ),
         ),
       );
     } catch (e) {
