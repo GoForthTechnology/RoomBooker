@@ -154,6 +154,7 @@ class ViewBookingsScreen extends StatelessWidget {
       includePrivateBookings: showPrivateBookings,
       showIgnoringOverlaps: !readOnlyMode,
       showDatePickerButton: true,
+      showNavigationArrow: true,
       allowViewNavigation:
           false, // This must be false for Month -> Day navigvation to work properly
     );
