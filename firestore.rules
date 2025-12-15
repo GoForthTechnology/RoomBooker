@@ -1,0 +1,64 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userID} {
+    	allow read, write: if userID == request.auth.uid
+  	}
+    
+    match /orgs/{orgID} {
+    	function isOwner() {
+      	return get(/databases/$(database)/documents/orgs/$(orgID)).data.ownerID == request.auth.uid
+      }
+      
+      function isAdmin() {
+      	return isOwner() || exists(/databases/$(database)/documents/orgs/$(orgID)/active-admins/$(request.auth.uid))
+      }
+    
+    	allow read: if true // anyone can see an org's calendar to request a booking
+      allow write: if isAdmin()
+      allow create: if request.auth.uid != null // anyone can create an org if logged in
+      
+      match /admin-requests/{userID} {
+      	allow create: if request.auth.uid != null // TODO check if requests are allowed
+        
+        allow read, write: if isAdmin()
+      }
+      
+      match /active-admins/{userID} {
+      	allow read: if true
+        allow write: if isAdmin()
+      }
+      
+      match /pending-requests/{requestID} {
+      	allow create, read: if true // allow everyone to create a request
+        allow write: if isAdmin()
+      } 
+     
+      match /request-details/{requestID} {
+      	allow create, read: if true // allow everyone to create a request
+        allow write: if isAdmin()
+      }
+      
+      match /denied-requests/{requestID} {
+        allow read, write: if isAdmin()
+      }
+      
+      match /confirmed-requests/{requestID} {
+      	allow read: if true // allow everyone to see confirmed bookings
+        allow write: if isAdmin()
+      }
+      
+      match /rooms/{roomID} {
+      	allow read: if true
+        allow write: if isAdmin()
+      }
+      
+      match /request-logs/{logID} {
+        allow create: if "requestID" in request.resource.data // allow everyone to create a request
+      	allow read, write: if isAdmin()
+      }
+    }
+  }
+}

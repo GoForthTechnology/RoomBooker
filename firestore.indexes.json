@@ -1,0 +1,514 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "recurrancePattern.end",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recurrancePattern",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recurrancePattern.end",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recurrancePattern.end",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "recurrancePattern.frequency",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recurrancePattern.end",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recurrancePattern.end",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recurrancePattern.end",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recurrancePattern.end",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "recurrancePattern.frequency",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recurrancePattern.frequency",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recurrancePattern.frequency",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "recurrancePattern.frequency",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "recurrancePattern.end",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "recurrancePattern.end",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "recurrancePattern.end",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "confirmed-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "recurrancePattern.end",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "recurrancePattern.frequency",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "denied-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "denied-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "pending-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "pending-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "pending-requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "roomID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventStartTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "eventEndTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "request-logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "requestID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    }
+  ],
+  "fieldOverrides": []
+}

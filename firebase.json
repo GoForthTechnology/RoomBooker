@@ -1,1 +1,89 @@
-{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"roombooker-5e947","configurations":{"android":"1:610453083826:android:6e7a6e6de92bd450d21bab","ios":"1:610453083826:ios:44cdd5026f0a5ad8d21bab","macos":"1:610453083826:ios:44cdd5026f0a5ad8d21bab","web":"1:610453083826:web:a8f19c0f8e570eb2d21bab","windows":"1:610453083826:web:4395811ae52fbd53d21bab"}}},"android":{"default":{"projectId":"roombooker-5e947","appId":"1:610453083826:android:6e7a6e6de92bd450d21bab","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"roombooker-5e947","appId":"1:610453083826:ios:44cdd5026f0a5ad8d21bab","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"macos":{"default":{"projectId":"roombooker-5e947","appId":"1:610453083826:ios:44cdd5026f0a5ad8d21bab","uploadDebugSymbols":false,"fileOutput":"macos/Runner/GoogleService-Info.plist"}}}},"functions":[{"source":"functions","codebase":"default","ignore":["node_modules",".git","firebase-debug.log","firebase-debug.*.log","*.local"],"predeploy":["npm --prefix \"$RESOURCE_DIR\" run lint"]}],"emulators":{"auth":{"port":9099},"functions":{"port":5001},"firestore":{"port":8081},"ui":{"enabled":true},"singleProjectMode":true},"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"],"frameworksBackend":{"region":"us-central1"}}}
+{
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "roombooker-5e947",
+          "configurations": {
+            "android": "1:610453083826:android:6e7a6e6de92bd450d21bab",
+            "ios": "1:610453083826:ios:44cdd5026f0a5ad8d21bab",
+            "macos": "1:610453083826:ios:44cdd5026f0a5ad8d21bab",
+            "web": "1:610453083826:web:a8f19c0f8e570eb2d21bab",
+            "windows": "1:610453083826:web:4395811ae52fbd53d21bab"
+          }
+        }
+      },
+      "android": {
+        "default": {
+          "projectId": "roombooker-5e947",
+          "appId": "1:610453083826:android:6e7a6e6de92bd450d21bab",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "roombooker-5e947",
+          "appId": "1:610453083826:ios:44cdd5026f0a5ad8d21bab",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "roombooker-5e947",
+          "appId": "1:610453083826:ios:44cdd5026f0a5ad8d21bab",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ],
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8081
+    },
+    "ui": {
+      "enabled": true
+    },
+    "singleProjectMode": true
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "us-central1"
+    }
+  },
+  "firestore": {
+    "database": "(default)",
+    "location": "nam5",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}
