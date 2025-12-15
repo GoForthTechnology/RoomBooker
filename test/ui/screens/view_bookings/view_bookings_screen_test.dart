@@ -272,7 +272,7 @@ void main() {
           child: ViewBookingsScreen(
             orgID: 'org1',
             createViewModel: (_) => mockViewModel,
-            createCalendarViewModel: (_, __) => mockCalendarViewModel,
+            createCalendarViewModel: (_, _) => mockCalendarViewModel,
             createRequestEditorViewModel: (_) => mockRequestEditorViewModel,
           ),
         ),
@@ -458,7 +458,7 @@ void main() {
               stateHash: 0,
               child: ViewBookingsScreen(
                 orgID: 'org1',
-                createCalendarViewModel: (_, __) => mockCalendarViewModel,
+                createCalendarViewModel: (_, _) => mockCalendarViewModel,
                 createRequestEditorViewModel: (_) => mockRequestEditorViewModel,
               ),
             ),

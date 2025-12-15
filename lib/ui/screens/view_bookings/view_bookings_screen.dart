@@ -48,7 +48,7 @@ class ViewBookingsScreen extends StatelessWidget {
     @QueryParam('ro') this.readOnlyMode = false,
     this.createRequest = false,
     @QueryParam('td') this.targetDateStr,
-    @QueryParam('v') String? this.view,
+    @QueryParam('v') this.view,
     this.createViewModel,
     this.createCalendarViewModel,
     this.createRequestEditorViewModel,
