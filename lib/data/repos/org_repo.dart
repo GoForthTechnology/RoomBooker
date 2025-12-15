@@ -178,7 +178,6 @@ class OrgRepo extends ChangeNotifier {
   }
 
   Stream<Organization?> getOrg(String orgID) async* {
-    debugPrint("Getting org: $orgID");
     yield* _db.collection("orgs").doc(orgID).snapshots().map((s) {
       if (!s.exists) {
         return null;

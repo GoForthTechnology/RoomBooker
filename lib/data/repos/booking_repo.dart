@@ -303,7 +303,6 @@ class BookingRepo extends ChangeNotifier {
     Set<RequestStatus>? includeStatuses,
     Set<String>? includeRoomIDs,
   }) {
-    debugPrint("Listing requests for org: $orgID");
     List<Query<Request>> queries = [];
     var hasConfirmed =
         includeStatuses == null ||
