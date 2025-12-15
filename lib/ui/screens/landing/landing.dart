@@ -314,7 +314,7 @@ class OrgList extends StatelessWidget {
             return const Text('Error loading organizations');
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const CircularProgressIndicator();
+            return const Center(child: CircularProgressIndicator());
           }
           var orgs = snapshot.data!;
           if (orgs.isEmpty) {
