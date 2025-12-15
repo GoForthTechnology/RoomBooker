@@ -381,4 +381,18 @@ void main() {
     );
     expect(editorContainer.constraints!.maxWidth, 200.0);
   });
+
+  testWidgets('ViewBookingsScreen does not show editor in small view', (
+    tester,
+  ) async {
+    when(() => mockViewModel.isSmallView()).thenReturn(true);
+    when(() => mockViewModel.viewStateStream).thenAnswer(
+      (_) => Stream.value(ViewState(showRoomSelector: false, showEditor: true)),
+    );
+
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RequestEditor), findsNothing);
+  });
 }

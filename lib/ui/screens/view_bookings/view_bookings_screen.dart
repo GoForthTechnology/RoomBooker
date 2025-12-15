@@ -234,19 +234,20 @@ class ViewBookingsScreen extends StatelessWidget {
             ),
           ),
           Expanded(child: BookingCalendarView()),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            width: showEditor ? panelWidth : 0,
-            child: ClipRect(
-              child: OverflowBox(
-                minWidth: panelWidth,
-                maxWidth: panelWidth,
-                alignment: Alignment.centerLeft,
-                child: SingleChildScrollView(child: RequestEditor()),
+          if (!isSmall)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              width: showEditor ? panelWidth : 0,
+              child: ClipRect(
+                child: OverflowBox(
+                  minWidth: panelWidth,
+                  maxWidth: panelWidth,
+                  alignment: Alignment.centerLeft,
+                  child: SingleChildScrollView(child: RequestEditor()),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
