@@ -633,4 +633,66 @@ void main() {
       },
     );
   });
+
+  group('New Appointment Stream', () {
+    test(
+      'registerNewAppointmentStream uses default subject when eventName is empty',
+      () async {
+        final request = Request(
+          id: 'req_1',
+          roomID: 'room_1',
+          eventStartTime: DateTime.now(),
+          eventEndTime: DateTime.now().add(Duration(hours: 1)),
+          status: RequestStatus.pending,
+          roomName: 'Test Room',
+        );
+        final details = PrivateRequestDetails(
+          id: 'req_1',
+          eventName: "", // Empty event name
+          name: "Some name",
+          email: "someone@somewhere.com",
+          phone: "1234",
+        );
+
+        final controller =
+            StreamController<(Request?, PrivateRequestDetails?)>();
+
+        viewModel = CalendarViewModel(
+          bookingRepo: mockBookingRepo,
+          orgState: mockOrgState,
+          roomState: mockRoomState,
+        );
+
+        viewModel.registerNewAppointmentStream(controller.stream);
+
+        controller.add((request, details));
+
+        await expectLater(
+          viewModel.calendarViewState(),
+          emitsThrough(
+            isA<CalendarViewState>().having(
+              (state) {
+                if (state.dataSource.appointments == null ||
+                    state.dataSource.appointments!.isEmpty) {
+                  return '';
+                }
+                // Find the appointment that corresponds to the new request
+                // Since we just added it, it should be there.
+                // Note: The view model logic adds the new appointment to the list.
+                // We need to find the one that matches.
+                // However, since we are mocking listRequests to return empty,
+                // the only appointment should be the new one.
+                return (state.dataSource.appointments!.first as Appointment)
+                    .subject;
+              },
+              'appointment subject',
+              'New Booking',
+            ),
+          ),
+        );
+
+        await controller.close();
+      },
+    );
+  });
 }

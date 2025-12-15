@@ -105,8 +105,12 @@ class CalendarViewModel extends ChangeNotifier {
     _newAppointmentSubscription = stream.listen((data) {
       var request = data.$1;
       var details = data.$2;
+      var subject = details?.eventName ?? "";
+      if (subject.isEmpty) {
+        subject = "New Booking";
+      }
       var appointment = request?.toAppointment(
-        subject: details?.eventName,
+        subject: subject,
         _roomState,
         diminish: false,
         appendRoomName: appendRoomName,
