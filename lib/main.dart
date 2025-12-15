@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -27,6 +28,11 @@ bool useEmulator = false;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirebaseAppCheck.instance.activate(
+    providerWeb: ReCaptchaV3Provider(
+      '6Lej2S0sAAAAAKBEX9lCwb1g4RBlAMb3dXeJHWv-',
+    ),
+  );
   final prefs = await SharedPreferences.getInstance();
 
   if (useEmulator && kDebugMode) {
