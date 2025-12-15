@@ -695,4 +695,129 @@ void main() {
       },
     );
   });
+
+  group('Caching Logic', () {
+    test('switching to contained view does not refetch', () async {
+      // Reset mock to clear calls from setUp
+      reset(mockBookingRepo);
+
+      // Re-stub default behavior since reset clears stubs too
+      when(
+        () => mockBookingRepo.listRequests(
+          orgID: any(named: 'orgID'),
+          startTime: any(named: 'startTime'),
+          endTime: any(named: 'endTime'),
+          includeStatuses: any(named: 'includeStatuses'),
+        ),
+      ).thenAnswer((_) => Stream.value([]));
+      when(
+        () => mockBookingRepo.getRequestDetails(any(), any()),
+      ).thenAnswer((_) => Stream.value(null));
+      when(
+        () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
+      ).thenAnswer((_) => Stream.value([]));
+
+      // 1. Setup
+      // Start with Month view
+      final initialDate = DateTime(2023, 1, 15);
+      viewModel = CalendarViewModel(
+        bookingRepo: mockBookingRepo,
+        orgState: mockOrgState,
+        roomState: mockRoomState,
+        defaultView: CalendarView.month,
+        targetDate: initialDate,
+      );
+
+      // Wait for initial fetch
+      await Future.delayed(Duration.zero);
+
+      // Verify initial fetch happened
+      verify(
+        () => mockBookingRepo.listRequests(
+          orgID: any(named: 'orgID'),
+          startTime: any(named: 'startTime'),
+          endTime: any(named: 'endTime'),
+          includeStatuses: any(named: 'includeStatuses'),
+        ),
+      ).called(1);
+
+      // 2. Switch to Week view (contained in the month)
+      // Note: Changing the view on the controller triggers the listener in the ViewModel
+      viewModel.controller.view = CalendarView.week;
+
+      // Wait for potential fetch logic to run
+      await Future.delayed(Duration(milliseconds: 100));
+
+      // Verify NO new fetch happened
+      verifyNever(
+        () => mockBookingRepo.listRequests(
+          orgID: any(named: 'orgID'),
+          startTime: any(named: 'startTime'),
+          endTime: any(named: 'endTime'),
+          includeStatuses: any(named: 'includeStatuses'),
+        ),
+      );
+    });
+
+    test('switching to uncontained view does refetch', () async {
+      // Reset mock to clear calls from setUp
+      reset(mockBookingRepo);
+
+      // Re-stub default behavior
+      when(
+        () => mockBookingRepo.listRequests(
+          orgID: any(named: 'orgID'),
+          startTime: any(named: 'startTime'),
+          endTime: any(named: 'endTime'),
+          includeStatuses: any(named: 'includeStatuses'),
+        ),
+      ).thenAnswer((_) => Stream.value([]));
+      when(
+        () => mockBookingRepo.getRequestDetails(any(), any()),
+      ).thenAnswer((_) => Stream.value(null));
+      when(
+        () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
+      ).thenAnswer((_) => Stream.value([]));
+
+      // 1. Setup
+      // Start with Month view
+      final initialDate = DateTime(2023, 1, 15);
+      viewModel = CalendarViewModel(
+        bookingRepo: mockBookingRepo,
+        orgState: mockOrgState,
+        roomState: mockRoomState,
+        defaultView: CalendarView.month,
+        targetDate: initialDate,
+      );
+
+      // Wait for initial fetch
+      await Future.delayed(Duration.zero);
+
+      // Verify initial fetch happened
+      verify(
+        () => mockBookingRepo.listRequests(
+          orgID: any(named: 'orgID'),
+          startTime: any(named: 'startTime'),
+          endTime: any(named: 'endTime'),
+          includeStatuses: any(named: 'includeStatuses'),
+        ),
+      ).called(1);
+
+      // 2. Switch to Next Month
+      viewModel.controller.displayDate = DateTime(2023, 2, 15);
+
+      // Wait for potential fetch logic to run
+      await Future.delayed(Duration(milliseconds: 100));
+
+      // Verify NEW fetch happened
+      verify(
+        () => mockBookingRepo.listRequests(
+          orgID: any(named: 'orgID'),
+          startTime: any(named: 'startTime'),
+          endTime: any(named: 'endTime'),
+          includeStatuses: any(named: 'includeStatuses'),
+        ),
+      ).called(1);
+    });
+  });
 }

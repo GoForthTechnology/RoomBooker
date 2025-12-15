@@ -15,6 +15,8 @@ class CalendarViewModel extends ChangeNotifier {
 
   final BehaviorSubject<VisibleWindow> _visibleWindowController =
       BehaviorSubject();
+  final BehaviorSubject<VisibleWindow> _fetchWindowController =
+      BehaviorSubject();
   final BehaviorSubject<Map<String, Request>> _requestIndex = BehaviorSubject();
 
   final BehaviorSubject<Appointment?> _newAppointmentSubject =
@@ -78,6 +80,15 @@ class CalendarViewModel extends ChangeNotifier {
     controller.displayDate = targetDate ?? DateTime.now();
     var currentWindow = VisibleWindow(start: startOfView, end: endOfView);
     _visibleWindowController.add(currentWindow);
+    _fetchWindowController.add(currentWindow);
+
+    _visibleWindowController.listen((visibleWindow) {
+      var fetchedWindow = _fetchWindowController.valueOrNull;
+      if (fetchedWindow == null || !fetchedWindow.contains(visibleWindow)) {
+        _fetchWindowController.add(visibleWindow);
+      }
+    });
+
     controller.addPropertyChangedListener(_handlePropertyChange);
     _requestIndex.addStream(
       _buildAppointmentStream(bookingRepo, orgState, roomState).map((
@@ -166,28 +177,39 @@ class CalendarViewModel extends ChangeNotifier {
     OrgState orgState,
     RoomState roomState,
   ) {
-    return _visibleWindowController.distinct().switchMap(
-      (window) => bookingRepo
-          .listRequests(
-            orgID: orgState.org.id!,
-            startTime: window.start,
-            endTime: window.end,
-            includeStatuses: {RequestStatus.pending, RequestStatus.confirmed},
-          )
-          .switchMap(
-            (requests) => _detailStream(orgState, requests, bookingRepo)
-                .map(
-                  (details) => _convertRequests(
-                    requests,
-                    details,
-                    window,
-                    roomState,
-                    _newAppointmentSubject.valueOrNull,
-                  ),
-                )
-                .startWith({}),
-          ),
+    var requestsStream = _fetchWindowController.distinct().switchMap(
+      (window) => bookingRepo.listRequests(
+        orgID: orgState.org.id!,
+        startTime: window.start,
+        endTime: window.end,
+        includeStatuses: {RequestStatus.pending, RequestStatus.confirmed},
+      ),
     );
+
+    return Rx.combineLatest2(
+      requestsStream,
+      _visibleWindowController.distinct(),
+      (List<Request> requests, VisibleWindow window) {
+        var visibleRequests = requests
+            .where(
+              (r) => r
+                  .expand(window.start, window.end, includeRequestDate: true)
+                  .isNotEmpty,
+            )
+            .toList();
+        return _detailStream(orgState, visibleRequests, bookingRepo)
+            .map(
+              (details) => _convertRequests(
+                visibleRequests,
+                details,
+                window,
+                roomState,
+                _newAppointmentSubject.valueOrNull,
+              ),
+            )
+            .startWith({});
+      },
+    ).switchMap((stream) => stream);
   }
 
   Map<Appointment, Request> _convertRequests(
@@ -576,4 +598,10 @@ class VisibleWindow {
 
   @override
   int get hashCode => Object.hash(start, end);
+
+  bool contains(VisibleWindow other) {
+    return (start.isBefore(other.start) ||
+            start.isAtSameMomentAs(other.start)) &&
+        (end.isAfter(other.end) || end.isAtSameMomentAs(other.end));
+  }
 }
