@@ -151,6 +151,9 @@ class ViewBookingsViewModel extends ChangeNotifier {
 
   Future<void> loadNewRequest(DateTime targetDate) async {
     _requestEditorViewModel.initializeNewRequest(targetDate);
+    if (isSmallView()) {
+      showEditorAsDialog();
+    }
   }
 
   Stream<ViewState> get viewStateStream =>

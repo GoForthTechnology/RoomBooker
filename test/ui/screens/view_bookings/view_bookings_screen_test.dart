@@ -13,6 +13,7 @@ import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/ui/screens/view_bookings/view_bookings_screen.dart';
 import 'package:room_booker/ui/screens/view_bookings/view_bookings_view_model.dart';
+import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/navigation_drawer.dart';
 import 'package:room_booker/ui/widgets/request_editor/repeat_booking_selector/repeat_bookings_view_model.dart';
@@ -62,6 +63,9 @@ class FakeAppointmentDragEndDetails extends Fake
 
 class FakeCalendarTapDetails extends Fake implements CalendarTapDetails {}
 
+class FakeRequestStream extends Fake
+    implements Stream<(Request?, PrivateRequestDetails?)> {}
+
 void main() {
   Provider.debugCheckInvalidValueType = null;
 
@@ -70,6 +74,7 @@ void main() {
     registerFallbackValue(FakeAppointmentResizeEndDetails());
     registerFallbackValue(FakeAppointmentDragEndDetails());
     registerFallbackValue(FakeCalendarTapDetails());
+    registerFallbackValue(FakeRequestStream());
   });
 
   late MockOrgRepo mockOrgRepo;
@@ -395,4 +400,88 @@ void main() {
 
     expect(find.byType(RequestEditor), findsNothing);
   });
+
+  testWidgets('ViewBookingsScreen shows editor in large view', (tester) async {
+    when(() => mockViewModel.isSmallView()).thenReturn(false);
+    when(() => mockViewModel.viewStateStream).thenAnswer(
+      (_) => Stream.value(ViewState(showRoomSelector: false, showEditor: true)),
+    );
+
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RequestEditor), findsOneWidget);
+  });
+
+  testWidgets(
+    'ViewBookingsScreen shows editor as dialog in small view when new request is loaded',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+
+      when(
+        () => mockRequestEditorViewModel.initializeNewRequest(any()),
+      ).thenReturn(null);
+      when(
+        () => mockRequestEditorViewModel.initialRequestStream,
+      ).thenAnswer((_) => Stream.value(null));
+      when(
+        () => mockRequestEditorViewModel.currentDataStream(),
+      ).thenAnswer((_) => Stream.value((null, null)));
+      when(
+        () => mockCalendarViewModel.registerNewAppointmentStream(any()),
+      ).thenReturn(null);
+      when(
+        () => mockCalendarViewModel.dateTapStream,
+      ).thenAnswer((_) => Stream.empty());
+      when(
+        () => mockCalendarViewModel.requestTapStream,
+      ).thenAnswer((_) => Stream.empty());
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<OrgRepo>.value(value: mockOrgRepo),
+            ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
+            ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+            ChangeNotifierProvider<PreferencesRepo>.value(
+              value: mockPreferencesRepo,
+            ),
+            Provider<FirebaseAuthService>.value(value: mockAuthService),
+            ChangeNotifierProvider<FirebaseAnalyticsService>.value(
+              value: mockAnalyticsService,
+            ),
+          ],
+          child: MaterialApp(
+            home: StackRouterScope(
+              controller: mockRouter,
+              stateHash: 0,
+              child: ViewBookingsScreen(
+                orgID: 'org1',
+                createCalendarViewModel: (_, __) => mockCalendarViewModel,
+                createRequestEditorViewModel: (_) => mockRequestEditorViewModel,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final ViewBookingsViewModel viewModel =
+          Provider.of<ViewBookingsViewModel>(
+            tester.element(find.byType(BookingCalendarView)),
+            listen: false,
+          );
+
+      await viewModel.loadNewRequest(DateTime.now());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byType(RequestEditor), findsOneWidget);
+
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+    },
+  );
 }
