@@ -8,7 +8,7 @@ import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/widgets/org_settings/app_info.dart';
-import 'package:web/web.dart' as web;
+import 'package:universal_html/html.dart' as universal_html;
 
 import 'package:room_booker/ui/widgets/org_settings/admin_widget.dart';
 import 'package:room_booker/ui/widgets/heading.dart';
@@ -47,7 +47,7 @@ class OrgSettingsScreen extends StatelessWidget {
           if (kIsWeb)
             IconButton(
               onPressed: () {
-                web.window.location.reload();
+                universal_html.window.location.reload();
               },
               icon: Icon(Icons.refresh),
             ),
