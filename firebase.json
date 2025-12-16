@@ -7,7 +7,6 @@
           "configurations": {
             "android": "1:610453083826:android:6e7a6e6de92bd450d21bab",
             "ios": "1:610453083826:ios:44cdd5026f0a5ad8d21bab",
-            "macos": "1:610453083826:ios:44cdd5026f0a5ad8d21bab",
             "web": "1:610453083826:web:a8f19c0f8e570eb2d21bab",
             "windows": "1:610453083826:web:4395811ae52fbd53d21bab"
           }
@@ -26,14 +25,6 @@
           "appId": "1:610453083826:ios:44cdd5026f0a5ad8d21bab",
           "uploadDebugSymbols": false,
           "fileOutput": "ios/Runner/GoogleService-Info.plist"
-        }
-      },
-      "macos": {
-        "default": {
-          "projectId": "roombooker-5e947",
-          "appId": "1:610453083826:ios:44cdd5026f0a5ad8d21bab",
-          "uploadDebugSymbols": false,
-          "fileOutput": "macos/Runner/GoogleService-Info.plist"
         }
       }
     }

@@ -24,8 +24,6 @@ class DefaultFirebaseOptions {
         return android;
       case TargetPlatform.iOS:
         return ios;
-      case TargetPlatform.macOS:
-        return macos;
       case TargetPlatform.windows:
         return windows;
       case TargetPlatform.linux:
@@ -50,23 +48,14 @@ class DefaultFirebaseOptions {
     measurementId: 'G-MBM4WWN4VJ',
   );
 
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyBMRSVQIL26ognzn5vwGe1O0JokZBFl_VQ',
-    appId: '1:610453083826:ios:44cdd5026f0a5ad8d21bab',
-    messagingSenderId: '610453083826',
-    projectId: 'roombooker-5e947',
-    storageBucket: 'roombooker-5e947.firebasestorage.app',
-    iosClientId: '610453083826-m67onil0arc7o1k5agohf9eje4he2d4a.apps.googleusercontent.com',
-    iosBundleId: 'com.example.roomBooker',
-  );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBMRSVQIL26ognzn5vwGe1O0JokZBFl_VQ',
     appId: '1:610453083826:ios:44cdd5026f0a5ad8d21bab',
     messagingSenderId: '610453083826',
     projectId: 'roombooker-5e947',
     storageBucket: 'roombooker-5e947.firebasestorage.app',
-    iosClientId: '610453083826-m67onil0arc7o1k5agohf9eje4he2d4a.apps.googleusercontent.com',
+    iosClientId:
+        '610453083826-m67onil0arc7o1k5agohf9eje4he2d4a.apps.googleusercontent.com',
     iosBundleId: 'com.example.roomBooker',
   );
 
@@ -87,5 +76,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'roombooker-5e947.firebasestorage.app',
     measurementId: 'G-ZPQWCHTBDQ',
   );
-
 }
