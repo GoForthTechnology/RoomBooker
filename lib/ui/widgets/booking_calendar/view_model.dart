@@ -577,6 +577,7 @@ extension on Request {
       startTime: eventStartTime,
       endTime: eventEndTime,
       resourceIds: [id ?? ""],
+      notes: roomState.getRoom(roomID)?.name,
     );
   }
 }

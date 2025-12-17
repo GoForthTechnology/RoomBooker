@@ -50,6 +50,25 @@ class BookingCalendarView extends StatelessWidget {
           onTap: viewModel.handleTap,
           specialRegions: viewState.specialRegions,
           dataSource: viewState.dataSource,
+          appointmentBuilder: (context, calendarAppointmentDetails) {
+            final Appointment appointment =
+                calendarAppointmentDetails.appointments.first;
+            return Tooltip(
+              message: appointment.notes ?? '',
+              waitDuration: const Duration(milliseconds: 500),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: appointment.color,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                padding: const EdgeInsets.all(3),
+                child: Text(
+                  appointment.subject,
+                  style: const TextStyle(color: Colors.white, fontSize: 10),
+                ),
+              ),
+            );
+          },
         );
       },
     );
