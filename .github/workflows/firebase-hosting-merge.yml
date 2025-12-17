@@ -6,14 +6,21 @@ on:
   push:
     branches:
       - main
+
+# Grant permissions for the GITHUB_TOKEN to create releases
+permissions:
+  contents: write
+
 jobs:
   build_and_deploy:
+    # Only run if the commit message matches "Cut v#.#.#+#" pattern
+    if: contains(github.event.head_commit.message, 'Cut v') && contains(github.event.head_commit.message, '+')
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
         uses: actions/checkout@v4
 
-      - name: Get Package Info 
+      - name: Get Package Info
         id: flutter_version
         uses: bungabear/flutter_version_read@main
         with:
@@ -42,3 +49,24 @@ jobs:
           projectId: roombooker-5e947
         env:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
+
+      - name: Extract version from commit
+        id: extract_version
+        run: |
+          # Extract version string matching pattern: Cut v#.#.#+#
+          VERSION=$(echo "${{ github.event.head_commit.message }}" | grep -oP '(?<=Cut v)[0-9]+\.[0-9]+\.[0-9]+\+[0-9]+' | head -1)
+          if [ -z "$VERSION" ]; then
+            echo "Error: Could not extract version from commit message"
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Create GitHub Release
+        run: |
+          gh release create "v${{ steps.extract_version.outputs.version }}" \
+            --title "v${{ steps.extract_version.outputs.version }}" \
+            --notes "${{ github.event.head_commit.message }}" \
+            --target ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
