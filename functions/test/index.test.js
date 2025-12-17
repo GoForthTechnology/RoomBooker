@@ -1,4 +1,4 @@
-/* global describe, it, expect */
+
 
 const {bookingInfo} = require("../index.js");
 
