@@ -12,7 +12,7 @@
 const functions = require("firebase-functions/v1");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
-const { calculateOverlaps } = require("./overlap_calculator");
+const {calculateOverlaps} = require("./overlap_calculator");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -57,7 +57,7 @@ exports.onBookingUpdated = functions.firestore
       const previousValue = change.before.data(); // Data before the update
       const details = await getRequestDetails(orgID, bookingID);
       if (isFromAdmin(details)) {
-        // We don't want to spam the admins for actions they took themselves.
+      // We don't want to spam the admins for actions they took themselves.
         return;
       }
       const updates = getUpdates(previousValue, newValue);
@@ -136,6 +136,13 @@ exports.onBookingWrite = functions.firestore
       await batch.commit();
     });
 
+/**
+ * Removes all overlaps involving the given booking ID.
+ *
+ * @param {string} orgID - The organization ID.
+ * @param {string} bookingID - The booking ID to remove overlaps for.
+ * @return {Promise<void>}
+ */
 async function removeOverlaps(orgID, bookingID) {
   const overlapsRef = db.collection("orgs").doc(orgID).collection("overlaps");
   const snapshot1 = await overlapsRef.where("bookingID1", "==", bookingID).get();
