@@ -85,7 +85,7 @@ class CalendarViewModel extends ChangeNotifier {
     _visibleWindowController.listen((visibleWindow) {
       var fetchedWindow = _fetchWindowController.valueOrNull;
       if (fetchedWindow == null || !fetchedWindow.contains(visibleWindow)) {
-        debugPrint("Fetching new window: $visibleWindow");
+        debugPrint("CALENDAR: Fetching new window: $visibleWindow");
         _fetchWindowController.add(visibleWindow);
       }
     });
@@ -293,12 +293,14 @@ class CalendarViewModel extends ChangeNotifier {
         // This prevents the schedule view from glitching out.
         return;
       }
+      debugPrint("CALENDAR: Display date changed: ${controller.displayDate}");
       _visibleWindowController.add(
         VisibleWindow(start: startOfView, end: endOfView),
       );
       return;
     }
     if (property == "calendarView") {
+      debugPrint("CALENDAR: Calendar view changed: ${controller.view}");
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _visibleWindowController.add(
           VisibleWindow(start: startOfView, end: endOfView),
