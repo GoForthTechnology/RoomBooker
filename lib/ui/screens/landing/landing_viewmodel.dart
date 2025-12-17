@@ -90,8 +90,8 @@ class LandingViewModel extends ChangeNotifier {
     );
   }
 
-  Future<void> createOrg(String name) async {
-    await _orgRepo.addOrgForCurrentUser(name);
+  Future<void> createOrg(String name, String roomName) async {
+    await _orgRepo.addOrgForCurrentUser(name, roomName);
   }
 
   void navigateToLogin() {

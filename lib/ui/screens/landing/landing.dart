@@ -10,6 +10,7 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/screens/landing/landing_viewmodel.dart';
+import 'package:room_booker/ui/widgets/create_org_dialog.dart';
 import 'package:room_booker/ui/widgets/org_settings/app_info.dart';
 import 'package:room_booker/ui/widgets/org_settings/org_details.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -105,12 +106,18 @@ class LandingScreenViewState extends State<LandingScreenView> {
       floatingActionButton: FloatingActionButton(
         tooltip: "Add an org",
         onPressed: () async {
-          if (viewModel.isLoggedIn) {
-            var name = await promptForOrgName(context);
-            if (name != null) {
-              await viewModel.createOrg(name);
-            }
-          } else {
+            if (viewModel.isLoggedIn) {
+              var result = await showDialog<Map<String, String>>(
+                context: context,
+                builder: (context) => const CreateOrgDialog(),
+              );
+              if (result != null) {
+                await viewModel.createOrg(
+                  result['orgName']!,
+                  result['roomName']!,
+                );
+              }
+            } else {
             viewModel.navigateToLogin();
           }
         },
@@ -387,34 +394,4 @@ class OrgTile extends StatelessWidget {
   }
 }
 
-Future<String?> promptForOrgName(BuildContext context) async {
-  var controller = TextEditingController();
-  var name = await showDialog<String>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Create New Organization'),
-      content: TextFormField(
-        autofocus: true,
-        controller: controller,
-        decoration: const InputDecoration(
-          hintText: 'Enter the name of your organization',
-        ),
-        onFieldSubmitted: (value) {
-          Navigator.of(context).pop(value);
-        },
-        textInputAction: TextInputAction.search,
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(null),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(controller.text),
-          child: const Text('OK'),
-        ),
-      ],
-    ),
-  );
-  return name;
-}
+

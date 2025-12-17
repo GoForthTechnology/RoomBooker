@@ -39,33 +39,41 @@ void main() {
     // Stub view model methods and streams
     when(() => mockViewModel.shouldShowRedirecting).thenReturn(false);
     when(() => mockViewModel.isLoggedIn).thenReturn(false);
-    when(() => mockViewModel.ownedOrgsStream)
-        .thenAnswer((_) => Stream.value([]));
-    when(() => mockViewModel.otherOrgsStream)
-        .thenAnswer((_) => Stream.value([]));
-    when(() => mockViewModel.navigationEvents)
-        .thenAnswer((_) => const Stream.empty());
+    when(
+      () => mockViewModel.ownedOrgsStream,
+    ).thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockViewModel.otherOrgsStream,
+    ).thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockViewModel.navigationEvents,
+    ).thenAnswer((_) => const Stream.empty());
     when(() => mockViewModel.signOut()).thenAnswer((_) async {});
     when(() => mockViewModel.navigateToLogin()).thenAnswer((_) {});
 
     // Stub prefs repo
-    when(() => mockPrefsRepo.defaultCalendarView)
-        .thenReturn(CalendarView.month);
+    when(
+      () => mockPrefsRepo.defaultCalendarView,
+    ).thenReturn(CalendarView.month);
 
     // Stub org repo
-    when(() => mockOrgRepo.adminRequests(any()))
-        .thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockOrgRepo.adminRequests(any()),
+    ).thenAnswer((_) => Stream.value([]));
 
     // Stub booking repo
-    when(() => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeStatuses: any(named: 'includeStatuses'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-        )).thenAnswer((_) => Stream.value([]));
-    when(() => mockBookingRepo.findOverlappingBookings(any(), any(), any()))
-        .thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockBookingRepo.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeStatuses: any(named: 'includeStatuses'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockBookingRepo.findOverlappingBookings(any(), any(), any()),
+    ).thenAnswer((_) => Stream.value([]));
   });
 
   Widget createWidgetUnderTest() {
@@ -98,17 +106,21 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('shows Your Organizations section when logged in',
-        (tester) async {
+    testWidgets('shows Your Organizations section when logged in', (
+      tester,
+    ) async {
       // Arrange
       when(() => mockViewModel.isLoggedIn).thenReturn(true);
-      when(() => mockViewModel.ownedOrgsStream).thenAnswer((_) => Stream.value([
-            Organization(
-                id: '1',
-                name: 'My Org',
-                ownerID: 'owner',
-                acceptingAdminRequests: true)
-          ]));
+      when(() => mockViewModel.ownedOrgsStream).thenAnswer(
+        (_) => Stream.value([
+          Organization(
+            id: '1',
+            name: 'My Org',
+            ownerID: 'owner',
+            acceptingAdminRequests: true,
+          ),
+        ]),
+      );
 
       // Act
       await tester.pumpWidget(createWidgetUnderTest());
@@ -119,8 +131,9 @@ void main() {
       expect(find.text('My Org'), findsOneWidget);
     });
 
-    testWidgets('does not show Your Organizations section when logged out',
-        (tester) async {
+    testWidgets('does not show Your Organizations section when logged out', (
+      tester,
+    ) async {
       // Arrange
       when(() => mockViewModel.isLoggedIn).thenReturn(false);
 
@@ -131,8 +144,9 @@ void main() {
       expect(find.text("Your Organizations"), findsNothing);
     });
 
-    testWidgets('tapping FAB navigates to login when logged out',
-        (tester) async {
+    testWidgets('tapping FAB navigates to login when logged out', (
+      tester,
+    ) async {
       // Arrange
       when(() => mockViewModel.isLoggedIn).thenReturn(false);
 
@@ -144,8 +158,9 @@ void main() {
       verify(() => mockViewModel.navigateToLogin()).called(1);
     });
 
-    testWidgets('tapping sign out button calls signOut on viewmodel',
-        (tester) async {
+    testWidgets('tapping sign out button calls signOut on viewmodel', (
+      tester,
+    ) async {
       // Arrange
       when(() => mockViewModel.isLoggedIn).thenReturn(true);
 
@@ -156,5 +171,47 @@ void main() {
       // Assert
       verify(() => mockViewModel.signOut()).called(1);
     });
+    testWidgets(
+      'tapping FAB shows CreateOrgDialog and calls createOrg on success',
+      (tester) async {
+        // Arrange
+        when(() => mockViewModel.isLoggedIn).thenReturn(true);
+        when(
+          () => mockViewModel.createOrg(any(), any()),
+        ).thenAnswer((_) async {});
+
+        // Act
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
+
+        // Assert - Dialog shown
+        expect(find.text('Create New Organization'), findsOneWidget);
+        expect(find.text('Organization Name'), findsAtLeastNWidgets(1));
+
+        // Interact with dialog
+        await tester.enterText(find.byType(TextFormField).first, 'New Org');
+        await tester.pump();
+        await tester.tap(find.widgetWithText(TextButton, 'Continue').first);
+        await tester.pumpAndSettle();
+
+        // Step 2
+        final roomField = find.byType(TextFormField).last;
+        await tester.ensureVisible(roomField);
+        await tester.enterText(roomField, 'Room 1');
+        await tester.pump();
+
+        final createButton = find
+            .widgetWithText(TextButton, 'Create')
+            .hitTestable()
+            .first;
+        await tester.ensureVisible(createButton);
+        await tester.tap(createButton);
+        await tester.pumpAndSettle();
+
+        // Verify createOrg called
+        verify(() => mockViewModel.createOrg('New Org', 'Room 1')).called(1);
+      },
+    );
   });
 }

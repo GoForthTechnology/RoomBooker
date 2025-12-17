@@ -36,7 +36,7 @@ class OrgRepo extends ChangeNotifier {
     await _db.collection("orgs").doc(orgID).update({"globalRoomID": roomID});
   }
 
-  Future<String> addOrgForCurrentUser(String orgName) async {
+  Future<String> addOrgForCurrentUser(String orgName, String firstRoomName) async {
     var user = _auth.currentUser;
     if (user == null) {
       return Future.error("User not logged in!");
@@ -49,12 +49,21 @@ class OrgRepo extends ChangeNotifier {
         user.email ?? "",
       ),
     );
-    // TODO: add an initial room for the organization
+
     var orgID = await _db.runTransaction((t) async {
       var orgRef = await _db.collection("orgs").add(org.toJson());
       _userRepo.addOrg(t, user.uid, orgRef.id);
       return orgRef.id;
     });
+
+    try {
+      await _roomRepo.addRoom(orgID, Room(name: firstRoomName));
+    } catch (e) {
+      log("Failed to create initial room: $e");
+      // Consider if we should rollback org creation or just let it be without a room for now.
+      // For now, logging error.
+    }
+
     _analytics.logEvent(name: "AddOrg", parameters: {"orgID": orgID});
     return orgID;
   }

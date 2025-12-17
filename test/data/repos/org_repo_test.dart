@@ -65,12 +65,16 @@ void main() {
   });
 
   group('OrgRepo', () {
-    test('addOrgForCurrentUser creates org and updates user', () async {
+    test('addOrgForCurrentUser creates org, room, and updates user', () async {
       when(
         () => mockUserRepo.addOrg(any(), any(), any()),
       ).thenAnswer((_) async {});
 
-      final orgId = await orgRepo.addOrgForCurrentUser('Test Org');
+      when(
+        () => mockRoomRepo.addRoom(any(), any()),
+      ).thenAnswer((_) async => 'room-id');
+
+      final orgId = await orgRepo.addOrgForCurrentUser('Test Org', 'First Room');
 
       expect(orgId, isNotEmpty);
 
@@ -80,6 +84,10 @@ void main() {
       expect(orgDoc.data()?['ownerID'], 'test-user-id');
 
       verify(() => mockUserRepo.addOrg(any(), 'test-user-id', orgId)).called(1);
+      verify(() => mockRoomRepo.addRoom(
+        orgId,
+        any(that: isA<Room>().having((r) => r.name, 'name', 'First Room')),
+      )).called(1);
       verify(
         () => mockAnalytics.logEvent(
           name: 'AddOrg',
@@ -92,7 +100,7 @@ void main() {
       when(() => mockAuth.currentUser).thenReturn(null);
 
       expect(
-        () => orgRepo.addOrgForCurrentUser('Test Org'),
+        () => orgRepo.addOrgForCurrentUser('Test Org', 'First Room'),
         throwsA(isA<String>()),
       );
     });

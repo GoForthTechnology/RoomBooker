@@ -50,7 +50,7 @@ void main() {
         ),
       ).thenAnswer((_) {});
       when(
-        () => mockOrgRepo.addOrgForCurrentUser(any()),
+        () => mockOrgRepo.addOrgForCurrentUser(any(), any()),
       ).thenAnswer((_) async => 'new-org-id');
       when(() => mockAuth.signOut()).thenAnswer((_) async {});
       when(
@@ -137,8 +137,10 @@ void main() {
 
     test('createOrg calls repo', () async {
       final sut = createSut();
-      await sut.createOrg('New Org');
-      verify(() => mockOrgRepo.addOrgForCurrentUser('New Org')).called(1);
+      await sut.createOrg('New Org', 'Room 1');
+      verify(
+        () => mockOrgRepo.addOrgForCurrentUser('New Org', 'Room 1'),
+      ).called(1);
       sut.dispose();
     });
 
