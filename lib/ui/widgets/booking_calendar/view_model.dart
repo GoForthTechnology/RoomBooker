@@ -85,6 +85,7 @@ class CalendarViewModel extends ChangeNotifier {
     _visibleWindowController.listen((visibleWindow) {
       var fetchedWindow = _fetchWindowController.valueOrNull;
       if (fetchedWindow == null || !fetchedWindow.contains(visibleWindow)) {
+        debugPrint("Fetching new window: $visibleWindow");
         _fetchWindowController.add(visibleWindow);
       }
     });
@@ -288,13 +289,6 @@ class CalendarViewModel extends ChangeNotifier {
 
   void _handlePropertyChange(String property) {
     if (property == "displayDate") {
-      // This is a GROSS hack to prevent calling notifyListeners() during
-      // initialization.
-      if (!initialized &&
-          stripTime(controller.displayDate!) == stripTime(DateTime.now())) {
-        initialized = true;
-        return;
-      }
       if (controller.view == CalendarView.schedule) {
         // This prevents the schedule view from glitching out.
         return;
