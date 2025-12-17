@@ -48,6 +48,8 @@ class CalendarViewModel extends ChangeNotifier {
   final OrgState _orgState;
   final RoomState _roomState;
 
+  final BehaviorSubject<void> _roomStateSubject = BehaviorSubject.seeded(null);
+
   CalendarViewModel({
     required OrgState orgState,
     required BookingRepo bookingRepo,
@@ -90,6 +92,8 @@ class CalendarViewModel extends ChangeNotifier {
       }
     });
 
+    _roomState.addListener(_onRoomStateChanged);
+
     controller.addPropertyChangedListener(_handlePropertyChange);
     _requestIndex.addStream(
       _buildAppointmentStream(bookingRepo, orgState, roomState).map((
@@ -104,6 +108,16 @@ class CalendarViewModel extends ChangeNotifier {
         return index;
       }),
     );
+  }
+
+  void _onRoomStateChanged() {
+    _roomStateSubject.add(null);
+  }
+
+  @override
+  void dispose() {
+    _roomState.removeListener(_onRoomStateChanged);
+    super.dispose();
   }
 
   StreamSubscription? _newAppointmentSubscription;
@@ -187,10 +201,11 @@ class CalendarViewModel extends ChangeNotifier {
       ),
     );
 
-    return Rx.combineLatest2(
+    return Rx.combineLatest3(
       requestsStream,
       _visibleWindowController.distinct(),
-      (List<Request> requests, VisibleWindow window) {
+      _roomStateSubject,
+      (List<Request> requests, VisibleWindow window, _) {
         var visibleRequests = requests
             .where(
               (r) => r
@@ -223,6 +238,9 @@ class CalendarViewModel extends ChangeNotifier {
     var detailIndex = _indexDetails(details);
     Map<Appointment, Request> appointments = {};
     for (var request in requests) {
+      if (!roomState.isEnabled(request.roomID)) {
+        continue;
+      }
       for (var repeat in request.expand(
         window.start,
         window.end,

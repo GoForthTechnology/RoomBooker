@@ -70,6 +70,7 @@ void main() {
       () => mockRoomState.getRoom(any()),
     ).thenReturn(Room(id: 'room_id', name: 'Test Room', colorHex: '#FF0000'));
     when(() => mockRoomState.color(any())).thenReturn(Colors.red);
+    when(() => mockRoomState.isEnabled(any())).thenReturn(true);
 
     viewModel = CalendarViewModel(
       bookingRepo: mockBookingRepo,
