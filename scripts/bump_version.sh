@@ -47,6 +47,13 @@ if [ ! -f "$PUBSPEC" ]; then
   exit 1
 fi
 
+# Run Flutter tests
+echo "Running Flutter tests..."
+if ! flutter test; then
+  echo "Tests failed. Aborting version bump."
+  exit 1
+fi
+
 # Extract the current version line
 VERSION_LINE=$(grep '^version: ' $PUBSPEC)
 CURRENT_VERSION=$(echo $VERSION_LINE | sed 's/version: //')
