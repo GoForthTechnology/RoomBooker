@@ -24,13 +24,6 @@ class DefaultFirebaseOptions {
         return android;
       case TargetPlatform.iOS:
         return ios;
-      case TargetPlatform.windows:
-        return windows;
-      case TargetPlatform.linux:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for linux - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
@@ -65,15 +58,5 @@ class DefaultFirebaseOptions {
     messagingSenderId: '610453083826',
     projectId: 'roombooker-5e947',
     storageBucket: 'roombooker-5e947.firebasestorage.app',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyA1J8TlTq-1RGGxtEWcluwDfYsNOZwl68c',
-    appId: '1:610453083826:web:4395811ae52fbd53d21bab',
-    messagingSenderId: '610453083826',
-    projectId: 'roombooker-5e947',
-    authDomain: 'roombooker-5e947.firebaseapp.com',
-    storageBucket: 'roombooker-5e947.firebasestorage.app',
-    measurementId: 'G-ZPQWCHTBDQ',
   );
 }
