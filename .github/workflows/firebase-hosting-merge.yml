@@ -14,7 +14,8 @@ permissions:
 jobs:
   build_and_deploy:
     # Only run if the commit message matches "Cut v#.#.#+#" pattern
-    if: contains(github.event.head_commit.message, 'Cut v') && contains(github.event.head_commit.message, '+')
+    # This is a coarse filter; strict validation happens in the extract_version step
+    if: startsWith(github.event.head_commit.message, 'Cut v') && contains(github.event.head_commit.message, '+')
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
