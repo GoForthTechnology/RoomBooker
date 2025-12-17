@@ -202,6 +202,7 @@ function generateWeekly(request, windowStart, windowEnd) {
     return w; // Assume it might be number
   });
 
+  const dates = [];
   let current = new Date(windowStart);
   
   // We need to find the "start of the series" to calculate periods correctly.
