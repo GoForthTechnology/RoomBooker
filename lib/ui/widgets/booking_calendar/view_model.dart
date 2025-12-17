@@ -409,6 +409,7 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   void handleTap(CalendarTapDetails details) {
+    print("CALENDAR: Tap detected on element ${details.targetElement}");
     switch (details.targetElement) {
       case CalendarElement.appointment:
         _handleRequestTap(details);
@@ -416,9 +417,20 @@ class CalendarViewModel extends ChangeNotifier {
       case CalendarElement.calendarCell:
         _handleDateTap(details.date);
         break;
+      case CalendarElement.viewHeader:
+        if (controller.view == CalendarView.week) {
+          // Allow changing to day view by tapping on the header
+          focusDate(details.date!);
+        }
+        break;
       default:
         break;
     }
+  }
+
+  void focusDate(DateTime date) {
+    controller.displayDate = date;
+    controller.view = CalendarView.day;
   }
 
   static String _appointmentID(Appointment appointment) {

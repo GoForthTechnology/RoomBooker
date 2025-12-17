@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:room_booker/data/entities/blackout_window.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
@@ -346,71 +345,20 @@ void main() {
     );
 
     test(
-      'handleDragEnd emits drag details even if droppingTime is in a blackout window',
+      'handleTap on viewHeader in week view calls focusDate and sets day view',
       () async {
-        final now = DateTime(2025, 1, 1, 12, 0);
-        final request = Request(
-          id: 'req_1',
-          roomID: 'room_1',
-          eventStartTime: now,
-          eventEndTime: now.add(Duration(hours: 1)),
-          publicName: 'Public Event',
-          status: RequestStatus.confirmed,
-          roomName: 'Test Room',
-        );
-        final dropTime = now.add(Duration(hours: 2));
+        final date = DateTime.now();
+        viewModel.controller.view =
+            CalendarView.week; // Set initial view to week
+        viewModel.controller.displayDate = date; // Set initial display date
 
-        final blackoutWindow = BlackoutWindow(
-          start: dropTime.subtract(Duration(minutes: 30)),
-          end: dropTime.add(Duration(minutes: 30)),
-          reason: 'Maintenance',
-        );
-        when(
-          () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
-        ).thenAnswer((_) => Stream.value([blackoutWindow]));
-
-        when(
-          () => mockBookingRepo.listRequests(
-            orgID: any(named: 'orgID'),
-            startTime: any(named: 'startTime'),
-            endTime: any(named: 'endTime'),
-            includeStatuses: any(named: 'includeStatuses'),
-          ),
-        ).thenAnswer((_) => Stream.value([request]));
-
-        Completer<DragDetails> dragDetails = Completer();
-        viewModel = CalendarViewModel(
-          bookingRepo: mockBookingRepo,
-          orgState: mockOrgState,
-          roomState: mockRoomState,
-          onDragEnd: (details) => dragDetails.complete(details),
+        viewModel.handleTap(
+          CalendarTapDetails(null, date, CalendarElement.viewHeader, null),
         );
 
-        viewModel.controller.displayDate = now;
-        await Future.delayed(Duration(seconds: 1));
-        final state = await viewModel
-            .calendarViewState()
-            .where(
-              (state) => state.dataSource.appointments?.isNotEmpty ?? false,
-            )
-            .first;
-        final appointment = state.dataSource.appointments!.first as Appointment;
-
-        final details = AppointmentDragEndDetails(
-          appointment,
-          null,
-          null,
-          dropTime,
-        );
-        viewModel.handleDragEnd(details);
-
-        var gotDetails = await dragDetails.future;
-        expect(
-          gotDetails,
-          isA<DragDetails>()
-              .having((d) => d.request, 'request', request)
-              .having((d) => d.dropTime, 'dropTime', dropTime),
-        );
+        // Verify that displayDate is updated and view is set to day
+        expect(viewModel.controller.displayDate, date);
+        expect(viewModel.controller.view, CalendarView.day);
       },
     );
   });

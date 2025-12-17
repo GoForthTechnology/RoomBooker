@@ -288,16 +288,15 @@ void main() {
       createViewModel(createRequest: false);
       final targetDate = DateTime(2023, 10, 27);
 
-      when(() => mockStackRouter.push(any())).thenAnswer((_) async => null);
-
       dateTapController.add(
         DateTapDetails(date: targetDate, view: CalendarView.month),
       );
       await Future.delayed(Duration.zero);
 
       verify(
-        () => mockStackRouter.push(any(that: isA<ViewBookingsRoute>())),
+        () => mockCalendarViewModel.focusDate(targetDate),
       ).called(1);
+      verifyNever(() => mockStackRouter.push(any()));
     });
 
     test('ReadOnlyMode ignores date taps', () async {

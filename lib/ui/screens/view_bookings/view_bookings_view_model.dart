@@ -126,14 +126,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
     }
     if (details.view == CalendarView.month) {
       log("Changing to day view for date ${details.date}");
-      _router.push(
-        ViewBookingsRoute(
-          orgID: orgID,
-          view: CalendarView.day.name,
-          targetDateStr: dateFormat.format(details.date),
-          createRequest: false,
-        ),
-      );
+      _calendarViewModel.focusDate(details.date);
       return;
     }
     log("Loading new request for date ${details.date}");
