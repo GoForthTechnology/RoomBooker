@@ -16,14 +16,12 @@ service cloud.firestore {
       	return isOwner() || exists(/databases/$(database)/documents/orgs/$(orgID)/active-admins/$(request.auth.uid))
       }
     
-    	      allow update: if isAdmin() && request.resource.data.ownerID == resource.data.ownerID
-    	      allow delete: if isAdmin()      
-      // Fix 1: Secure Organization Creation - Enforce ownerID matches the creator
+    	allow read: if true // anyone can see an org's calendar to request a booking
+      allow write: if isAdmin()
       allow create: if request.auth.uid != null && request.resource.data.ownerID == request.auth.uid
       
       match /admin-requests/{userID} {
-        // Fix 3: Secure Admin Requests - Users can only request for themselves
-      	allow create: if request.auth.uid != null && request.auth.uid == userID
+        allow create: if request.auth.uid != null && request.auth.uid == userID
         
         allow read, write: if isAdmin()
       }
@@ -34,15 +32,12 @@ service cloud.firestore {
       }
       
       match /pending-requests/{requestID} {
-      	allow create: if true // Anonymous bookings allowed
-        // Fix 2: Protect PII - Only admins can read pending requests
-        allow read: if isAdmin()
+      	allow create, read: if true // allow everyone to create a request
         allow write: if isAdmin()
       } 
      
       match /request-details/{requestID} {
-      	allow create: if true // Anonymous bookings allowed
-        // Fix 2: Protect PII - Only admins can read request details
+      	allow create: if true // allow everyone to create a request
         allow read: if isAdmin()
         allow write: if isAdmin()
       }
