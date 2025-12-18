@@ -259,7 +259,6 @@ class RequestEditor extends StatelessWidget {
       controller: viewModel.contactNameController,
       labelText: "Your Name",
       validationMessage: "Please provide your name",
-      onChanged: viewModel.updateContactName,
     );
   }
 
@@ -275,7 +274,6 @@ class RequestEditor extends StatelessWidget {
       validationRegex: RegExp(
         r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
       ),
-      onChanged: viewModel.updateContactEmail,
     );
   }
 
@@ -288,7 +286,6 @@ class RequestEditor extends StatelessWidget {
       controller: viewModel.phoneNumberController,
       labelText: "Your Phone Number",
       validationMessage: "Please provide your phone number",
-      onChanged: viewModel.updateContactPhone,
     );
   }
 
@@ -318,7 +315,6 @@ class RequestEditor extends StatelessWidget {
       readOnly: readOnly,
       controller: viewModel.additionalInfoController,
       labelText: "Additional Info",
-      onChanged: viewModel.updateAdditionalInfo,
     );
   }
 

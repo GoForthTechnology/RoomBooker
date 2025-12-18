@@ -546,9 +546,9 @@ class RequestEditorViewModel extends ChangeNotifier {
 
   void useAdminContactInfo() {
     final adminEmail = _authService.getCurrentUserEmail() ?? "";
-    updateContactName("Org Admin");
-    updateContactEmail(adminEmail);
-    updateContactPhone("n/a");
+    contactNameController.text = "Org Admin";
+    contactEmailController.text = adminEmail;
+    phoneNumberController.text = "n/a";
   }
 
   void updateEventStart(DateTime newStart) {
