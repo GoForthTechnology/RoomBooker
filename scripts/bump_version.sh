@@ -99,7 +99,7 @@ sed "s/^version: .*/version: $NEW_VERSION/" $PUBSPEC > "${PUBSPEC}.tmp" && mv "$
 # Git operations
 if [ "$COMMIT" = true ]; then
   git add $PUBSPEC
-  git commit -m "Cut $NEW_VERSION"
+  git commit -m "Cut v$NEW_VERSION"
 fi
 
 if [ "$PUSH" = true ]; then
