@@ -3,62 +3,120 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // --- Helper Functions ---
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(orgID) {
+      return get(/databases/$(database)/documents/orgs/$(orgID)).data.ownerID == request.auth.uid;
+    }
+
+    function incomingData() {
+      return request.resource.data;
+    }
+    
+    // Checks if the incoming data has all the specified keys
+    function hasAll(fields) {
+      return incomingData().keys().hasAll(fields);
+    }
+    
+    function isString(field) {
+      return incomingData()[field] is string;
+    }
+    
+    function isNotEmptyString(field) {
+      return isString(field) && incomingData()[field].size() > 0;
+    }
+
+    function isTimestamp(field) {
+      return incomingData()[field] is timestamp;
+    }
+
+    // --- Rules ---
+
     match /users/{userID} {
-    	allow read, write: if userID == request.auth.uid
-  	}
+      allow read, write: if request.auth.uid == userID;
+    }
     
     match /orgs/{orgID} {
-    	function isOwner() {
-      	return get(/databases/$(database)/documents/orgs/$(orgID)).data.ownerID == request.auth.uid
+      function isAdmin() {
+        return isOwner(orgID) || exists(/databases/$(database)/documents/orgs/$(orgID)/active-admins/$(request.auth.uid));
       }
       
-      function isAdmin() {
-      	return isOwner() || exists(/databases/$(database)/documents/orgs/$(orgID)/active-admins/$(request.auth.uid))
-      }
-    
-    	allow read: if true // anyone can see an org's calendar to request a booking
-      allow write: if isAdmin()
-      allow create: if request.auth.uid != null && request.resource.data.ownerID == request.auth.uid
+      // Allow public read for users to find orgs, but writes are restricted
+      allow read: if true; 
+      
+      // Only authenticated users can create an org, and they must be the owner
+      allow create: if isAuthenticated() 
+                    && incomingData().ownerID == request.auth.uid
+                    && hasAll(['name', 'ownerID', 'acceptingAdminRequests'])
+                    && isNotEmptyString('name');
+                    
+      allow write: if isAdmin();
       
       match /admin-requests/{userID} {
-        allow create: if request.auth.uid != null && request.auth.uid == userID
+        // Users can create a request for themselves
+        allow create: if request.auth.uid == userID;
         
-        allow read, write: if isAdmin()
+        // Users can read their own request; admins can read all
+        allow read: if request.auth.uid == userID || isAdmin();
+        
+        // Only admins can modify requests (approve/deny logic usually handled by cloud functions or admin client)
+        allow write: if isAdmin();
       }
       
       match /active-admins/{userID} {
-      	allow read: if true
-        allow write: if isAdmin()
+        // SECURE: Only the user themselves or other admins can see this
+        allow read: if request.auth.uid == userID || isAdmin();
+        allow write: if isAdmin();
       }
       
       match /pending-requests/{requestID} {
-      	allow create, read: if true // allow everyone to create a request
-        allow write: if isAdmin()
+        // Allow anyone to create a request (needs validation)
+        // TODO: Enforce schema validation for requests here if possible, 
+        // but often minimal validation is done here and full validation in logic.
+        allow create: if true; 
+        
+        // SECURE: Only admins should see the list of pending requests
+        allow read: if isAdmin();
+        
+        allow write: if isAdmin();
       } 
      
       match /request-details/{requestID} {
-      	allow create: if true // allow everyone to create a request
-        allow read: if isAdmin()
-        allow write: if isAdmin()
+        // Validating the request structure on creation
+        allow create: if true 
+                      && hasAll(['name', 'email', 'eventName', 'eventStartTime', 'eventEndTime'])
+                      && isNotEmptyString('name')
+                      && isNotEmptyString('email')
+                      && isTimestamp('eventStartTime')
+                      && isTimestamp('eventEndTime')
+                      && incomingData().eventEndTime > incomingData().eventStartTime;
+                      
+        allow read: if isAdmin();
+        allow write: if isAdmin();
       }
       
       match /denied-requests/{requestID} {
-        allow read, write: if isAdmin()
+        allow read, write: if isAdmin();
       }
       
       match /confirmed-requests/{requestID} {
-      	allow read: if true // allow everyone to see confirmed bookings
-        allow write: if isAdmin()
+        allow read: if true; // Public calendar needs to see confirmed bookings
+        allow write: if isAdmin();
       }
       
       match /rooms/{roomID} {
-      	allow read: if true
-        allow write: if isAdmin()
+        allow read: if true;
+        allow write: if isAdmin() 
+                     && (request.resource == null || (hasAll(['name']) && isNotEmptyString('name')));
       }
       
       match /request-logs/{logID} {
-        allow create: if "requestID" in request.resource.data // allow everyone to create a request
-      	allow read, write: if isAdmin()
+        allow create: if "requestID" in incomingData();
+        allow read, write: if isAdmin();
       }
     }
   }
