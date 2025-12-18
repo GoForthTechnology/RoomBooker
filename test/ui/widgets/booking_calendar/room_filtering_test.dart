@@ -37,7 +37,7 @@ void main() {
 
     // Default stubs
     when(() => mockOrgState.org).thenReturn(mockOrganization);
-    when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
+    when(() => mockOrgState.currentUserIsAdmin).thenReturn(false);
     when(() => mockOrganization.id).thenReturn('org_id');
     when(
       () => mockBookingRepo.listRequests(
@@ -133,7 +133,7 @@ void main() {
         isA<CalendarViewState>().having(
           (state) => state.dataSource.appointments!.length,
           'appointments.length',
-          1, // FAIL: Expected 1, but will likely be 2
+          1,
         ),
       ),
     );

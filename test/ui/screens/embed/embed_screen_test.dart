@@ -7,6 +7,7 @@ import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
+import 'package:room_booker/data/repos/user_repo.dart';
 import 'package:room_booker/ui/screens/embed/embed_screen.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -14,6 +15,8 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 class MockOrgRepo extends Mock implements OrgRepo {}
 
 class MockRoomRepo extends Mock implements RoomRepo {}
+
+class MockUserRepo extends Mock implements UserRepo {}
 
 class MockBookingRepo extends Mock implements BookingRepo {}
 
@@ -33,6 +36,7 @@ void main() {
   late MockOrgRepo mockOrgRepo;
   late MockRoomRepo mockRoomRepo;
   late MockBookingRepo mockBookingRepo;
+  late MockUserRepo mockUserRepo;
   late MockAuthService mockAuthService;
 
   setUpAll(() {
@@ -47,6 +51,7 @@ void main() {
     mockOrgRepo = MockOrgRepo();
     mockRoomRepo = MockRoomRepo();
     mockBookingRepo = MockBookingRepo();
+    mockUserRepo = MockUserRepo();
     mockAuthService = MockAuthService();
 
     when(() => mockAuthService.getCurrentUserID()).thenReturn(null);
@@ -75,6 +80,7 @@ void main() {
         ChangeNotifierProvider<FirebaseAuthService>.value(
           value: mockAuthService,
         ),
+        ChangeNotifierProvider<UserRepo>.value(value: mockUserRepo),
       ],
       child: MaterialApp(
         home: EmbedScreen(orgID: 'org1', view: view),

@@ -104,7 +104,7 @@ void main() {
         when(
           () => mockAuthService.getCurrentUserID(),
         ).thenReturn('test-admin-id');
-        when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
+        when(() => mockOrgState.currentUserIsAdmin).thenReturn(true);
         when(() => mockOrgState.org).thenReturn(testOrg);
       });
 
@@ -148,14 +148,14 @@ void main() {
 
       test('showIgnoreOverlapsToggle returns correct values', () async {
         // Case 1: Admin
-        when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
+        when(() => mockOrgState.currentUserIsAdmin).thenReturn(true);
         viewModel = createViewModel();
         viewModel.initializeFromExistingRequest(testRequest, testDetails);
         var viewState = await viewModel.viewStateStream.first;
         expect(viewState.showIgnoreOverlapsToggle, true);
 
         // Case 2: Non-admin
-        when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
+        when(() => mockOrgState.currentUserIsAdmin).thenReturn(false);
         viewModel = createViewModel();
         viewModel.initializeFromExistingRequest(testRequest, testDetails);
         viewState = await viewModel.viewStateStream.first;
@@ -164,14 +164,14 @@ void main() {
 
       test('showEventLog returns correct values', () async {
         // Case 1: Admin
-        when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
+        when(() => mockOrgState.currentUserIsAdmin).thenReturn(true);
         viewModel = createViewModel();
         viewModel.initializeFromExistingRequest(testRequest, testDetails);
         var viewState = await viewModel.viewStateStream.first;
         expect(viewState.showEventLog, true);
 
         // Case 2: Non-admin
-        when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
+        when(() => mockOrgState.currentUserIsAdmin).thenReturn(false);
         viewModel = createViewModel();
         viewModel.initializeFromExistingRequest(testRequest, testDetails);
         viewState = await viewModel.viewStateStream.first;
@@ -322,7 +322,7 @@ void main() {
       });
 
       test('Actions contains Add Booking for admin with new request', () async {
-        when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
+        when(() => mockOrgState.currentUserIsAdmin).thenReturn(true);
         viewModel = createViewModel();
         viewModel.initializeNewRequest(DateTime.now());
 
@@ -333,7 +333,7 @@ void main() {
       test(
         'Actions contains Submit Request for non-admin with new request',
         () async {
-          when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
+          when(() => mockOrgState.currentUserIsAdmin).thenReturn(false);
           viewModel = createViewModel();
           viewModel.initializeNewRequest(DateTime.now());
 
@@ -752,7 +752,7 @@ void main() {
 
       test('EditorViewState properties for new request (no ID)', () async {
         // Even if user is admin
-        when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
+        when(() => mockOrgState.currentUserIsAdmin).thenReturn(true);
 
         viewModel = createViewModel();
         viewModel.initializeNewRequest(DateTime.now());

@@ -130,7 +130,7 @@ void main() {
     ).thenAnswer((_) => Stream.value(true));
 
     // OrgState
-    when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
+    when(() => mockOrgState.currentUserIsAdmin).thenReturn(false);
     when(() => mockOrgState.org).thenReturn(
       Organization(
         id: 'test-org',
