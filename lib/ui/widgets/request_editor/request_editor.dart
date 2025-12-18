@@ -48,7 +48,7 @@ class RequestEditor extends StatelessWidget {
               _contactNameSelector(viewModel, state.readOnly),
               _contactEmailSelector(viewModel, state.readOnly),
               _contactPhoneSelector(viewModel, state.readOnly),
-              if (orgState.currentUserIsAdmin())
+              if (orgState.currentUserIsAdmin)
                 _adminContactInfoButton(viewModel, orgState, state.readOnly)!,
               const Divider(),
               _additionalInfoSelector(viewModel, state.readOnly),
@@ -294,7 +294,7 @@ class RequestEditor extends StatelessWidget {
     OrgState orgState,
     bool readOnly,
   ) {
-    if (!orgState.currentUserIsAdmin()) {
+    if (!orgState.currentUserIsAdmin) {
       return null;
     }
     return ElevatedButton(

@@ -307,7 +307,7 @@ class CalendarViewModel extends ChangeNotifier {
     List<Request> requests,
     BookingRepo bookingRepo,
   ) {
-    if (!orgState.currentUserIsAdmin() || requests.isEmpty) {
+    if (!orgState.currentUserIsAdmin || requests.isEmpty) {
       return Stream.value([]);
     }
     var orgID = orgState.org.id!;

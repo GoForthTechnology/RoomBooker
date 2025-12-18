@@ -199,9 +199,9 @@ class RequestEditorViewModel extends ChangeNotifier {
       return EditorViewState(
         !editingEnabled,
         showIgnoreOverlapsToggle:
-            initialRequest?.id != null && _orgState.currentUserIsAdmin(),
+            initialRequest?.id != null && _orgState.currentUserIsAdmin,
         showEventLog:
-            initialRequest?.id != null && _orgState.currentUserIsAdmin(),
+            initialRequest?.id != null && _orgState.currentUserIsAdmin,
         showID: initialRequest?.id != null,
         actions: actions,
       );
@@ -276,7 +276,7 @@ class RequestEditorViewModel extends ChangeNotifier {
   }
 
   List<EditorAction> _getActionsForNewRequest() {
-    var actionTitle = _orgState.currentUserIsAdmin()
+    var actionTitle = _orgState.currentUserIsAdmin
         ? "Add Booking"
         : "Submit Request";
     return [
@@ -287,7 +287,7 @@ class RequestEditorViewModel extends ChangeNotifier {
             name: "Booking Added",
             parameters: {
               "orgID": orgID,
-              "isAdmin": _orgState.currentUserIsAdmin().toString(),
+              "isAdmin": _orgState.currentUserIsAdmin.toString(),
             },
           );
           var closeMessage = await closeEditor();
@@ -470,7 +470,7 @@ class RequestEditorViewModel extends ChangeNotifier {
     }
 
     var orgID = _orgState.org.id!;
-    if (_orgState.currentUserIsAdmin()) {
+    if (_orgState.currentUserIsAdmin) {
       await _bookingRepo.addBooking(orgID, request, details);
     } else {
       await _bookingRepo.submitBookingRequest(orgID, request, details);

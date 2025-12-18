@@ -165,7 +165,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
 
   List<Action> getActions(BuildContext context) {
     List<Action> actions = [];
-    if (_orgState.currentUserIsAdmin()) {
+    if (_orgState.currentUserIsAdmin) {
       actions.add(
         Action(
           name: "Review Requests",
