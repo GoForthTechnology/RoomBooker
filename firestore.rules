@@ -79,8 +79,9 @@ service cloud.firestore {
         // but often minimal validation is done here and full validation in logic.
         allow create: if true; 
         
-        // SECURE: Only admins should see the list of pending requests
-        allow read: if isAdmin();
+        // Allow anyone to read so that users can see when a space has already
+        // been requested but no yet approved.
+        allow read: if true;
         
         allow write: if isAdmin();
       } 
