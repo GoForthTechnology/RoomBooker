@@ -188,7 +188,7 @@ class CalendarViewModel extends ChangeNotifier {
           dataSource: _DataSource(out),
           specialRegions: blackoutWindows.map((w) => w.toTimeRegion()).toList(),
           currentView: controller.view!,
-          currentDate: controller.displayDate!,
+          currentDate: _safeDisplayDate,
         );
       },
     );
@@ -357,8 +357,14 @@ class CalendarViewModel extends ChangeNotifier {
   DateTime? get minDate =>
       controller.view == CalendarView.schedule ? DateTime.now() : null;
 
+  DateTime get _safeDisplayDate => DateTime(
+    controller.displayDate!.year,
+    controller.displayDate!.month,
+    controller.displayDate!.day,
+  );
+
   DateTime get startOfView {
-    var displayDate = controller.displayDate!;
+    var displayDate = _safeDisplayDate;
     switch (controller.view) {
       case CalendarView.schedule:
       case CalendarView.day:
@@ -386,7 +392,7 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   DateTime get endOfView {
-    var start = controller.displayDate!;
+    var start = _safeDisplayDate;
     switch (controller.view) {
       case CalendarView.day:
         return start.add(Duration(days: 1));

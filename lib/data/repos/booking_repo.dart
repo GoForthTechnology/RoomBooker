@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:js_interop';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
@@ -296,6 +297,14 @@ class BookingRepo extends ChangeNotifier {
     ).snapshots().map((s) => s.data());
   }
 
+  bool _hasTimeComponent(DateTime dt) {
+    return dt.minute != 0 || dt.second != 0 || dt.hour != 0;
+  }
+
+  DateTime _removeTimeComponent(DateTime dt) {
+    return DateTime(dt.year, dt.month, dt.day);
+  }
+
   Stream<List<Request>> listRequests({
     required String orgID,
     required DateTime startTime,
@@ -303,6 +312,18 @@ class BookingRepo extends ChangeNotifier {
     Set<RequestStatus>? includeStatuses,
     Set<String>? includeRoomIDs,
   }) {
+    if (_hasTimeComponent(startTime)) {
+      log(
+        "Start time should not have a time component! $startTime, ${StackTrace.current}",
+      );
+      startTime = _removeTimeComponent(startTime);
+    }
+    if (_hasTimeComponent(endTime)) {
+      log(
+        "End time should not have a time component! $endTime, ${StackTrace.current}",
+      );
+      endTime = _removeTimeComponent(endTime);
+    }
     List<Query<Request>> queries = [];
     var hasConfirmed =
         includeStatuses == null ||
