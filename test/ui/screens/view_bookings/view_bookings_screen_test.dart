@@ -11,6 +11,7 @@ import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
+import 'package:room_booker/data/repos/user_repo.dart';
 import 'package:room_booker/ui/screens/view_bookings/view_bookings_screen.dart';
 import 'package:room_booker/ui/screens/view_bookings/view_bookings_view_model.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
@@ -29,6 +30,8 @@ class MockRoomRepo extends Mock implements RoomRepo {}
 class MockBookingRepo extends Mock implements BookingRepo {}
 
 class MockPreferencesRepo extends Mock implements PreferencesRepo {}
+
+class MockUserRepo extends Mock implements UserRepo {}
 
 class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
 
@@ -81,6 +84,7 @@ void main() {
   late MockRoomRepo mockRoomRepo;
   late MockBookingRepo mockBookingRepo;
   late MockPreferencesRepo mockPreferencesRepo;
+  late MockUserRepo mockUserRepo;
   late MockFirebaseAuthService mockAuthService;
   late MockFirebaseAnalyticsService mockAnalyticsService;
   late MockStackRouter mockRouter;
@@ -95,6 +99,10 @@ void main() {
     mockRoomRepo = MockRoomRepo();
     mockBookingRepo = MockBookingRepo();
     mockPreferencesRepo = MockPreferencesRepo();
+    mockRoomRepo = MockRoomRepo();
+    mockBookingRepo = MockBookingRepo();
+    mockPreferencesRepo = MockPreferencesRepo();
+    mockUserRepo = MockUserRepo();
     mockAuthService = MockFirebaseAuthService();
     mockAnalyticsService = MockFirebaseAnalyticsService();
     mockRouter = MockStackRouter();
@@ -264,6 +272,7 @@ void main() {
         ChangeNotifierProvider<FirebaseAnalyticsService>.value(
           value: mockAnalyticsService,
         ),
+        ChangeNotifierProvider<UserRepo>.value(value: mockUserRepo),
       ],
       child: MaterialApp(
         home: StackRouterScope(
@@ -447,6 +456,7 @@ void main() {
             ChangeNotifierProvider<PreferencesRepo>.value(
               value: mockPreferencesRepo,
             ),
+            ChangeNotifierProvider<UserRepo>.value(value: mockUserRepo),
             Provider<FirebaseAuthService>.value(value: mockAuthService),
             ChangeNotifierProvider<FirebaseAnalyticsService>.value(
               value: mockAnalyticsService,

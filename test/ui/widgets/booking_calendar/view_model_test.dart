@@ -42,7 +42,7 @@ void main() {
 
     // Default stubs
     when(() => mockOrgState.org).thenReturn(mockOrganization);
-    when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
+    when(() => mockOrgState.currentUserIsAdmin).thenReturn(false);
     when(() => mockOrganization.id).thenReturn('org_id');
     when(
       () => mockBookingRepo.listRequests(

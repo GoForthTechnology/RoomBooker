@@ -152,15 +152,22 @@ class CalendarViewModel extends ChangeNotifier {
     RoomState roomState,
   ) {
     return Rx.combineLatest3(
-      _newAppointmentSubject.stream.distinct(),
+      _newAppointmentSubject.stream.distinct().handleError((e, s) {
+        throw 'Error in _newAppointmentSubject: $e';
+      }),
       _buildAppointmentStream(
         bookingRepo,
         orgState,
         roomState,
-      ).startWith(const {}),
+      ).startWith(const {}).handleError((e, s) {
+        throw 'Error in _buildAppointmentStream: $e';
+      }),
       bookingRepo
           .listBlackoutWindows(orgState.org, startOfView, endOfView)
-          .startWith(const []),
+          .startWith(const [])
+          .handleError((e, s) {
+            throw 'Error in listBlackoutWindows: $e';
+          }),
       (newAppointment, appointments, blackoutWindows) {
         List<Appointment> out = [];
         if (newAppointment != null) {
@@ -181,7 +188,7 @@ class CalendarViewModel extends ChangeNotifier {
           dataSource: _DataSource(out),
           specialRegions: blackoutWindows.map((w) => w.toTimeRegion()).toList(),
           currentView: controller.view!,
-          currentDate: controller.displayDate!,
+          currentDate: _safeDisplayDate,
         );
       },
     );
@@ -193,18 +200,28 @@ class CalendarViewModel extends ChangeNotifier {
     RoomState roomState,
   ) {
     var requestsStream = _fetchWindowController.distinct().switchMap(
-      (window) => bookingRepo.listRequests(
-        orgID: orgState.org.id!,
-        startTime: window.start,
-        endTime: window.end,
-        includeStatuses: {RequestStatus.pending, RequestStatus.confirmed},
-      ),
+      (window) => bookingRepo
+          .listRequests(
+            orgID: orgState.org.id!,
+            startTime: window.start,
+            endTime: window.end,
+            includeStatuses: {RequestStatus.pending, RequestStatus.confirmed},
+          )
+          .handleError((e, s) {
+            throw 'Error in listRequests: $e';
+          }),
     );
 
     return Rx.combineLatest3(
-      requestsStream,
-      _visibleWindowController.distinct(),
-      _roomStateSubject,
+      requestsStream.handleError((e, s) {
+        throw 'Error in requestsStream: $e';
+      }),
+      _visibleWindowController.distinct().handleError((e, s) {
+        throw 'Error in _visibleWindowController: $e';
+      }),
+      _roomStateSubject.handleError((e, s) {
+        throw 'Error in _roomStateSubject: $e';
+      }),
       (List<Request> requests, VisibleWindow window, _) {
         var visibleRequests = requests
             .where(
@@ -214,6 +231,9 @@ class CalendarViewModel extends ChangeNotifier {
             )
             .toList();
         return _detailStream(orgState, visibleRequests, bookingRepo)
+            .handleError((e, s) {
+              throw 'Error in _detailStream: $e';
+            })
             .map(
               (details) => _convertRequests(
                 visibleRequests,
@@ -287,7 +307,7 @@ class CalendarViewModel extends ChangeNotifier {
     List<Request> requests,
     BookingRepo bookingRepo,
   ) {
-    if (!orgState.currentUserIsAdmin() || requests.isEmpty) {
+    if (!orgState.currentUserIsAdmin || requests.isEmpty) {
       return Stream.value([]);
     }
     var orgID = orgState.org.id!;
@@ -337,8 +357,14 @@ class CalendarViewModel extends ChangeNotifier {
   DateTime? get minDate =>
       controller.view == CalendarView.schedule ? DateTime.now() : null;
 
+  DateTime get _safeDisplayDate => DateTime(
+    controller.displayDate!.year,
+    controller.displayDate!.month,
+    controller.displayDate!.day,
+  );
+
   DateTime get startOfView {
-    var displayDate = controller.displayDate!;
+    var displayDate = _safeDisplayDate;
     switch (controller.view) {
       case CalendarView.schedule:
       case CalendarView.day:
@@ -366,7 +392,7 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   DateTime get endOfView {
-    var start = controller.displayDate!;
+    var start = _safeDisplayDate;
     switch (controller.view) {
       case CalendarView.day:
         return start.add(Duration(days: 1));

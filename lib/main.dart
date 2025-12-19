@@ -23,7 +23,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:room_booker/app_router_observer.dart';
 
-bool useEmulator = false;
+bool useEmulator = true;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

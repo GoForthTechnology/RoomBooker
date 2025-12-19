@@ -103,7 +103,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
   }
 
   void _onTapBooking(Request request) async {
-    if (readOnlyMode) {
+    if (readOnlyMode || !_orgState.currentUserIsAdmin) {
       showRequestDialog(request);
     } else {
       var details = await _bookingRepo
@@ -165,7 +165,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
 
   List<Action> getActions(BuildContext context) {
     List<Action> actions = [];
-    if (_orgState.currentUserIsAdmin()) {
+    if (_orgState.currentUserIsAdmin) {
       actions.add(
         Action(
           name: "Review Requests",

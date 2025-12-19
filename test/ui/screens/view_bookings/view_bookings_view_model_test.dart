@@ -196,6 +196,7 @@ void main() {
     test('!readOnlyMode loads details and initializes editor', () async {
       createViewModel(createRequest: false, readOnlyMode: false);
 
+      when(() => mockOrgState.currentUserIsAdmin).thenReturn(true);
       when(
         () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
       ).thenAnswer((_) => Stream.value(details));
@@ -238,6 +239,8 @@ void main() {
         showEditorAsDialog: () => showEditorCalled = true,
       );
 
+      when(() => mockOrgState.currentUserIsAdmin).thenReturn(true);
+
       when(
         () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
       ).thenAnswer((_) => Stream.value(details));
@@ -257,6 +260,26 @@ void main() {
       );
 
       expect(showEditorCalled, true);
+    });
+
+    test('!readOnlyMode but !isAdmin calls showRequestDialog', () async {
+      var dialogCalled = false;
+      when(() => mockOrgState.currentUserIsAdmin).thenReturn(false);
+
+      createViewModel(
+        createRequest: false,
+        readOnlyMode: false,
+        showRequestDialog: (r) {
+          expect(r, request);
+          dialogCalled = true;
+        },
+      );
+
+      requestTapController.add(request);
+      await Future.delayed(Duration.zero);
+
+      expect(dialogCalled, true);
+      verifyZeroInteractions(mockBookingRepo);
     });
   });
 
@@ -293,9 +316,7 @@ void main() {
       );
       await Future.delayed(Duration.zero);
 
-      verify(
-        () => mockCalendarViewModel.focusDate(targetDate),
-      ).called(1);
+      verify(() => mockCalendarViewModel.focusDate(targetDate)).called(1);
       verifyNever(() => mockStackRouter.push(any()));
     });
 
@@ -432,7 +453,7 @@ void main() {
 
   group('getActions', () {
     test('Admin actions included', () {
-      when(() => mockOrgState.currentUserIsAdmin()).thenReturn(true);
+      when(() => mockOrgState.currentUserIsAdmin).thenReturn(true);
       when(() => mockAuthService.getCurrentUserID()).thenReturn('user-1');
 
       final viewModel = createViewModel(createRequest: false);
@@ -444,7 +465,7 @@ void main() {
     });
 
     test('Logged out actions', () {
-      when(() => mockOrgState.currentUserIsAdmin()).thenReturn(false);
+      when(() => mockOrgState.currentUserIsAdmin).thenReturn(false);
       when(() => mockAuthService.getCurrentUserID()).thenReturn(null);
 
       final viewModel = createViewModel(createRequest: false);

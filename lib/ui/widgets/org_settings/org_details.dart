@@ -10,36 +10,49 @@ class OrgDetails extends ChangeNotifier {
   final int numConflictingRequests;
   final int numAdminRequests;
 
-  OrgDetails(
-      {required this.numPendingRequests,
-      required this.numConflictingRequests,
-      required this.numAdminRequests});
+  OrgDetails({
+    required this.numPendingRequests,
+    required this.numConflictingRequests,
+    required this.numAdminRequests,
+  });
 }
 
 class OrgDetailsProvider extends StatelessWidget {
   final String orgID;
   final Function(BuildContext, OrgDetails?) builder;
-  const OrgDetailsProvider(
-      {super.key, required this.orgID, required this.builder});
+  const OrgDetailsProvider({
+    super.key,
+    required this.orgID,
+    required this.builder,
+  });
 
   @override
   Widget build(BuildContext context) {
     var orgRepo = Provider.of<OrgRepo>(context, listen: false);
     var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
+    var today = DateTime.now();
+    var startOfToday = DateTime(today.year, today.month, today.day);
+
     return StreamBuilder(
       stream: Rx.combineLatest3(
-          bookingRepo.listRequests(
-              orgID: orgID,
-              startTime: DateTime.now(),
-              endTime: DateTime.now().add(Duration(days: 365)),
-              includeStatuses: {RequestStatus.pending}),
-          orgRepo.adminRequests(orgID),
-          bookingRepo.findOverlappingBookings(
-              orgID, DateTime.now(), DateTime.now().add(Duration(days: 365))),
-          (pendingRequests, adminRequests, overlaps) => OrgDetails(
-              numPendingRequests: pendingRequests.length,
-              numConflictingRequests: overlaps.length,
-              numAdminRequests: adminRequests.length)),
+        bookingRepo.listRequests(
+          orgID: orgID,
+          startTime: startOfToday,
+          endTime: startOfToday.add(Duration(days: 365)),
+          includeStatuses: {RequestStatus.pending},
+        ),
+        orgRepo.adminRequests(orgID),
+        bookingRepo.findOverlappingBookings(
+          orgID,
+          startOfToday,
+          startOfToday.add(Duration(days: 365)),
+        ),
+        (pendingRequests, adminRequests, overlaps) => OrgDetails(
+          numPendingRequests: pendingRequests.length,
+          numConflictingRequests: overlaps.length,
+          numAdminRequests: adminRequests.length,
+        ),
+      ),
       builder: (context, snapshot) {
         return builder(context, snapshot.data);
       },
