@@ -8,6 +8,12 @@ abstract class AuthService {
 }
 
 class FirebaseAuthService extends ChangeNotifier implements AuthService {
+  FirebaseAuthService() {
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      notifyListeners();
+    });
+  }
+
   @override
   String? getCurrentUserEmail() {
     return FirebaseAuth.instance.currentUser?.email;

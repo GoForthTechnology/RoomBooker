@@ -45,36 +45,37 @@ class OrgStateProvider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var orgRepo = Provider.of<OrgRepo>(context, listen: false);
-    var authService = Provider.of<FirebaseAuthService>(context, listen: false);
     var userRepo = Provider.of<UserRepo>(context, listen: false);
 
-    return FutureBuilder<OrgState?>(
-      future: Future.delayed(Duration.zero, () async {
-        var org = await orgRepo.getOrg(orgID).first;
-        var isAdmin = await _currentUserIsAdmin(authService, userRepo);
-        if (org == null) return null;
-        return OrgState(
-          org: org,
-          currentUserIsAdmin: isAdmin,
-          authService: authService,
-        );
-      }),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          log('Error loading organization state', error: snapshot.error);
-          return const Center(child: Text('Error loading organization'));
-        }
-        if (!snapshot.hasData || snapshot.data == null) {
-          return const Center(child: Text('Organization not found'));
-        }
-        return ChangeNotifierProvider(
-          create: (_) => snapshot.data!,
-          child: child,
-        );
-      },
+    return Consumer<FirebaseAuthService>(
+      builder: (context, authService, _) => FutureBuilder<OrgState?>(
+        future: Future.delayed(Duration.zero, () async {
+          var org = await orgRepo.getOrg(orgID).first;
+          var isAdmin = await _currentUserIsAdmin(authService, userRepo);
+          if (org == null) return null;
+          return OrgState(
+            org: org,
+            currentUserIsAdmin: isAdmin,
+            authService: authService,
+          );
+        }),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            log('Error loading organization state', error: snapshot.error);
+            return const Center(child: Text('Error loading organization'));
+          }
+          if (!snapshot.hasData || snapshot.data == null) {
+            return const Center(child: Text('Organization not found'));
+          }
+          return ChangeNotifierProvider(
+            create: (_) => snapshot.data!,
+            child: child,
+          );
+        },
+      ),
     );
   }
 }

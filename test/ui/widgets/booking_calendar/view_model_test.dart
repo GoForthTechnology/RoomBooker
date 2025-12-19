@@ -9,7 +9,6 @@ import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 // Mock classes
