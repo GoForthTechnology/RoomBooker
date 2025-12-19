@@ -453,7 +453,6 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   void handleTap(CalendarTapDetails details) {
-    print("CALENDAR: Tap detected on element ${details.targetElement}");
     switch (details.targetElement) {
       case CalendarElement.appointment:
         _handleRequestTap(details);
