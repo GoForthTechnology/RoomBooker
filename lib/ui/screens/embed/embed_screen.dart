@@ -32,6 +32,7 @@ class EmbedScreen extends StatelessWidget {
       child: Consumer<OrgState>(
         builder: (context, orgState, child) => RoomStateProvider(
           org: orgState.org,
+          enableAllRooms: true,
           builder: (context, _) => Consumer<RoomState>(
             builder: (context, roomState, child) => BookingCalendar(
               createViewModel: () => CalendarViewModel(
