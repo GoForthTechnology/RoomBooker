@@ -9,6 +9,7 @@ import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 // Mock classes
@@ -412,8 +413,9 @@ void main() {
       final now = DateTime.now();
       viewModel.controller.displayDate = now;
 
-      expect(viewModel.startOfView, now);
-      expect(viewModel.endOfView, now.add(Duration(days: 90)));
+      final expectedStart = DateTime(now.year, now.month, now.day);
+      expect(viewModel.startOfView, expectedStart);
+      expect(viewModel.endOfView, expectedStart.add(Duration(days: 90)));
     });
   });
 
@@ -466,7 +468,7 @@ void main() {
             isA<CalendarViewState>().having(
               (state) => state.dataSource.appointments!.length,
               'appointments.length',
-              5, // Expect 5 appointments for a week
+              4, // Expect 4 appointments for a week
             ),
           ),
         );

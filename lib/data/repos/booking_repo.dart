@@ -312,15 +312,9 @@ class BookingRepo extends ChangeNotifier {
     Set<String>? includeRoomIDs,
   }) {
     if (_hasTimeComponent(startTime)) {
-      log(
-        "Start time should not have a time component! $startTime, ${StackTrace.current}",
-      );
       startTime = _removeTimeComponent(startTime);
     }
     if (_hasTimeComponent(endTime)) {
-      log(
-        "End time should not have a time component! $endTime, ${StackTrace.current}",
-      );
       endTime = _removeTimeComponent(endTime);
     }
     List<Query<Request>> queries = [];
