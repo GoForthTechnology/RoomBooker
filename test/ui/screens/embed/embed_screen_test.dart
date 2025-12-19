@@ -10,6 +10,7 @@ import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/data/repos/user_repo.dart';
 import 'package:room_booker/ui/screens/embed/embed_screen.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
+import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class MockOrgRepo extends Mock implements OrgRepo {}
@@ -220,4 +221,52 @@ void main() {
     // For now, just ensuring it renders without error with the param is a good sanity check.
     expect(find.byType(BookingCalendar), findsOneWidget);
   });
+  testWidgets(
+    'EmbedScreen shows appointments for all rooms (enables all rooms)',
+    (tester) async {
+      // Arrange
+      when(() => mockOrgRepo.getOrg('org1')).thenAnswer(
+        (_) => Stream.value(
+          Organization(
+            id: 'org1',
+            name: 'Test Org',
+            ownerID: 'owner1',
+            acceptingAdminRequests: true,
+          ),
+        ),
+      );
+      when(
+        () => mockOrgRepo.activeAdmins('org1'),
+      ).thenAnswer((_) => Stream.value([]));
+
+      final rooms = [
+        Room(id: 'room1', name: 'Room 1', colorHex: '#0000FF'),
+        Room(id: 'room2', name: 'Room 2', colorHex: '#00FF00'),
+        Room(id: 'room3', name: 'Room 3', colorHex: '#FF0000'),
+      ];
+
+      when(
+        () => mockRoomRepo.listRooms('org1'),
+      ).thenAnswer((_) => Stream.value(rooms));
+
+      // Act
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1)); // OrgState loaded
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1)); // RoomState loaded
+
+      // Assert
+      final bookingCalendarFinder = find.byType(BookingCalendar);
+      expect(bookingCalendarFinder, findsOneWidget);
+
+      final context = tester.element(bookingCalendarFinder);
+      final roomState = Provider.of<RoomState>(context, listen: false);
+
+      expect(roomState.enabledValues().length, 3);
+      for (var room in rooms) {
+        expect(roomState.isEnabled(room.id!), isTrue);
+      }
+    },
+  );
 }
