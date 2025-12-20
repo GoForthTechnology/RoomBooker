@@ -6,16 +6,8 @@ import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart';
-import 'package:room_booker/data/analytics_service.dart';
-import 'package:room_booker/data/auth_service.dart';
 import 'package:room_booker/data/logging_service.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
-import 'package:room_booker/data/repos/log_repo.dart';
-import 'package:room_booker/data/repos/org_repo.dart';
-import 'package:room_booker/data/repos/prefs_repo.dart';
-import 'package:room_booker/data/repos/room_repo.dart';
-import 'package:room_booker/data/repos/user_repo.dart';
+import 'package:room_booker/providers.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/auth.dart';
 import 'firebase_options.dart';
@@ -92,37 +84,9 @@ class MyApp extends StatelessWidget {
     try {
       FirebaseAnalytics.instance.logAppOpen();
       FirebaseUIAuth.configureProviders(providers);
-      var logRepo = LogRepo();
-      var analyticsService = FirebaseAnalyticsService(loggingService);
-      var bookingRepo = BookingRepo(
-        logRepo: logRepo,
-        analytics: analyticsService,
-        logging: loggingService,
-      );
-      var roomRepo = RoomRepo();
-      var userRepo = UserRepo();
-      var prefsRepo = PreferencesRepo(prefs);
-      var orgRepo = OrgRepo(
-        userRepo: userRepo,
-        roomRepo: roomRepo,
-        logging: loggingService,
-        analytics: analyticsService,
-      );
-      var authService = FirebaseAuthService();
-      return MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => bookingRepo),
-          ChangeNotifierProvider(create: (_) => userRepo),
-          ChangeNotifierProvider(create: (_) => orgRepo),
-          ChangeNotifierProvider(create: (_) => roomRepo),
-          ChangeNotifierProvider(create: (_) => logRepo),
-          ChangeNotifierProvider(create: (_) => prefsRepo),
-          ChangeNotifierProvider<AnalyticsService>(
-            create: (_) => analyticsService,
-          ),
-          ChangeNotifierProvider<LoggingService>(create: (_) => loggingService),
-          ChangeNotifierProvider<AuthService>(create: (_) => authService),
-        ],
+      return AppProviders(
+        prefs: prefs,
+        loggingService: loggingService,
         child: MaterialApp.router(
           title: 'Room Booker',
           theme: ThemeData(
