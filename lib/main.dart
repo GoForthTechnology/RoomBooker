@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
@@ -62,10 +64,17 @@ void main() async {
         options.replay.sessionSampleRate = 1.0;
         options.replay.onErrorSampleRate = 1.0;
       },
-      appRunner: () => runApp(
-        SentryWidget(
-          child: MyApp(prefs: prefs, loggingService: loggingService),
-        ),
+      appRunner: () => runZonedGuarded(
+        () {
+          runApp(
+            SentryWidget(
+              child: MyApp(prefs: prefs, loggingService: loggingService),
+            ),
+          );
+        },
+        (error, stackTrace) {
+          loggingService.error("Error running app: $error", error, stackTrace);
+        },
       ),
     );
   }
