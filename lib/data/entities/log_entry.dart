@@ -85,8 +85,7 @@ class RequestLogEntry {
         'Status changed from "${_statusToString(before.status)}" to "${_statusToString(after.status)}"',
       );
     }
-    if (before.recurrancePattern.toString() !=
-        after.recurrancePattern.toString()) {
+    if (before.recurrancePattern != after.recurrancePattern) {
       changes.add(
         'Recurrence changed from "${before.recurrancePattern}" to "${after.recurrancePattern}"',
       );
