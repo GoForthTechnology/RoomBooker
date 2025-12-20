@@ -9,6 +9,7 @@ import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CalendarViewModel extends ChangeNotifier {
@@ -205,20 +206,36 @@ class CalendarViewModel extends ChangeNotifier {
   ) {
     var requestsStream = _fetchWindowController
         .distinct()
-        .switchMap((window) {
-          return bookingRepo
-              .listRequests(
-                orgID: orgState.org.id!,
-                startTime: window.start,
-                endTime: window.end,
-                includeStatuses: {
-                  RequestStatus.pending,
-                  RequestStatus.confirmed,
-                },
-              )
-              .handleError((e, s) {
-                throw 'Error in listRequests: $e';
-              });
+        .switchMap((window) async* {
+          final span = Sentry.getSpan()?.startChild(
+            'fetch_requests',
+            description: 'Fetching requests for window $window',
+          );
+          try {
+            yield* bookingRepo
+                .listRequests(
+                  orgID: orgState.org.id!,
+                  startTime: window.start,
+                  endTime: window.end,
+                  includeStatuses: {
+                    RequestStatus.pending,
+                    RequestStatus.confirmed,
+                  },
+                )
+                .handleError((e, s) {
+                  span?.status = const SpanStatus.internalError();
+                  span?.finish();
+                  throw 'Error in listRequests: $e';
+                })
+                .doOnData((_) {
+                  span?.status = const SpanStatus.ok();
+                  span?.finish();
+                });
+          } catch (e) {
+            span?.status = const SpanStatus.internalError();
+            span?.finish();
+            rethrow;
+          }
         })
         .handleError((e, s) {
           throw 'Error in requestsStream: $e';
@@ -266,41 +283,54 @@ class CalendarViewModel extends ChangeNotifier {
     RoomState roomState,
     Appointment? newAppointment,
   ) {
-    var detailIndex = _indexDetails(details);
-    Map<Appointment, Request> appointments = {};
-    for (var request in requests) {
-      if (!roomState.isEnabled(request.roomID)) {
-        continue;
-      }
-      for (var repeat in request.expand(
-        window.start,
-        window.end,
-        includeRequestDate: true,
-      )) {
-        /*if (_isSameRequest(requestEditorState.existingRequest, repeat)) {
-          // Skip the current request
-          continue;
-        }*/
-        String? subject = repeat.publicName;
-        var details = detailIndex[request.id!];
-        if (subject == null && details != null) {
-          subject = "${details.eventName} (Private)";
-        }
-        var isPrivateBooking = (subject ?? "") == "";
-        if (isPrivateBooking && !includePrivateBookings) {
+    final span = Sentry.getSpan()?.startChild(
+      'convert_requests',
+      description: 'Converting ${requests.length} requests',
+    );
+
+    try {
+      var detailIndex = _indexDetails(details);
+      Map<Appointment, Request> appointments = {};
+      for (var request in requests) {
+        if (!roomState.isEnabled(request.roomID)) {
           continue;
         }
-        var appointment = repeat.toAppointment(
-          roomState,
-          subject: subject,
-          diminish: newAppointment != null,
-          appendRoomName: appendRoomName,
-          showIngnoringOverlaps: showIgnoringOverlaps,
-        );
-        appointments[appointment] = repeat;
+        for (var repeat in request.expand(
+          window.start,
+          window.end,
+          includeRequestDate: true,
+        )) {
+          /*if (_isSameRequest(requestEditorState.existingRequest, repeat)) {
+            // Skip the current request
+            continue;
+          }*/
+          String? subject = repeat.publicName;
+          var details = detailIndex[request.id!];
+          if (subject == null && details != null) {
+            subject = "${details.eventName} (Private)";
+          }
+          var isPrivateBooking = (subject ?? "") == "";
+          if (isPrivateBooking && !includePrivateBookings) {
+            continue;
+          }
+          var appointment = repeat.toAppointment(
+            roomState,
+            subject: subject,
+            diminish: newAppointment != null,
+            appendRoomName: appendRoomName,
+            showIngnoringOverlaps: showIgnoringOverlaps,
+          );
+          appointments[appointment] = repeat;
+        }
       }
+      span?.status = const SpanStatus.ok();
+      return appointments;
+    } catch (e) {
+      span?.status = const SpanStatus.internalError();
+      rethrow;
+    } finally {
+      span?.finish();
     }
-    return appointments;
   }
 
   static Map<String, PrivateRequestDetails> _indexDetails(
@@ -326,13 +356,25 @@ class CalendarViewModel extends ChangeNotifier {
         .map((r) => bookingRepo.getRequestDetails(orgID, r.id!))
         .toList();
     return Rx.combineLatestList(streams).map((details) {
-      var out = <PrivateRequestDetails>[];
-      for (var d in details) {
-        if (d != null) {
-          out.add(d);
+      final span = Sentry.getSpan()?.startChild(
+        'fetch_request_details',
+        description: 'Fetching details for ${requests.length} requests',
+      );
+      try {
+        var out = <PrivateRequestDetails>[];
+        for (var d in details) {
+          if (d != null) {
+            out.add(d);
+          }
         }
+        span?.status = const SpanStatus.ok();
+        span?.finish();
+        return out;
+      } catch (e) {
+        span?.status = const SpanStatus.internalError();
+        span?.finish();
+        rethrow;
       }
-      return out;
     });
   }
 

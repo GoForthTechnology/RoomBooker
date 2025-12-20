@@ -6,6 +6,7 @@ import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 @RoutePage()
@@ -21,36 +22,45 @@ class EmbedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
+    final span = Sentry.getSpan()?.startChild('ui.embed_screen.build');
+    try {
+      var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
 
-    var defaultView = CalendarView.values.firstWhere(
-      (element) => element.name == (view ?? 'week'),
-    );
+      var defaultView = CalendarView.values.firstWhere(
+        (element) => element.name == (view ?? 'week'),
+      );
 
-    return OrgStateProvider(
-      orgID: orgID,
-      child: Consumer<OrgState>(
-        builder: (context, orgState, child) => RoomStateProvider(
-          org: orgState.org,
-          enableAllRooms: true,
-          builder: (context, _) => Consumer<RoomState>(
-            builder: (context, roomState, child) => BookingCalendar(
-              createViewModel: () => CalendarViewModel(
-                orgState: orgState,
-                loggingService: context.read(),
-                defaultView: defaultView,
-                bookingRepo: bookingRepo,
-                roomState: roomState,
-                showDatePickerButton: false,
-                includePrivateBookings: false,
-                showNavigationArrow: false,
-                showTodayButton: true,
-                appendRoomName: true,
+      span?.status = const SpanStatus.ok();
+      return OrgStateProvider(
+        orgID: orgID,
+        child: Consumer<OrgState>(
+          builder: (context, orgState, child) => RoomStateProvider(
+            org: orgState.org,
+            enableAllRooms: true,
+            builder: (context, _) => Consumer<RoomState>(
+              builder: (context, roomState, child) => BookingCalendar(
+                createViewModel: () => CalendarViewModel(
+                  orgState: orgState,
+                  loggingService: context.read(),
+                  defaultView: defaultView,
+                  bookingRepo: bookingRepo,
+                  roomState: roomState,
+                  showDatePickerButton: false,
+                  includePrivateBookings: false,
+                  showNavigationArrow: false,
+                  showTodayButton: true,
+                  appendRoomName: true,
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      span?.status = const SpanStatus.internalError();
+      rethrow;
+    } finally {
+      span?.finish();
+    }
   }
 }
