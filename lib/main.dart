@@ -25,6 +25,7 @@ void main() async {
       '6Lej2S0sAAAAAKBEX9lCwb1g4RBlAMb3dXeJHWv-',
     ),
   );
+  final loggingService = getLoggingService();
   final prefs = await SharedPreferences.getInstance();
 
   if (useEmulator && kDebugMode) {
@@ -36,7 +37,6 @@ void main() async {
       print(e);
     }
   }
-  var loggingService = SentryLoggingService();
   if (kDebugMode) {
     // App is running in debug mode
     loggingService.debug(
@@ -69,6 +69,13 @@ void main() async {
       ),
     );
   }
+}
+
+LoggingService getLoggingService() {
+  if (kDebugMode) {
+    return DebugLoggingService();
+  }
+  return SentryLoggingService();
 }
 
 class MyApp extends StatelessWidget {
