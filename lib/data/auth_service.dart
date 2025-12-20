@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 
-abstract class AuthService {
+abstract class AuthService extends ChangeNotifier {
   String? getCurrentUserID();
   String? getCurrentUserEmail();
   void logout();

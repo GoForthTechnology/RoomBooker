@@ -23,7 +23,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:room_booker/app_router_observer.dart';
 
-bool useEmulator = true;
+bool useEmulator = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,7 +88,7 @@ class MyApp extends StatelessWidget {
       var userRepo = UserRepo();
       var prefsRepo = PreferencesRepo(prefs);
       var orgRepo = OrgRepo(userRepo: userRepo, roomRepo: roomRepo);
-      var analyticsService = FirebaseAnalyticsService();
+      var analyticsService = FirebaseAnalyticsService(loggingService);
       var authService = FirebaseAuthService();
       return MultiProvider(
         providers: [
@@ -98,9 +98,11 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => roomRepo),
           ChangeNotifierProvider(create: (_) => logRepo),
           ChangeNotifierProvider(create: (_) => prefsRepo),
-          ChangeNotifierProvider(create: (_) => analyticsService),
-          ChangeNotifierProvider(create: (_) => loggingService),
-          ChangeNotifierProvider(create: (_) => authService),
+          ChangeNotifierProvider<AnalyticsService>(
+            create: (_) => analyticsService,
+          ),
+          ChangeNotifierProvider<LoggingService>(create: (_) => loggingService),
+          ChangeNotifierProvider<AuthService>(create: (_) => authService),
         ],
         child: MaterialApp.router(
           title: 'Room Booker',
@@ -109,7 +111,7 @@ class MyApp extends StatelessWidget {
             useMaterial3: true,
           ),
           routerConfig: _appRouter.config(
-            navigatorObservers: () => [AppRouterObserver()],
+            navigatorObservers: () => [AppRouterObserver(loggingService)],
           ),
         ),
       );

@@ -5,7 +5,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
@@ -26,7 +25,7 @@ class LandingScreen extends StatelessWidget {
         auth: FirebaseAuth.instance,
         prefsRepo: context.read<PreferencesRepo>(),
         orgRepo: context.read(),
-        analyticsService: context.read<FirebaseAnalyticsService>(),
+        analyticsService: context.read(),
       )..init(),
       child: const LandingScreenView(),
     );
@@ -106,18 +105,18 @@ class LandingScreenViewState extends State<LandingScreenView> {
       floatingActionButton: FloatingActionButton(
         tooltip: "Add an org",
         onPressed: () async {
-            if (viewModel.isLoggedIn) {
-              var result = await showDialog<Map<String, String>>(
-                context: context,
-                builder: (context) => const CreateOrgDialog(),
+          if (viewModel.isLoggedIn) {
+            var result = await showDialog<Map<String, String>>(
+              context: context,
+              builder: (context) => const CreateOrgDialog(),
+            );
+            if (result != null) {
+              await viewModel.createOrg(
+                result['orgName']!,
+                result['roomName']!,
               );
-              if (result != null) {
-                await viewModel.createOrg(
-                  result['orgName']!,
-                  result['roomName']!,
-                );
-              }
-            } else {
+            }
+          } else {
             viewModel.navigateToLogin();
           }
         },
@@ -393,5 +392,3 @@ class OrgTile extends StatelessWidget {
     );
   }
 }
-
-

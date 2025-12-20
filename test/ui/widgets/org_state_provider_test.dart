@@ -80,9 +80,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<OrgRepo>.value(value: mockOrgRepo),
           ChangeNotifierProvider<UserRepo>.value(value: mockUserRepo),
-          ChangeNotifierProvider<FirebaseAuthService>.value(
-            value: fakeAuthService,
-          ),
+          ChangeNotifierProvider<AuthService>.value(value: fakeAuthService),
         ],
         child: MaterialApp(
           home: OrgStateProvider(

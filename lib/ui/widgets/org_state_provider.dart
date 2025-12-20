@@ -47,7 +47,7 @@ class OrgStateProvider extends StatelessWidget {
     var orgRepo = Provider.of<OrgRepo>(context, listen: false);
     var userRepo = Provider.of<UserRepo>(context, listen: false);
 
-    return Consumer<FirebaseAuthService>(
+    return Consumer<AuthService>(
       builder: (context, authService, _) => FutureBuilder<OrgState?>(
         future: Future.delayed(Duration.zero, () async {
           var org = await orgRepo.getOrg(orgID).first;

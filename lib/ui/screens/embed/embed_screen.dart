@@ -37,6 +37,7 @@ class EmbedScreen extends StatelessWidget {
             builder: (context, roomState, child) => BookingCalendar(
               createViewModel: () => CalendarViewModel(
                 orgState: orgState,
+                loggingService: context.read(),
                 defaultView: defaultView,
                 bookingRepo: bookingRepo,
                 roomState: roomState,

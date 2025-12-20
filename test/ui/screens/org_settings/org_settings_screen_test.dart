@@ -107,7 +107,7 @@ void main() {
         ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
         ChangeNotifierProvider<LogRepo>.value(value: mockLogRepo),
         ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
-        ChangeNotifierProvider<FirebaseAnalyticsService>.value(
+        ChangeNotifierProvider<AnalyticsService>.value(
           value: mockAnalyticsService,
         ),
       ],

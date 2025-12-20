@@ -1,7 +1,8 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:room_booker/data/logging_service.dart';
 
-abstract class AnalyticsService {
+abstract class AnalyticsService extends ChangeNotifier {
   void logScreenView({
     required String screenName,
     Map<String, Object>? parameters,
@@ -12,13 +13,16 @@ abstract class AnalyticsService {
 class FirebaseAnalyticsService extends ChangeNotifier
     implements AnalyticsService {
   final FirebaseAnalytics _firebaseAnalytics = FirebaseAnalytics.instance;
+  final LoggingService _loggingService;
+
+  FirebaseAnalyticsService(this._loggingService);
 
   @override
   void logScreenView({
     required String screenName,
     Map<String, Object>? parameters,
   }) {
-    debugPrint(
+    _loggingService.debug(
       "ANALYTICS: Logging screen view: $screenName, parameters: $parameters",
     );
     _firebaseAnalytics.logScreenView(
@@ -29,7 +33,7 @@ class FirebaseAnalyticsService extends ChangeNotifier
 
   @override
   void logEvent({required String name, Map<String, Object>? parameters}) {
-    debugPrint("ANALYTICS: Logging event: $name");
+    _loggingService.debug("ANALYTICS: Logging event: $name");
     _firebaseAnalytics.logEvent(name: name, parameters: parameters);
   }
 }

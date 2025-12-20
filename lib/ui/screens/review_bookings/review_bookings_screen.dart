@@ -33,7 +33,7 @@ class _ReviewBookingsScreenState extends State<ReviewBookingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    Provider.of<FirebaseAnalyticsService>(context, listen: false).logScreenView(
+    Provider.of<AnalyticsService>(context, listen: false).logScreenView(
       screenName: "Review Bookings",
       parameters: {"orgID": widget.orgID},
     );

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/auth_service.dart';
+import 'package:room_booker/data/logging_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
@@ -23,6 +24,8 @@ class MockBookingRepo extends Mock implements BookingRepo {}
 
 class MockAuthService extends Mock implements FirebaseAuthService {}
 
+class MockLoggingService extends Mock implements LoggingService {}
+
 class FakeAppointmentResizeEndDetails extends Fake
     implements AppointmentResizeEndDetails {}
 
@@ -39,6 +42,7 @@ void main() {
   late MockBookingRepo mockBookingRepo;
   late MockUserRepo mockUserRepo;
   late MockAuthService mockAuthService;
+  late MockLoggingService mockLoggingService;
 
   setUpAll(() {
     registerFallbackValue(FakeAppointmentResizeEndDetails());
@@ -54,8 +58,10 @@ void main() {
     mockBookingRepo = MockBookingRepo();
     mockUserRepo = MockUserRepo();
     mockAuthService = MockAuthService();
+    mockLoggingService = MockLoggingService();
 
     when(() => mockAuthService.getCurrentUserID()).thenReturn(null);
+    when(() => mockLoggingService.debug(any())).thenReturn(null);
 
     // Default BookingRepo stubs
     when(
@@ -78,9 +84,8 @@ void main() {
         ChangeNotifierProvider<OrgRepo>.value(value: mockOrgRepo),
         ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
         ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
-        ChangeNotifierProvider<FirebaseAuthService>.value(
-          value: mockAuthService,
-        ),
+        ChangeNotifierProvider<AuthService>.value(value: mockAuthService),
+        ChangeNotifierProvider<LoggingService>.value(value: mockLoggingService),
         ChangeNotifierProvider<UserRepo>.value(value: mockUserRepo),
       ],
       child: MaterialApp(

@@ -5,9 +5,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart' hide Badge, Action;
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/analytics_service.dart';
-import 'package:room_booker/data/auth_service.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/ui/screens/view_bookings/view_bookings_view_model.dart';
@@ -58,10 +56,7 @@ class ViewBookingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var analytics = Provider.of<FirebaseAnalyticsService>(
-      context,
-      listen: false,
-    );
+    var analytics = Provider.of<AnalyticsService>(context, listen: false);
     analytics.logScreenView(
       screenName: "View Bookings",
       parameters: {
@@ -104,19 +99,18 @@ class ViewBookingsScreen extends StatelessWidget {
     return ViewBookingsViewModel(
       readOnlyMode: readOnlyMode,
       router: AutoRouter.of(context),
-      bookingRepo: context.read<BookingRepo>(),
-      authService: context.read<FirebaseAuthService>(),
+      bookingRepo: context.read(),
+      authService: context.read(),
       sizeProvider: () => MediaQuery.sizeOf(context),
-      orgState: context.read<OrgState>(),
-      requestEditorViewModel: context.read<RequestEditorViewModel>(),
-      calendarViewModel: context.read<CalendarViewModel>(),
+      orgState: context.read(),
+      requestEditorViewModel: context.read(),
+      calendarViewModel: context.read(),
       createRequest: createRequest,
       showPrivateBookings: showPrivateBookings,
       existingRequestID: requestID,
       showRoomSelector: true,
       showRequestDialog: (request) => _showRequestDialog(request, context),
-      showEditorAsDialog: () =>
-          _showPannelAsDialog(context, context.read<RequestEditorViewModel>()),
+      showEditorAsDialog: () => _showPannelAsDialog(context, context.read()),
       updateUri: (uri) async {
         await SystemNavigator.routeInformationUpdated(uri: uri);
       },
@@ -149,6 +143,7 @@ class ViewBookingsScreen extends StatelessWidget {
       bookingRepo: context.read(),
       roomState: context.read(),
       targetDate: targetDate,
+      loggingService: context.read(),
       defaultView: CalendarView.values.firstWhere(
         (element) => element.name == defaultView,
       ),
@@ -285,11 +280,11 @@ class ViewBookingsScreen extends StatelessWidget {
   RequestEditorViewModel _createRequestEditorViewModel(BuildContext context) {
     return RequestEditorViewModel(
       editorTitle: "Request Editor",
-      analyticsService: context.read<FirebaseAnalyticsService>(),
-      authService: context.read<FirebaseAuthService>(),
-      bookingRepo: context.read<BookingRepo>(),
-      orgState: context.read<OrgState>(),
-      roomState: context.read<RoomState>(),
+      analyticsService: context.read(),
+      authService: context.read(),
+      bookingRepo: context.read(),
+      orgState: context.read(),
+      roomState: context.read(),
       choiceProvider: () => showDialog<RecurringBookingEditChoice>(
         context: context,
         builder: (context) => EditRecurringBookingDialog(),

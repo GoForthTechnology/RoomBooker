@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
+import 'package:room_booker/data/logging_service.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
@@ -20,6 +21,8 @@ class MockRoomState extends Mock implements RoomState {}
 
 class MockOrganization extends Mock implements Organization {}
 
+class MockLoggingService extends Mock implements LoggingService {}
+
 class FakeOrganization extends Fake implements Organization {}
 
 void main() {
@@ -29,6 +32,7 @@ void main() {
   late MockOrgState mockOrgState;
   late MockRoomState mockRoomState;
   late MockOrganization mockOrganization;
+  late MockLoggingService mockLoggingService;
 
   setUpAll(() {
     registerFallbackValue(FakeOrganization());
@@ -39,6 +43,7 @@ void main() {
     mockOrgState = MockOrgState();
     mockRoomState = MockRoomState();
     mockOrganization = MockOrganization();
+    mockLoggingService = MockLoggingService();
 
     // Default stubs
     when(() => mockOrgState.org).thenReturn(mockOrganization);
@@ -76,6 +81,7 @@ void main() {
       bookingRepo: mockBookingRepo,
       orgState: mockOrgState,
       roomState: mockRoomState,
+      loggingService: mockLoggingService,
     );
   });
 
@@ -106,6 +112,7 @@ void main() {
           bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
+          loggingService: mockLoggingService,
           includePrivateBookings: false,
         );
 
@@ -160,6 +167,7 @@ void main() {
         bookingRepo: mockBookingRepo,
         orgState: mockOrgState,
         roomState: mockRoomState,
+        loggingService: mockLoggingService,
         appendRoomName: true,
         targetDate: date,
       );
@@ -193,6 +201,7 @@ void main() {
         bookingRepo: mockBookingRepo,
         orgState: mockOrgState,
         roomState: mockRoomState,
+        loggingService: mockLoggingService,
       );
       viewModel.dateTapStream.listen((details) {
         expect(details.date, date);
@@ -235,6 +244,7 @@ void main() {
         bookingRepo: mockBookingRepo,
         orgState: mockOrgState,
         roomState: mockRoomState,
+        loggingService: mockLoggingService,
         onDragEnd: (details) {
           dragDetails.complete(details);
         },
@@ -287,6 +297,7 @@ void main() {
         orgState: mockOrgState,
         bookingRepo: mockBookingRepo,
         roomState: mockRoomState,
+        loggingService: mockLoggingService,
         onResizeEnd: (details) => completer.complete(details),
       );
       viewModel.handleResizeEnd(details);
@@ -325,6 +336,7 @@ void main() {
           bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
+          loggingService: mockLoggingService,
         );
         viewModel.dateTapStream.listen((_) {
           eventFired = true;
@@ -453,6 +465,7 @@ void main() {
           bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
+          loggingService: mockLoggingService,
         );
 
         viewModel.controller.view = CalendarView.week; // Set to week view
@@ -509,6 +522,7 @@ void main() {
           bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
+          loggingService: mockLoggingService,
         );
 
         viewModel.controller.view = CalendarView.month; // Set to month view
@@ -562,6 +576,7 @@ void main() {
           bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
+          loggingService: mockLoggingService,
         );
 
         viewModel.controller.view = CalendarView.month; // Set to month view
@@ -611,6 +626,7 @@ void main() {
           bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
+          loggingService: mockLoggingService,
         );
 
         viewModel.registerNewAppointmentStream(controller.stream);
@@ -674,6 +690,7 @@ void main() {
         bookingRepo: mockBookingRepo,
         orgState: mockOrgState,
         roomState: mockRoomState,
+        loggingService: mockLoggingService,
         defaultView: CalendarView.month,
         targetDate: initialDate,
       );
@@ -736,6 +753,7 @@ void main() {
         bookingRepo: mockBookingRepo,
         orgState: mockOrgState,
         roomState: mockRoomState,
+        loggingService: mockLoggingService,
         defaultView: CalendarView.month,
         targetDate: initialDate,
       );

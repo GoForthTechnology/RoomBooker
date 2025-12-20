@@ -8,6 +8,7 @@ import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
+import 'package:room_booker/data/logging_service.dart';
 
 // Mock classes
 class MockBookingRepo extends Mock implements BookingRepo {}
@@ -15,6 +16,8 @@ class MockBookingRepo extends Mock implements BookingRepo {}
 class MockOrgState extends Mock implements OrgState {}
 
 class MockOrganization extends Mock implements Organization {}
+
+class MockLoggingService extends Mock implements LoggingService {}
 
 class FakeOrganization extends Fake implements Organization {}
 
@@ -25,6 +28,7 @@ void main() {
   late MockOrgState mockOrgState;
   late RoomState roomState;
   late MockOrganization mockOrganization;
+  late MockLoggingService mockLoggingService;
 
   setUpAll(() {
     registerFallbackValue(FakeOrganization());
@@ -34,6 +38,7 @@ void main() {
     mockBookingRepo = MockBookingRepo();
     mockOrgState = MockOrgState();
     mockOrganization = MockOrganization();
+    mockLoggingService = MockLoggingService();
 
     // Default stubs
     when(() => mockOrgState.org).thenReturn(mockOrganization);
@@ -95,6 +100,7 @@ void main() {
       bookingRepo: mockBookingRepo,
       orgState: mockOrgState,
       roomState: roomState,
+      loggingService: mockLoggingService,
     );
 
     // Initial state: both events should be visible

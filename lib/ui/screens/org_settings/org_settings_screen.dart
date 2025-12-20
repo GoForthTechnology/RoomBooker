@@ -25,7 +25,7 @@ class OrgSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Provider.of<FirebaseAnalyticsService>(
+    Provider.of<AnalyticsService>(
       context,
       listen: false,
     ).logScreenView(screenName: "Org Settings", parameters: {"orgID": orgID});

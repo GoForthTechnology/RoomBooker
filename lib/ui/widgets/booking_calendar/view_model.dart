@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/blackout_window.dart';
 import 'package:room_booker/data/entities/request.dart';
+import 'package:room_booker/data/logging_service.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
@@ -47,6 +48,7 @@ class CalendarViewModel extends ChangeNotifier {
   final BookingRepo _bookingRepo;
   final OrgState _orgState;
   final RoomState _roomState;
+  final LoggingService _loggingService;
 
   final BehaviorSubject<void> _roomStateSubject = BehaviorSubject.seeded(null);
 
@@ -54,6 +56,7 @@ class CalendarViewModel extends ChangeNotifier {
     required OrgState orgState,
     required BookingRepo bookingRepo,
     required RoomState roomState,
+    required LoggingService loggingService,
     CalendarView defaultView = CalendarView.week,
     bool allowAppointmentResize = false,
     bool allowDragAndDrop = false,
@@ -77,7 +80,8 @@ class CalendarViewModel extends ChangeNotifier {
        _allowDragAndDrop = allowDragAndDrop,
        _bookingRepo = bookingRepo,
        _orgState = orgState,
-       _roomState = roomState {
+       _roomState = roomState,
+       _loggingService = loggingService {
     controller.view = defaultView;
     controller.displayDate = targetDate ?? DateTime.now();
     var currentWindow = VisibleWindow(start: startOfView, end: endOfView);
@@ -87,7 +91,7 @@ class CalendarViewModel extends ChangeNotifier {
     _visibleWindowController.listen((visibleWindow) {
       var fetchedWindow = _fetchWindowController.valueOrNull;
       if (fetchedWindow == null || !fetchedWindow.contains(visibleWindow)) {
-        debugPrint("CALENDAR: Fetching new window: $visibleWindow");
+        _loggingService.debug("CALENDAR: Fetching new window: $visibleWindow");
         _fetchWindowController.add(visibleWindow);
       }
     });
@@ -202,7 +206,6 @@ class CalendarViewModel extends ChangeNotifier {
     var requestsStream = _fetchWindowController
         .distinct()
         .switchMap((window) {
-          debugPrint("MODEL: New window $window");
           return bookingRepo
               .listRequests(
                 orgID: orgState.org.id!,
@@ -216,9 +219,6 @@ class CalendarViewModel extends ChangeNotifier {
               .handleError((e, s) {
                 throw 'Error in listRequests: $e';
               });
-        })
-        .doOnEach((n) {
-          debugPrint("MODEL: Requests changed:");
         })
         .handleError((e, s) {
           throw 'Error in requestsStream: $e';
@@ -245,7 +245,6 @@ class CalendarViewModel extends ChangeNotifier {
               throw 'Error in _detailStream: $e';
             })
             .map((details) {
-              debugPrint("MODEL: New details ${details.length}");
               var converted = _convertRequests(
                 visibleRequests,
                 details,
@@ -253,7 +252,6 @@ class CalendarViewModel extends ChangeNotifier {
                 roomState,
                 _newAppointmentSubject.valueOrNull,
               );
-              debugPrint("MODEL: New appointments ${converted.length}");
               return converted;
             })
             .startWith({});
@@ -344,14 +342,18 @@ class CalendarViewModel extends ChangeNotifier {
         // This prevents the schedule view from glitching out.
         return;
       }
-      debugPrint("CALENDAR: Display date changed: ${controller.displayDate}");
+      _loggingService.debug(
+        "CALENDAR: Display date changed: ${controller.displayDate}",
+      );
       _visibleWindowController.add(
         VisibleWindow(start: startOfView, end: endOfView),
       );
       return;
     }
     if (property == "calendarView") {
-      debugPrint("CALENDAR: Calendar view changed: ${controller.view}");
+      _loggingService.debug(
+        "CALENDAR: Calendar view changed: ${controller.view}",
+      );
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _visibleWindowController.add(
           VisibleWindow(start: startOfView, end: endOfView),

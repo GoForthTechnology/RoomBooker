@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-abstract class LoggingService {
+abstract class LoggingService extends ChangeNotifier {
   void debug(String message);
   void info(String message);
   void warning(String message);
