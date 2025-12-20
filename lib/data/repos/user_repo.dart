@@ -5,9 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:room_booker/data/entities/user_profile.dart';
 
 class UserRepo extends ChangeNotifier {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFirestore _db;
 
-  UserRepo();
+  UserRepo({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
   Future<void> addUser(User user) async {
     try {
@@ -62,8 +62,13 @@ class UserRepo extends ChangeNotifier {
   }
 
   DocumentReference<UserProfile> _userRef(String uID) {
-    return _db.collection('users').doc(uID).withConverter(
-        fromFirestore: (snapshot, _) => UserProfile.fromJson(snapshot.data()!),
-        toFirestore: (profile, _) => profile.toJson());
+    return _db
+        .collection('users')
+        .doc(uID)
+        .withConverter(
+          fromFirestore: (snapshot, _) =>
+              UserProfile.fromJson(snapshot.data()!),
+          toFirestore: (profile, _) => profile.toJson(),
+        );
   }
 }
