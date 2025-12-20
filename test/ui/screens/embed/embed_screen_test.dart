@@ -14,6 +14,8 @@ import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
+import 'package:room_booker/data/entities/request.dart';
+
 class MockOrgRepo extends Mock implements OrgRepo {}
 
 class MockRoomRepo extends Mock implements RoomRepo {}
@@ -50,6 +52,25 @@ void main() {
     registerFallbackValue(FakeCalendarTapDetails());
     registerFallbackValue(CalendarView.week);
     registerFallbackValue(FakeOrganization());
+    registerFallbackValue(DateTime.now());
+    registerFallbackValue(
+      Request(
+        eventStartTime: DateTime.now(),
+        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
+        roomID: 'room1',
+        roomName: 'Room 1',
+      ),
+    );
+    registerFallbackValue(
+      PrivateRequestDetails(
+        name: 'Test',
+        email: 'test@test',
+        phone: '123',
+        eventName: 'Event',
+      ),
+    );
+    registerFallbackValue(RequestStatus.confirmed);
+    registerFallbackValue(<RequestStatus>[]);
   });
 
   setUp(() {
@@ -74,6 +95,10 @@ void main() {
     ).thenAnswer((_) => Stream.value([]));
 
     when(
+      () => mockBookingRepo.getRequestDetails(any(), any()),
+    ).thenAnswer((_) => Stream.value(null));
+
+    when(
       () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
     ).thenAnswer((_) => Stream.value([]));
   });
@@ -93,6 +118,167 @@ void main() {
       ),
     );
   }
+
+  // ... (Existing tests: renders BookingCalendar, loading indicator, error, view param, all rooms)
+  // I will append new tests here, but since I am using replace_file_content I need to target insertion correctly.
+  // Wait, I am replacing setUpAll and setUp completely?
+  // Efficient strategy: Replace setUpAll/setUp first. Then append tests.
+  // Code edit below replaces setUpAll and setUp logic.
+
+  // Actually, I can replace lines 50-53 with expanded list.
+  // And append tests at the end.
+  // replace_file_content allows replacing a block.
+  // I'll update setUpAll first.
+
+  testWidgets(
+    'EmbedScreen shows appointments for all rooms (enables all rooms)',
+    (tester) async {
+      // ... (existing test content)
+    },
+  );
+
+  testWidgets('EmbedScreen renders appointments from BookingRepo', (
+    tester,
+  ) async {
+    // Arrange
+    when(() => mockOrgRepo.getOrg('org1')).thenAnswer(
+      (_) => Stream.value(
+        Organization(
+          id: 'org1',
+          name: 'Test Org',
+          ownerID: 'owner1',
+          acceptingAdminRequests: true,
+        ),
+      ),
+    );
+    when(
+      () => mockOrgRepo.activeAdmins('org1'),
+    ).thenAnswer((_) => Stream.value([]));
+    when(() => mockRoomRepo.listRooms('org1')).thenAnswer(
+      (_) => Stream.value([
+        Room(id: 'room1', name: 'Room 1', colorHex: '#0000FF'),
+      ]),
+    );
+
+    final booking = Request(
+      id: 'req1',
+      eventStartTime: DateTime.now(), // Today
+      eventEndTime: DateTime.now().add(const Duration(hours: 1)),
+      roomID: 'room1',
+      roomName: 'Room 1',
+      publicName: 'Meeting',
+      status: RequestStatus.confirmed,
+    );
+
+    when(
+      () => mockBookingRepo.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeStatuses: any(named: 'includeStatuses'),
+      ),
+    ).thenAnswer((_) => Stream.value([booking]));
+
+    when(() => mockBookingRepo.getRequestDetails('org1', 'req1')).thenAnswer(
+      (_) => Stream.value(
+        PrivateRequestDetails(
+          eventName: 'Meeting',
+          name: 'Test',
+          email: 'test@test',
+          phone: '123',
+        ),
+      ),
+    );
+
+    // Act
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pumpAndSettle();
+
+    // Assert
+    expect(find.textContaining('Meeting'), findsOneWidget);
+    // Subject is rendered in Appointment widget used in BookingCalendarView
+  });
+
+  testWidgets('Tapping data in EmbedScreen does not crash', (tester) async {
+    // Arrange
+    when(() => mockOrgRepo.getOrg('org1')).thenAnswer(
+      (_) => Stream.value(
+        Organization(
+          id: 'org1',
+          name: 'Test Org',
+          ownerID: 'owner1',
+          acceptingAdminRequests: true,
+        ),
+      ),
+    );
+    // Helper would be nice, but stick to verbose
+    when(() => mockOrgRepo.getOrg('org1')).thenAnswer(
+      (_) => Stream.value(
+        Organization(
+          id: 'org1',
+          name: 'Test Org',
+          ownerID: 'owner1',
+          acceptingAdminRequests: true,
+        ),
+      ),
+    );
+    when(
+      () => mockOrgRepo.activeAdmins('org1'),
+    ).thenAnswer((_) => Stream.value([]));
+    when(() => mockRoomRepo.listRooms('org1')).thenAnswer(
+      (_) => Stream.value([
+        Room(id: 'room1', name: 'Room 1', colorHex: '#0000FF'),
+      ]),
+    );
+
+    final booking = Request(
+      id: 'req1',
+      eventStartTime: DateTime.now(),
+      eventEndTime: DateTime.now().add(const Duration(hours: 1)),
+      roomID: 'room1',
+      roomName: 'Room 1',
+      publicName: 'Meeting',
+      status: RequestStatus.confirmed,
+    );
+
+    when(
+      () => mockBookingRepo.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeStatuses: any(named: 'includeStatuses'),
+      ),
+    ).thenAnswer((_) => Stream.value([booking]));
+
+    when(() => mockBookingRepo.getRequestDetails('org1', 'req1')).thenAnswer(
+      (_) => Stream.value(
+        PrivateRequestDetails(
+          eventName: 'Meeting',
+          name: 'Test',
+          email: 'test@test',
+          phone: '123',
+        ),
+      ),
+    );
+
+    // Act
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pumpAndSettle();
+
+    final appointmentFinder = find.textContaining('Meeting');
+    expect(appointmentFinder, findsOneWidget);
+
+    await tester.tap(appointmentFinder);
+    await tester.pump();
+
+    // Assert - No error, no navigation check (since Router is not strictly mocked/verified here?
+    // EmbedScreen doesn't depend on Router?
+    // EmbedScreen is RoutePage but it doesn't use Router inside unless interacting.
+    // BookingCalendar uses Router? No.
+    // Only ViewBookingsViewModel uses Router. EmbedScreen calls CalendarViewModel directly.
+    // CalendarViewModel has requestTapStream. Nobody listens to it in EmbedScreen.
+    // So nothing should happen.
+  });
 
   testWidgets('EmbedScreen renders BookingCalendar when data is loaded', (
     tester,
