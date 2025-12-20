@@ -1,10 +1,11 @@
 import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
+import 'package:room_booker/data/logging_service.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/data/repos/user_repo.dart';
 import 'package:rxdart/rxdart.dart';
@@ -12,7 +13,8 @@ import 'package:rxdart/rxdart.dart';
 enum RecurringBookingEditChoice { thisInstance, thisAndFuture, all }
 
 class OrgRepo extends ChangeNotifier {
-  final FirebaseAnalytics _analytics;
+  final AnalyticsService _analytics;
+  final LoggingService _logging;
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
   final UserRepo _userRepo;
@@ -21,13 +23,15 @@ class OrgRepo extends ChangeNotifier {
   OrgRepo({
     required UserRepo userRepo,
     required RoomRepo roomRepo,
+    required AnalyticsService analytics,
+    required LoggingService logging,
     FirebaseFirestore? firestore,
-    FirebaseAnalytics? analytics,
     FirebaseAuth? auth,
   }) : _userRepo = userRepo,
        _roomRepo = roomRepo,
        _db = firestore ?? FirebaseFirestore.instance,
-       _analytics = analytics ?? FirebaseAnalytics.instance,
+       _analytics = analytics,
+       _logging = logging,
        _auth = auth ?? FirebaseAuth.instance;
 
   Future<void> enableGlobalBookings(String orgID) async {
@@ -36,7 +40,10 @@ class OrgRepo extends ChangeNotifier {
     await _db.collection("orgs").doc(orgID).update({"globalRoomID": roomID});
   }
 
-  Future<String> addOrgForCurrentUser(String orgName, String firstRoomName) async {
+  Future<String> addOrgForCurrentUser(
+    String orgName,
+    String firstRoomName,
+  ) async {
     var user = _auth.currentUser;
     if (user == null) {
       return Future.error("User not logged in!");
@@ -198,7 +205,7 @@ class OrgRepo extends ChangeNotifier {
   }
 
   Stream<List<Organization>> getOrgs({bool excludeOwned = false}) async* {
-    debugPrint("Listing orgs");
+    _logging.debug("Listing orgs");
     Set<String> ownedOrgs = {};
     var user = _auth.currentUser;
     if (excludeOwned && user != null) {
@@ -224,10 +231,10 @@ class OrgRepo extends ChangeNotifier {
   }
 
   Stream<List<Organization>> getOrgsForCurrentUser() async* {
-    debugPrint("Listing orgs for current user");
+    _logging.debug("Listing orgs for current user");
     var user = _auth.currentUser;
     if (user == null) {
-      log("foo");
+      _logging.error("User not logged in");
       yield* Stream.value([]);
       return;
     }

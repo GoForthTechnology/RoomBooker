@@ -3,12 +3,13 @@ import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart' hide Action;
+import 'package:room_booker/data/analytics_service.dart';
 import 'package:room_booker/data/entities/blackout_window.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
+import 'package:room_booker/data/logging_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:rxdart/rxdart.dart';
@@ -19,17 +20,20 @@ typedef RecurringBookingEditChoiceProvider =
 class BookingRepo extends ChangeNotifier {
   BookingRepo({
     required this.logRepo,
+    required AnalyticsService analytics,
+    required LoggingService logging,
     FirebaseFirestore? db,
-    FirebaseAnalytics? analytics,
   }) : _db = db ?? FirebaseFirestore.instance,
-       _analytics = analytics ?? FirebaseAnalytics.instance {
+       _analytics = analytics,
+       _logging = logging {
     _detailsCache = DetailCache(
       (orgID, requestID) => _loadRequestDetails(orgID, requestID),
     );
   }
 
   final FirebaseFirestore _db;
-  final FirebaseAnalytics _analytics;
+  final AnalyticsService _analytics;
+  final LoggingService _logging;
   final LogRepo logRepo;
   late final DetailCache _detailsCache;
 
@@ -266,7 +270,7 @@ class BookingRepo extends ChangeNotifier {
     if (requestID.isEmpty) {
       return Stream.error("Request ID cannot be empty.");
     }
-    debugPrint("Getting request: $requestID");
+    _logging.debug("Getting request: $requestID");
     return _confirmedRequestsRef(
       orgID,
     ).doc(requestID).snapshots().map((s) => s.data()).flatMap((request) {

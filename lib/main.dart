@@ -44,51 +44,70 @@ void main() async {
       print(e);
     }
   }
+  var loggingService = SentryLoggingService();
   if (kDebugMode) {
     // App is running in debug mode
-    debugPrint('App is running in debug mode, not initializing Sentry');
-    runApp(MyApp(prefs: prefs));
+    loggingService.debug(
+      'App is running in debug mode, not initializing Sentry',
+    );
+    runApp(MyApp(prefs: prefs, loggingService: loggingService));
   } else {
-    await SentryFlutter.init((options) {
-      options.enableLogs = true;
-      options.dsn =
-          'https://c5ed84ffedec25c193d642e9a8e6ba0f@o4509504243630080.ingest.us.sentry.io/4509504245071872';
-      // Adds request headers and IP for users, for more info visit:
-      // https://docs.sentry.io/platforms/dart/guides/flutter/data-management/data-collected/
-      options.sendDefaultPii = true;
-      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-      // We recommend adjusting this value in production.
-      options.tracesSampleRate = 1.0;
-      // The sampling rate for profiling is relative to tracesSampleRate
-      // Setting to 1.0 will profile 100% of sampled transactions:
-      options.profilesSampleRate = 1.0;
-      options.attachScreenshot = true;
-      options.replay.sessionSampleRate = 1.0;
-      options.replay.onErrorSampleRate = 1.0;
-    }, appRunner: () => runApp(SentryWidget(child: MyApp(prefs: prefs))));
+    await SentryFlutter.init(
+      (options) {
+        options.enableLogs = true;
+        options.dsn =
+            'https://c5ed84ffedec25c193d642e9a8e6ba0f@o4509504243630080.ingest.us.sentry.io/4509504245071872';
+        // Adds request headers and IP for users, for more info visit:
+        // https://docs.sentry.io/platforms/dart/guides/flutter/data-management/data-collected/
+        options.sendDefaultPii = true;
+        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
+        // We recommend adjusting this value in production.
+        options.tracesSampleRate = 1.0;
+        // The sampling rate for profiling is relative to tracesSampleRate
+        // Setting to 1.0 will profile 100% of sampled transactions:
+        options.profilesSampleRate = 1.0;
+        options.attachScreenshot = true;
+        options.replay.sessionSampleRate = 1.0;
+        options.replay.onErrorSampleRate = 1.0;
+      },
+      appRunner: () => runApp(
+        SentryWidget(
+          child: MyApp(prefs: prefs, loggingService: loggingService),
+        ),
+      ),
+    );
   }
 }
 
 class MyApp extends StatelessWidget {
   final SharedPreferences prefs;
+  final LoggingService loggingService;
 
-  MyApp({super.key, required this.prefs});
+  MyApp({super.key, required this.prefs, required this.loggingService});
 
   final _appRouter = AppRouter();
 
   @override
   Widget build(BuildContext context) {
-    var loggingService = SentryLoggingService();
     try {
       FirebaseAnalytics.instance.logAppOpen();
       FirebaseUIAuth.configureProviders(providers);
       var logRepo = LogRepo();
-      var bookingRepo = BookingRepo(logRepo: logRepo);
+      var analyticsService = FirebaseAnalyticsService(loggingService);
+      var bookingRepo = BookingRepo(
+        logRepo: logRepo,
+        analytics: analyticsService,
+        logging: loggingService,
+      );
       var roomRepo = RoomRepo();
       var userRepo = UserRepo();
       var prefsRepo = PreferencesRepo(prefs);
-      var orgRepo = OrgRepo(userRepo: userRepo, roomRepo: roomRepo);
-      var analyticsService = FirebaseAnalyticsService(loggingService);
+      var orgRepo = OrgRepo(
+        userRepo: userRepo,
+        roomRepo: roomRepo,
+        logging: loggingService,
+        analytics: analyticsService,
+      );
       var authService = FirebaseAuthService();
       return MultiProvider(
         providers: [

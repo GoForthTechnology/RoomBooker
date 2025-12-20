@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:room_booker/data/analytics_service.dart';
+import 'package:room_booker/data/logging_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
@@ -13,7 +14,9 @@ class MockUserRepo extends Mock implements UserRepo {}
 
 class MockRoomRepo extends Mock implements RoomRepo {}
 
-class MockFirebaseAnalytics extends Mock implements FirebaseAnalytics {}
+class MockAnalyticsService extends Mock implements AnalyticsService {}
+
+class MockLoggingService extends Mock implements LoggingService {}
 
 class MockFirebaseAuth extends Mock implements FirebaseAuth {}
 
@@ -32,7 +35,8 @@ void main() {
   late OrgRepo orgRepo;
   late MockUserRepo mockUserRepo;
   late MockRoomRepo mockRoomRepo;
-  late MockFirebaseAnalytics mockAnalytics;
+  late MockAnalyticsService mockAnalytics;
+  late MockLoggingService mockLogging;
   late MockFirebaseAuth mockAuth;
   late FakeFirebaseFirestore fakeFirestore;
   late MockUser mockUser;
@@ -40,7 +44,8 @@ void main() {
   setUp(() {
     mockUserRepo = MockUserRepo();
     mockRoomRepo = MockRoomRepo();
-    mockAnalytics = MockFirebaseAnalytics();
+    mockAnalytics = MockAnalyticsService();
+    mockLogging = MockLoggingService();
     mockAuth = MockFirebaseAuth();
     fakeFirestore = FakeFirebaseFirestore();
     mockUser = MockUser();
@@ -50,6 +55,7 @@ void main() {
       roomRepo: mockRoomRepo,
       firestore: fakeFirestore,
       analytics: mockAnalytics,
+      logging: mockLogging,
       auth: mockAuth,
     );
 
@@ -74,7 +80,10 @@ void main() {
         () => mockRoomRepo.addRoom(any(), any()),
       ).thenAnswer((_) async => 'room-id');
 
-      final orgId = await orgRepo.addOrgForCurrentUser('Test Org', 'First Room');
+      final orgId = await orgRepo.addOrgForCurrentUser(
+        'Test Org',
+        'First Room',
+      );
 
       expect(orgId, isNotEmpty);
 
@@ -84,10 +93,12 @@ void main() {
       expect(orgDoc.data()?['ownerID'], 'test-user-id');
 
       verify(() => mockUserRepo.addOrg(any(), 'test-user-id', orgId)).called(1);
-      verify(() => mockRoomRepo.addRoom(
-        orgId,
-        any(that: isA<Room>().having((r) => r.name, 'name', 'First Room')),
-      )).called(1);
+      verify(
+        () => mockRoomRepo.addRoom(
+          orgId,
+          any(that: isA<Room>().having((r) => r.name, 'name', 'First Room')),
+        ),
+      ).called(1);
       verify(
         () => mockAnalytics.logEvent(
           name: 'AddOrg',

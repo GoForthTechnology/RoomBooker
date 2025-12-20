@@ -1,5 +1,6 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:room_booker/data/analytics_service.dart';
+import 'package:room_booker/data/logging_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
@@ -10,12 +11,15 @@ import 'package:room_booker/data/repos/org_repo.dart';
 
 class MockLogRepo extends Mock implements LogRepo {}
 
-class MockFirebaseAnalytics extends Mock implements FirebaseAnalytics {}
+class MockAnalyticsService extends Mock implements AnalyticsService {}
+
+class MockLoggingService extends Mock implements LoggingService {}
 
 void main() {
   late FakeFirebaseFirestore fakeFirestore;
   late MockLogRepo mockLogRepo;
-  late MockFirebaseAnalytics mockAnalytics;
+  late MockAnalyticsService mockAnalytics;
+  late MockLoggingService mockLogging;
   late BookingRepo bookingRepo;
 
   setUpAll(() {
@@ -41,11 +45,13 @@ void main() {
   setUp(() {
     fakeFirestore = FakeFirebaseFirestore();
     mockLogRepo = MockLogRepo();
-    mockAnalytics = MockFirebaseAnalytics();
+    mockAnalytics = MockAnalyticsService();
+    mockLogging = MockLoggingService();
     bookingRepo = BookingRepo(
       logRepo: mockLogRepo,
       db: fakeFirestore,
       analytics: mockAnalytics,
+      logging: mockLogging,
     );
 
     // Mock analytics logEvent to do nothing
@@ -87,6 +93,13 @@ void main() {
 
       await bookingRepo.submitBookingRequest("org1", request, details);
 
+      verify(
+        () => mockAnalytics.logEvent(
+          name: "SubmitBookingRequest",
+          parameters: any(named: 'parameters'),
+        ),
+      ).called(1);
+
       var pending = await fakeFirestore
           .collection("orgs")
           .doc("org1")
@@ -122,6 +135,13 @@ void main() {
       );
 
       await bookingRepo.addBooking("org1", request, details);
+
+      verify(
+        () => mockAnalytics.logEvent(
+          name: "AddBooking",
+          parameters: any(named: 'parameters'),
+        ),
+      ).called(1);
 
       var confirmed = await fakeFirestore
           .collection("orgs")
@@ -187,7 +207,16 @@ void main() {
           .doc("req1")
           .set(request.toJson());
 
+      when(() => mockLogging.debug(any())).thenReturn(null);
+
       await bookingRepo.confirmRequest("org1", "req1");
+
+      verify(
+        () => mockAnalytics.logEvent(
+          name: "ConfirmRequest",
+          parameters: any(named: 'parameters'),
+        ),
+      ).called(1);
 
       var pending = await fakeFirestore
           .collection("orgs")
