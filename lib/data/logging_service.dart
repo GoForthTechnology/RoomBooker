@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:logger/logger.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 abstract class LoggingService extends ChangeNotifier {
@@ -10,30 +11,45 @@ abstract class LoggingService extends ChangeNotifier {
 }
 
 class DebugLoggingService extends ChangeNotifier implements LoggingService {
+  final Logger _logger = Logger(printer: CustomLogPrinter());
+
   @override
   void debug(String message) {
-    debugPrint("DEBUG: $message");
+    _logger.d(message);
   }
 
   @override
   void info(String message) {
-    debugPrint("INFO: $message");
+    _logger.i(message);
   }
 
   @override
   void warning(String message) {
-    debugPrint("WARNING: $message");
+    _logger.w(message);
   }
 
   @override
   void error(String message, [dynamic error, StackTrace? stackTrace]) {
-    debugPrint("ERROR: $message");
+    _logger.e(message);
   }
 
   @override
   void fatal(String message, [dynamic error, StackTrace? stackTrace]) {
-    debugPrint("FATAL: $message");
+    _logger.f(message);
   }
+}
+
+class CustomLogPrinter extends PrettyPrinter {
+  CustomLogPrinter({
+    int super.methodCount,
+    int super.errorMethodCount,
+    super.lineLength,
+    super.colors,
+    super.printEmojis,
+    bool super.printTime = false,
+  }) : super(
+         stackTraceBeginIndex: 1, // This ignores the first frame
+       );
 }
 
 class SentryLoggingService extends ChangeNotifier implements LoggingService {
