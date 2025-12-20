@@ -199,23 +199,33 @@ class CalendarViewModel extends ChangeNotifier {
     OrgState orgState,
     RoomState roomState,
   ) {
-    var requestsStream = _fetchWindowController.distinct().switchMap(
-      (window) => bookingRepo
-          .listRequests(
-            orgID: orgState.org.id!,
-            startTime: window.start,
-            endTime: window.end,
-            includeStatuses: {RequestStatus.pending, RequestStatus.confirmed},
-          )
-          .handleError((e, s) {
-            throw 'Error in listRequests: $e';
-          }),
-    );
+    var requestsStream = _fetchWindowController
+        .distinct()
+        .switchMap((window) {
+          debugPrint("MODEL: New window $window");
+          return bookingRepo
+              .listRequests(
+                orgID: orgState.org.id!,
+                startTime: window.start,
+                endTime: window.end,
+                includeStatuses: {
+                  RequestStatus.pending,
+                  RequestStatus.confirmed,
+                },
+              )
+              .handleError((e, s) {
+                throw 'Error in listRequests: $e';
+              });
+        })
+        .doOnEach((n) {
+          debugPrint("MODEL: Requests changed:");
+        })
+        .handleError((e, s) {
+          throw 'Error in requestsStream: $e';
+        });
 
     return Rx.combineLatest3(
-      requestsStream.handleError((e, s) {
-        throw 'Error in requestsStream: $e';
-      }),
+      requestsStream,
       _visibleWindowController.distinct().handleError((e, s) {
         throw 'Error in _visibleWindowController: $e';
       }),
@@ -234,15 +244,18 @@ class CalendarViewModel extends ChangeNotifier {
             .handleError((e, s) {
               throw 'Error in _detailStream: $e';
             })
-            .map(
-              (details) => _convertRequests(
+            .map((details) {
+              debugPrint("MODEL: New details ${details.length}");
+              var converted = _convertRequests(
                 visibleRequests,
                 details,
                 window,
                 roomState,
                 _newAppointmentSubject.valueOrNull,
-              ),
-            )
+              );
+              debugPrint("MODEL: New appointments ${converted.length}");
+              return converted;
+            })
             .startWith({});
       },
     ).switchMap((stream) => stream);
