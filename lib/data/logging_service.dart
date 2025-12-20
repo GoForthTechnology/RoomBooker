@@ -9,6 +9,33 @@ abstract class LoggingService extends ChangeNotifier {
   void fatal(String message, [dynamic error, StackTrace? stackTrace]);
 }
 
+class DebugLoggingService extends ChangeNotifier implements LoggingService {
+  @override
+  void debug(String message) {
+    debugPrint("DEBUG: $message");
+  }
+
+  @override
+  void info(String message) {
+    debugPrint("INFO: $message");
+  }
+
+  @override
+  void warning(String message) {
+    debugPrint("WARNING: $message");
+  }
+
+  @override
+  void error(String message, [dynamic error, StackTrace? stackTrace]) {
+    debugPrint("ERROR: $message");
+  }
+
+  @override
+  void fatal(String message, [dynamic error, StackTrace? stackTrace]) {
+    debugPrint("FATAL: $message");
+  }
+}
+
 class SentryLoggingService extends ChangeNotifier implements LoggingService {
   @override
   void debug(String message) {
