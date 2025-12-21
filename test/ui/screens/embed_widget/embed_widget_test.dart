@@ -1,0 +1,296 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:provider/provider.dart';
+import 'package:room_booker/data/auth_service.dart';
+import 'package:room_booker/data/logging_service.dart';
+import 'package:room_booker/data/entities/organization.dart';
+import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/repos/org_repo.dart';
+import 'package:room_booker/data/repos/room_repo.dart';
+import 'package:room_booker/data/repos/user_repo.dart';
+import 'package:room_booker/ui/screens/embed_widget/embed_widget.dart';
+import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
+import 'package:room_booker/ui/widgets/room_selector.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
+
+import 'package:room_booker/data/entities/request.dart';
+
+class MockOrgRepo extends Mock implements OrgRepo {}
+
+class MockRoomRepo extends Mock implements RoomRepo {}
+
+class MockUserRepo extends Mock implements UserRepo {}
+
+class MockBookingRepo extends Mock implements BookingRepo {}
+
+class MockAuthService extends Mock implements FirebaseAuthService {}
+
+class MockLoggingService extends Mock implements LoggingService {}
+
+class FakeAppointmentResizeEndDetails extends Fake
+    implements AppointmentResizeEndDetails {}
+
+class FakeAppointmentDragEndDetails extends Fake
+    implements AppointmentDragEndDetails {}
+
+class FakeCalendarTapDetails extends Fake implements CalendarTapDetails {}
+
+class FakeOrganization extends Fake implements Organization {}
+
+void main() {
+  late MockOrgRepo mockOrgRepo;
+  late MockRoomRepo mockRoomRepo;
+  late MockBookingRepo mockBookingRepo;
+  late MockUserRepo mockUserRepo;
+  late MockAuthService mockAuthService;
+  late MockLoggingService mockLoggingService;
+
+  setUpAll(() {
+    registerFallbackValue(FakeAppointmentResizeEndDetails());
+    registerFallbackValue(FakeAppointmentDragEndDetails());
+    registerFallbackValue(FakeCalendarTapDetails());
+    registerFallbackValue(CalendarView.week);
+    registerFallbackValue(FakeOrganization());
+    registerFallbackValue(DateTime.now());
+    registerFallbackValue(
+      Request(
+        eventStartTime: DateTime.now(),
+        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
+        roomID: 'room1',
+        roomName: 'Room 1',
+      ),
+    );
+    registerFallbackValue(
+      PrivateRequestDetails(
+        name: 'Test',
+        email: 'test@test',
+        phone: '123',
+        eventName: 'Event',
+      ),
+    );
+    registerFallbackValue(RequestStatus.confirmed);
+    registerFallbackValue(<RequestStatus>[]);
+  });
+
+  setUp(() {
+    mockOrgRepo = MockOrgRepo();
+    mockRoomRepo = MockRoomRepo();
+    mockBookingRepo = MockBookingRepo();
+    mockUserRepo = MockUserRepo();
+    mockAuthService = MockAuthService();
+    mockLoggingService = MockLoggingService();
+
+    when(() => mockAuthService.getCurrentUserID()).thenReturn(null);
+    when(() => mockLoggingService.debug(any())).thenReturn(null);
+
+    // Default BookingRepo stubs
+    when(
+      () => mockBookingRepo.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeStatuses: any(named: 'includeStatuses'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
+
+    when(
+      () => mockBookingRepo.getRequestDetails(any(), any()),
+    ).thenAnswer((_) => Stream.value(null));
+
+    when(
+      () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
+    ).thenAnswer((_) => Stream.value([]));
+  });
+
+  Widget createWidgetUnderTest({String? view}) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<OrgRepo>.value(value: mockOrgRepo),
+        ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
+        ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+        ChangeNotifierProvider<AuthService>.value(value: mockAuthService),
+        ChangeNotifierProvider<LoggingService>.value(value: mockLoggingService),
+        ChangeNotifierProvider<UserRepo>.value(value: mockUserRepo),
+      ],
+      child: MaterialApp(
+        home: EmbedWidget(orgID: 'org1', view: view),
+      ),
+    );
+  }
+
+  testWidgets('EmbedWidget renders BookingCalendar when data is loaded', (
+    tester,
+  ) async {
+    // Arrange
+    when(() => mockOrgRepo.getOrg('org1')).thenAnswer(
+      (_) => Stream.value(
+        Organization(
+          id: 'org1',
+          name: 'Test Org',
+          ownerID: 'owner1',
+          acceptingAdminRequests: true,
+        ),
+      ),
+    );
+    when(
+      () => mockOrgRepo.activeAdmins('org1'),
+    ).thenAnswer((_) => Stream.value([]));
+
+    when(() => mockRoomRepo.listRooms('org1')).thenAnswer(
+      (_) => Stream.value([
+        Room(id: 'room1', name: 'Room 1', colorHex: '#0000FF'),
+      ]),
+    );
+
+    // Act
+    await tester.pumpWidget(createWidgetUnderTest());
+
+    // Pump to settle OrgStateProvider
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    // Pump to settle RoomStateProvider
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    // Assert
+    expect(find.byType(BookingCalendar), findsOneWidget);
+    expect(find.byType(EmbedWidget), findsOneWidget);
+  });
+
+  testWidgets('EmbedWidget shows loading indicator initially', (tester) async {
+    // Arrange - delay the response
+    when(() => mockOrgRepo.getOrg('org1')).thenAnswer(
+      (_) => Stream.fromFuture(
+        Future.delayed(
+          const Duration(seconds: 2),
+          () => Organization(
+            id: 'org1',
+            name: 'Test Org',
+            ownerID: 'owner1',
+            acceptingAdminRequests: true,
+          ),
+        ),
+      ),
+    );
+    when(
+      () => mockOrgRepo.activeAdmins('org1'),
+    ).thenAnswer((_) => Stream.value([]));
+
+    when(() => mockRoomRepo.listRooms('org1')).thenAnswer(
+      (_) => Stream.value([
+        Room(id: 'room1', name: 'Room 1', colorHex: '#0000FF'),
+      ]),
+    );
+
+    // Act
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pump(); // First frame
+
+    // Assert
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    // Finish
+    await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('EmbedWidget shows error when org not found', (tester) async {
+    // Arrange
+    when(
+      () => mockOrgRepo.getOrg('org1'),
+    ).thenAnswer((_) => Stream.value(null));
+    when(
+      () => mockOrgRepo.activeAdmins('org1'),
+    ).thenAnswer((_) => Stream.value([]));
+
+    // Act
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    // Assert
+    expect(find.text('Organization not found'), findsOneWidget);
+  });
+
+  testWidgets('EmbedWidget respects view query param', (tester) async {
+    // Arrange
+    when(() => mockOrgRepo.getOrg('org1')).thenAnswer(
+      (_) => Stream.value(
+        Organization(
+          id: 'org1',
+          name: 'Test Org',
+          ownerID: 'owner1',
+          acceptingAdminRequests: true,
+        ),
+      ),
+    );
+    when(
+      () => mockOrgRepo.activeAdmins('org1'),
+    ).thenAnswer((_) => Stream.value([]));
+
+    when(() => mockRoomRepo.listRooms('org1')).thenAnswer(
+      (_) => Stream.value([
+        Room(id: 'room1', name: 'Room 1', colorHex: '#0000FF'),
+      ]),
+    );
+
+    // Act
+    await tester.pumpWidget(createWidgetUnderTest(view: 'month'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1)); // OrgState loaded
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1)); // RoomState loaded
+
+    // Assert
+    expect(find.byType(BookingCalendar), findsOneWidget);
+  });
+  testWidgets(
+    'EmbedWidget shows appointments for all rooms (enables all rooms)',
+    (tester) async {
+      // Arrange
+      when(() => mockOrgRepo.getOrg('org1')).thenAnswer(
+        (_) => Stream.value(
+          Organization(
+            id: 'org1',
+            name: 'Test Org',
+            ownerID: 'owner1',
+            acceptingAdminRequests: true,
+          ),
+        ),
+      );
+      when(
+        () => mockOrgRepo.activeAdmins('org1'),
+      ).thenAnswer((_) => Stream.value([]));
+
+      final rooms = [
+        Room(id: 'room1', name: 'Room 1', colorHex: '#0000FF'),
+        Room(id: 'room2', name: 'Room 2', colorHex: '#00FF00'),
+        Room(id: 'room3', name: 'Room 3', colorHex: '#FF0000'),
+      ];
+
+      when(
+        () => mockRoomRepo.listRooms('org1'),
+      ).thenAnswer((_) => Stream.value(rooms));
+
+      // Act
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1)); // OrgState loaded
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1)); // RoomState loaded
+
+      // Assert
+      final bookingCalendarFinder = find.byType(BookingCalendar);
+      expect(bookingCalendarFinder, findsOneWidget);
+
+      final context = tester.element(bookingCalendarFinder);
+      final roomState = Provider.of<RoomState>(context, listen: false);
+
+      expect(roomState.enabledValues().length, 3);
+      for (var room in rooms) {
+        expect(roomState.isEnabled(room.id!), isTrue);
+      }
+    },
+  );
+}

@@ -9,12 +9,12 @@ import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
-@RoutePage()
-class EmbedScreen extends StatelessWidget {
+@RoutePage(name: 'EmbedWidgetRoute')
+class EmbedWidget extends StatelessWidget {
   final String orgID;
   final String? view;
 
-  const EmbedScreen({
+  const EmbedWidget({
     super.key,
     @QueryParam('v') this.view,
     @PathParam('orgID') required this.orgID,
@@ -22,7 +22,7 @@ class EmbedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final span = Sentry.getSpan()?.startChild('ui.embed_screen.build');
+    final span = Sentry.getSpan()?.startChild('ui.embed_widget.build');
     try {
       var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
 
@@ -46,11 +46,12 @@ class EmbedScreen extends StatelessWidget {
                     defaultView: defaultView,
                     bookingRepo: bookingRepo,
                     roomState: roomState,
-                    showDatePickerButton: true,
+                    showDatePickerButton: false,
                     includePrivateBookings: false,
-                    showNavigationArrow: true,
-                    showTodayButton: true,
+                    showNavigationArrow: false,
+                    showTodayButton: false,
                     appendRoomName: true,
+                    allowedViews: [defaultView],
                   ),
                 ),
               ),

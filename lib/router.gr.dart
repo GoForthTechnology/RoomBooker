@@ -86,6 +86,65 @@ class EmbedRouteArgs {
 }
 
 /// generated route for
+/// [EmbedWidget]
+class EmbedWidgetRoute extends PageRouteInfo<EmbedWidgetRouteArgs> {
+  EmbedWidgetRoute({
+    Key? key,
+    String? view,
+    required String orgID,
+    List<PageRouteInfo>? children,
+  }) : super(
+         EmbedWidgetRoute.name,
+         args: EmbedWidgetRouteArgs(key: key, view: view, orgID: orgID),
+         rawPathParams: {'orgID': orgID},
+         rawQueryParams: {'v': view},
+         initialChildren: children,
+       );
+
+  static const String name = 'EmbedWidgetRoute';
+
+  static PageInfo page = PageInfo(
+    name,
+    builder: (data) {
+      final pathParams = data.inheritedPathParams;
+      final queryParams = data.queryParams;
+      final args = data.argsAs<EmbedWidgetRouteArgs>(
+        orElse: () => EmbedWidgetRouteArgs(
+          view: queryParams.optString('v'),
+          orgID: pathParams.getString('orgID'),
+        ),
+      );
+      return EmbedWidget(key: args.key, view: args.view, orgID: args.orgID);
+    },
+  );
+}
+
+class EmbedWidgetRouteArgs {
+  const EmbedWidgetRouteArgs({this.key, this.view, required this.orgID});
+
+  final Key? key;
+
+  final String? view;
+
+  final String orgID;
+
+  @override
+  String toString() {
+    return 'EmbedWidgetRouteArgs{key: $key, view: $view, orgID: $orgID}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! EmbedWidgetRouteArgs) return false;
+    return key == other.key && view == other.view && orgID == other.orgID;
+  }
+
+  @override
+  int get hashCode => key.hashCode ^ view.hashCode ^ orgID.hashCode;
+}
+
+/// generated route for
 /// [JoinOrgScreen]
 class JoinOrgRoute extends PageRouteInfo<JoinOrgRouteArgs> {
   JoinOrgRoute({Key? key, required String orgID, List<PageRouteInfo>? children})
