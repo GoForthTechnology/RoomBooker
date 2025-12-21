@@ -31,25 +31,27 @@ class EmbedScreen extends StatelessWidget {
       );
 
       span?.status = const SpanStatus.ok();
-      return OrgStateProvider(
-        orgID: orgID,
-        child: Consumer<OrgState>(
-          builder: (context, orgState, child) => RoomStateProvider(
-            org: orgState.org,
-            enableAllRooms: true,
-            builder: (context, _) => Consumer<RoomState>(
-              builder: (context, roomState, child) => BookingCalendar(
-                createViewModel: () => CalendarViewModel(
-                  orgState: orgState,
-                  loggingService: context.read(),
-                  defaultView: defaultView,
-                  bookingRepo: bookingRepo,
-                  roomState: roomState,
-                  showDatePickerButton: false,
-                  includePrivateBookings: false,
-                  showNavigationArrow: false,
-                  showTodayButton: true,
-                  appendRoomName: true,
+      return Scaffold(
+        body: OrgStateProvider(
+          orgID: orgID,
+          child: Consumer<OrgState>(
+            builder: (context, orgState, child) => RoomStateProvider(
+              org: orgState.org,
+              enableAllRooms: true,
+              builder: (context, _) => Consumer<RoomState>(
+                builder: (context, roomState, child) => BookingCalendar(
+                  createViewModel: () => CalendarViewModel(
+                    orgState: orgState,
+                    loggingService: context.read(),
+                    defaultView: defaultView,
+                    bookingRepo: bookingRepo,
+                    roomState: roomState,
+                    showDatePickerButton: false,
+                    includePrivateBookings: false,
+                    showNavigationArrow: false,
+                    showTodayButton: true,
+                    appendRoomName: true,
+                  ),
                 ),
               ),
             ),
