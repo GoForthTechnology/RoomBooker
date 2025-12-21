@@ -537,7 +537,7 @@ class CalendarViewModel extends ChangeNotifier {
     if (appointment.resourceIds == null || appointment.resourceIds!.isEmpty) {
       throw ArgumentError("Appointment has no resource ID");
     }
-    return appointment.resourceIds!.first.toString();
+    return (appointment.resourceIds!.first as Object?)?.toString() ?? "";
   }
 
   void _handleRequestTap(CalendarTapDetails details) {
@@ -625,7 +625,7 @@ String? _id(Appointment appointment) {
   if (ids.isEmpty) {
     return null;
   }
-  return ids.first.toString();
+  return (ids.first as Object?)?.toString();
 }
 
 extension on Appointment {}
