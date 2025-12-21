@@ -249,6 +249,8 @@ class RequestEditorViewModel extends ChangeNotifier {
     _initializeCurrentDataSubscription();
   }
 
+  String get roomID => _roomIDSubject.value;
+
   String get orgID => _orgState.org.id!;
 
   Stream<DateTime?> get eventStartStream => _eventStartSubject.stream;

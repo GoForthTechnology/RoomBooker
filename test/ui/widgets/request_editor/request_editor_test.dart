@@ -111,6 +111,7 @@ void main() {
     when(
       () => mockViewModel.roomNameStream,
     ).thenAnswer((_) => Stream.value('Room 1'));
+    when(() => mockViewModel.roomID).thenReturn('room1');
 
     // RepeatBookingsViewModel
     when(
@@ -225,5 +226,24 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ignore overlapping events'), findsOneWidget);
+  });
+
+  testWidgets('Initializes room selector with viewModel.roomID', (
+    tester,
+  ) async {
+    // Setup specific mocks for this test
+    when(() => mockViewModel.roomID).thenReturn('room2');
+    when(() => mockRoomRepo.listRooms(any())).thenAnswer(
+      (_) => Stream.value([
+        Room(id: 'room1', name: 'Room 1'),
+        Room(id: 'room2', name: 'Room 2'),
+      ]),
+    );
+
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pumpAndSettle();
+
+    // Find the dropdown and verify it shows 'Room 2'
+    expect(find.text('Room 2'), findsOneWidget);
   });
 }

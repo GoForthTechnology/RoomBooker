@@ -90,6 +90,7 @@ class RequestEditor extends StatelessWidget {
   Widget _roomSelector(RequestEditorViewModel viewModel, bool readOnly) {
     return RoomDropdownSelector(
       readOnly: readOnly,
+      initialRoomID: viewModel.roomID,
       orgID: viewModel.orgID,
       onChanged: (room) {
         if (room != null) {
