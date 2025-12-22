@@ -18,6 +18,9 @@ import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
 import 'package:room_booker/ui/widgets/navigation_drawer.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
+import '../../../utils/fake_analytics_service.dart';
+import '../../../utils/fake_logging_service.dart';
+
 class MockOrgRepo extends Mock implements OrgRepo {}
 
 class MockRoomRepo extends Mock implements RoomRepo {}
@@ -30,10 +33,6 @@ class MockUserRepo extends Mock implements UserRepo {}
 
 class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
 
-class MockFirebaseAnalyticsService extends Mock implements AnalyticsService {}
-
-class MockLoggingService extends Mock implements LoggingService {}
-
 class MockStackRouter extends Mock implements StackRouter {}
 
 void main() {
@@ -45,8 +44,7 @@ void main() {
   late MockPreferencesRepo mockPreferencesRepo;
   late MockUserRepo mockUserRepo;
   late MockFirebaseAuthService mockAuthService;
-  late MockFirebaseAnalyticsService mockAnalyticsService;
-  late MockLoggingService mockLoggingService;
+  late FakeAnalyticsService fakeAnalyticsService;
   late MockStackRouter mockRouter;
 
   setUpAll(() {
@@ -88,13 +86,10 @@ void main() {
     mockPreferencesRepo = MockPreferencesRepo();
     mockUserRepo = MockUserRepo();
     mockAuthService = MockFirebaseAuthService();
-    mockAnalyticsService = MockFirebaseAnalyticsService();
-    mockLoggingService = MockLoggingService();
+    fakeAnalyticsService = FakeAnalyticsService();
     mockRouter = MockStackRouter();
 
     // Default Stubs
-    when(() => mockLoggingService.debug(any())).thenReturn(null);
-
     when(() => mockAuthService.getCurrentUserID()).thenReturn('user1');
     when(
       () => mockAuthService.getCurrentUserEmail(),
@@ -145,14 +140,6 @@ void main() {
       () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
     ).thenAnswer((_) => Stream.value([]));
 
-    // Analytics
-    when(
-      () => mockAnalyticsService.logScreenView(
-        screenName: any(named: 'screenName'),
-        parameters: any(named: 'parameters'),
-      ),
-    ).thenAnswer((_) async {});
-
     // UserRepo
     when(() => mockUserRepo.getUser(any())).thenAnswer((_) async => null);
   });
@@ -168,9 +155,11 @@ void main() {
         ),
         Provider<AuthService>.value(value: mockAuthService),
         ChangeNotifierProvider<AnalyticsService>.value(
-          value: mockAnalyticsService,
+          value: fakeAnalyticsService,
         ),
-        ChangeNotifierProvider<LoggingService>.value(value: mockLoggingService),
+        ChangeNotifierProvider<LoggingService>.value(
+          value: FakeLoggingService(),
+        ),
         ChangeNotifierProvider<UserRepo>.value(value: mockUserRepo),
       ],
       child: MaterialApp(

@@ -4,6 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
+import 'package:room_booker/data/logging_service.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/repeat_booking_selector/repeat_bookings_view_model.dart';
@@ -11,6 +12,8 @@ import 'package:room_booker/ui/widgets/request_editor/logs_widget.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
+
+import '../../../utils/fake_logging_service.dart';
 
 class MockRequestEditorViewModel extends Mock
     implements RequestEditorViewModel {}
@@ -157,6 +160,9 @@ void main() {
           value: mockViewModel,
         ),
         ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
+        ChangeNotifierProvider<LoggingService>.value(
+          value: FakeLoggingService(),
+        ),
       ],
       child: const MaterialApp(home: Scaffold(body: RequestEditor())),
     );
@@ -187,6 +193,9 @@ void main() {
             value: mockViewModel,
           ),
           ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
+          ChangeNotifierProvider<LoggingService>.value(
+            value: FakeLoggingService(),
+          ),
         ],
         child: MaterialApp(
           home: Scaffold(
@@ -489,6 +498,9 @@ void main() {
               value: mockViewModel,
             ),
             ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
+            ChangeNotifierProvider<LoggingService>.value(
+              value: FakeLoggingService(),
+            ),
           ],
           child: MaterialApp(
             home: Scaffold(

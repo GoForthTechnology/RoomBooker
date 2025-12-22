@@ -3,11 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:provider/provider.dart';
+import 'package:room_booker/data/logging_service.dart';
+import '../../../utils/fake_logging_service.dart';
+
 import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
-class MockCalendarViewModel extends Mock implements CalendarViewModel {}
+class MockCalendarViewModel extends Mock
+    with ChangeNotifier
+    implements CalendarViewModel {}
 
 class FakeDataSource extends CalendarDataSource {}
 
@@ -56,7 +62,10 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: BookingCalendar(createViewModel: () => mockViewModel),
+          home: ChangeNotifierProvider<LoggingService>(
+            create: (_) => FakeLoggingService(),
+            child: BookingCalendar(createViewModel: () => mockViewModel),
+          ),
         ),
       );
 
@@ -92,7 +101,12 @@ void main() {
     when(() => mockViewModel.handleTap(any())).thenAnswer((_) async {});
 
     await tester.pumpWidget(
-      MaterialApp(home: BookingCalendar(createViewModel: () => mockViewModel)),
+      MaterialApp(
+        home: ChangeNotifierProvider<LoggingService>(
+          create: (_) => FakeLoggingService(),
+          child: BookingCalendar(createViewModel: () => mockViewModel),
+        ),
+      ),
     );
 
     await tester.pump();

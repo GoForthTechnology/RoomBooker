@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/request.dart';
+import 'package:room_booker/ui/utils/traced_stream_builder.dart';
 import 'package:room_booker/ui/widgets/request_editor/date_field.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/repeat_booking_selector/repeat_bookings_selector.dart';
@@ -22,7 +23,9 @@ class RequestEditor extends StatelessWidget {
     var orgState = Provider.of<OrgState>(context, listen: false);
     var localizations = MaterialLocalizations.of(context);
     return Consumer2<RoomState, RequestEditorViewModel>(
-      builder: (context, roomState, viewModel, child) => StreamBuilder(
+      builder: (context, roomState, viewModel, child) => TracedStreamBuilder(
+        "render_request_editor",
+        context.read(),
         stream: viewModel.viewStateStream,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:room_booker/ui/utils/traced_stream_builder.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
@@ -24,7 +25,9 @@ class BookingCalendarView extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = context.watch<CalendarViewModel>();
 
-    return StreamBuilder(
+    return TracedStreamBuilder(
+      "render_booking_calendar",
+      context.read(),
       stream: viewModel.calendarViewState(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {

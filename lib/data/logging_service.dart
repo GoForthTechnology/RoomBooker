@@ -8,6 +8,8 @@ abstract class LoggingService extends ChangeNotifier {
   void warning(String message);
   void error(String message, [dynamic error, StackTrace? stackTrace]);
   void fatal(String message, [dynamic error, StackTrace? stackTrace]);
+
+  T trace<T>(String operation, T Function() action);
 }
 
 class DebugLoggingService extends ChangeNotifier implements LoggingService {
@@ -36,6 +38,11 @@ class DebugLoggingService extends ChangeNotifier implements LoggingService {
   @override
   void fatal(String message, [dynamic error, StackTrace? stackTrace]) {
     _logger.f(message);
+  }
+
+  @override
+  T trace<T>(String operation, T Function() action) {
+    return action();
   }
 }
 
@@ -76,5 +83,18 @@ class SentryLoggingService extends ChangeNotifier implements LoggingService {
   @override
   void fatal(String message, [dynamic error, StackTrace? stackTrace]) {
     Sentry.logger.fatal(message);
+  }
+
+  @override
+  T trace<T>(String operation, T Function() action) {
+    final span = Sentry.getSpan()?.startChild(operation);
+    try {
+      return action();
+    } catch (e) {
+      span?.status = const SpanStatus.internalError();
+      rethrow;
+    } finally {
+      span?.finish();
+    }
   }
 }
