@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:room_booker/data/logging_service.dart';
+import 'package:room_booker/data/services/logging_service.dart';
 
 class FakeLoggingService implements LoggingService {
   @override

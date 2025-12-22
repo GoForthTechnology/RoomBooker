@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:room_booker/data/analytics_service.dart';
+import 'package:room_booker/data/services/analytics_service.dart';
 
 class FakeAnalyticsService implements AnalyticsService {
   @override

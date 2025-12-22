@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/data/logging_service.dart';
+import 'package:room_booker/data/services/logging_service.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';

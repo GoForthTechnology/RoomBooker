@@ -1,7 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:room_booker/data/logging_service.dart';
+import 'package:room_booker/data/services/logging_service.dart';
 
 abstract class AnalyticsService extends ChangeNotifier {
   void logScreenView({

@@ -1,6 +1,6 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/widgets.dart';
-import 'package:room_booker/data/logging_service.dart';
+import 'package:room_booker/data/services/logging_service.dart';
 
 class AppRouterObserver extends AutoRouterObserver {
   final LoggingService _loggingService;

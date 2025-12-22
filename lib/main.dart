@@ -8,7 +8,7 @@ import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:room_booker/data/logging_service.dart';
+import 'package:room_booker/data/services/logging_service.dart';
 import 'package:room_booker/providers.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/auth.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:room_booker/data/analytics_service.dart';
-import 'package:room_booker/data/auth_service.dart';
+import 'package:room_booker/data/services/analytics_service.dart';
+import 'package:room_booker/data/services/auth_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:room_booker/data/logging_service.dart';
+import 'package:room_booker/data/services/logging_service.dart';
 
 class TracedStreamBuilder<T> extends StreamBuilder<T> {
   final String spanName;

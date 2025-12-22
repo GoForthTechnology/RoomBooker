@@ -8,7 +8,7 @@ import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
-import 'package:room_booker/data/logging_service.dart';
+import 'package:room_booker/data/services/logging_service.dart';
 
 // Mock classes
 class MockBookingRepo extends Mock implements BookingRepo {}

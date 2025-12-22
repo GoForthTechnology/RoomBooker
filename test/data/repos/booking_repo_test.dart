@@ -1,6 +1,6 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:room_booker/data/analytics_service.dart';
-import 'package:room_booker/data/logging_service.dart';
+import 'package:room_booker/data/services/analytics_service.dart';
+import 'package:room_booker/data/services/logging_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
