@@ -89,13 +89,14 @@ class CalendarViewModel extends ChangeNotifier {
     _visibleWindowController.add(currentWindow);
     _fetchWindowController.add(currentWindow);
 
-    _visibleWindowController.listen((visibleWindow) {
+    var sub = _visibleWindowController.listen((visibleWindow) {
       var fetchedWindow = _fetchWindowController.valueOrNull;
       if (fetchedWindow == null || !fetchedWindow.contains(visibleWindow)) {
         _loggingService.debug("CALENDAR: Fetching new window: $visibleWindow");
         _fetchWindowController.add(visibleWindow);
       }
     });
+    _subscriptions.add(sub);
 
     _roomState.addListener(_onRoomStateChanged);
 
@@ -122,8 +123,21 @@ class CalendarViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _roomState.removeListener(_onRoomStateChanged);
+    for (var sub in _subscriptions) {
+      sub.cancel();
+    }
+    _newAppointmentSubscription?.cancel();
+    _visibleWindowController.close();
+    _fetchWindowController.close();
+    _requestIndex.close();
+    _newAppointmentSubject.close();
+    _dateTapSubject.close();
+    _requestTapSubject.close();
+    _roomStateSubject.close();
     super.dispose();
   }
+
+  final List<StreamSubscription> _subscriptions = [];
 
   StreamSubscription? _newAppointmentSubscription;
 

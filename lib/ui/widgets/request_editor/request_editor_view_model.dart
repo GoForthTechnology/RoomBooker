@@ -610,6 +610,13 @@ class RequestEditorViewModel extends ChangeNotifier {
     for (var s in _subscriptions) {
       s.cancel();
     }
+    _currentDataSubscription?.cancel();
+    eventNameContoller.dispose();
+    phoneNumberController.dispose();
+    contactNameController.dispose();
+    contactEmailController.dispose();
+    additionalInfoController.dispose();
+    idController.dispose();
     super.dispose();
   }
 }
