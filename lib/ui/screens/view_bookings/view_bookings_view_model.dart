@@ -13,6 +13,7 @@ import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:room_booker/utils/calendar_utils.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:intl/intl.dart';
 import 'package:room_booker/ui/utils/booking_date_helper.dart';
@@ -243,26 +244,9 @@ class ViewBookingsViewModel extends ChangeNotifier {
           _calendarViewModel.controller.displayDate ?? DateTime.now();
       var view = _calendarViewModel.controller.view ?? CalendarView.week;
 
-      DateTime start;
-      DateTime end;
-      if (view == CalendarView.day) {
-        start = DateTime(targetDate.year, targetDate.month, targetDate.day);
-        end = start.add(const Duration(days: 1));
-      } else if (view == CalendarView.week) {
-        start = targetDate.subtract(const Duration(days: 7));
-        end = targetDate.add(const Duration(days: 7));
-      } else {
-        start = DateTime(
-          targetDate.year,
-          targetDate.month,
-          1,
-        ).subtract(const Duration(days: 7));
-        end = DateTime(
-          targetDate.year,
-          targetDate.month + 1,
-          1,
-        ).add(const Duration(days: 7));
-      }
+      final range = CalendarUtils.getVisibleRange(targetDate, view);
+      DateTime start = range.start;
+      DateTime end = range.end;
 
       // Wait for the stream to settle to get the latest data
       final requestsStream = _bookingRepo.listRequests(

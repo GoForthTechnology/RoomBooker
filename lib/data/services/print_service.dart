@@ -2,6 +2,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:room_booker/data/entities/request.dart';
+import 'package:room_booker/utils/calendar_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
@@ -80,38 +81,9 @@ class PrintService {
     DateTime targetDate,
     CalendarView view,
   ) {
-    DateTime start;
-    DateTime end;
-
-    if (view == CalendarView.day) {
-      start = DateTime(targetDate.year, targetDate.month, targetDate.day);
-      end = start.add(const Duration(days: 1));
-    } else if (view == CalendarView.week) {
-      // Assuming week starts on Sunday? Syncfusion defaults usually.
-      // Let's approximate finding the start of the week.
-      // Syncfusion default firstDayOfWeek is Sunday = 7 in Dart? No, DateTime.sunday = 7.
-      // Let's assume standard behavior: targetDate might be middle of week.
-      // Actually, ViewBookingsViewModel usually passes the "focused date".
-      // Let's assume we want to show the week containing targetDate.
-      final currentWeekDay = targetDate.weekday; // Mon=1, Sun=7
-      // If we want Sunday start:
-      final daysToSubtract = currentWeekDay == 7 ? 0 : currentWeekDay;
-      start = DateTime(
-        targetDate.year,
-        targetDate.month,
-        targetDate.day,
-      ).subtract(Duration(days: daysToSubtract));
-      end = start.add(const Duration(days: 7));
-    } else if (view == CalendarView.month) {
-      start = DateTime(targetDate.year, targetDate.month, 1);
-      final nextMonth = DateTime(targetDate.year, targetDate.month + 1, 1);
-      end = nextMonth;
-    } else {
-      // Schedule view - treating similar to Month for now based on user plan
-      start = DateTime(targetDate.year, targetDate.month, 1);
-      final nextMonth = DateTime(targetDate.year, targetDate.month + 1, 1);
-      end = nextMonth;
-    }
+    final range = CalendarUtils.getVisibleRange(targetDate, view);
+    final start = range.start;
+    final end = range.end;
 
     final expandedRequests = <Request>[];
     for (final r in requests) {
