@@ -103,6 +103,7 @@ if [ "$COMMIT" = true ]; then
 fi
 
 if [ "$PUSH" = true ]; then
+  git pull origin HEAD
   # Ensure we have committed before pushing if only -p was passed but changes were made
   # However, typically -p implies pushing existing commits. 
   # If the user wants to push THIS change, they should probably use -c as well or -cp.
