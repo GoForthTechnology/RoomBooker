@@ -496,6 +496,28 @@ void main() {
 
       expect(actions.any((a) => a.name == "Print"), true);
     });
+
+    test('Actions order: Print first, Login/Logout last', () {
+      // Case 1: Admin & Logged In
+      when(() => mockOrgState.currentUserIsAdmin).thenReturn(true);
+      when(() => mockAuthService.getCurrentUserID()).thenReturn('user-1');
+
+      var viewModel = createViewModel(createRequest: false);
+      var actions = viewModel.getActions(mockContext);
+
+      expect(actions.first.name, "Print");
+      expect(actions.last.name, "Logout");
+
+      // Case 2: Not Admin & Logged Out
+      when(() => mockOrgState.currentUserIsAdmin).thenReturn(false);
+      when(() => mockAuthService.getCurrentUserID()).thenReturn(null);
+
+      viewModel = createViewModel(createRequest: false);
+      actions = viewModel.getActions(mockContext);
+
+      expect(actions.first.name, "Print");
+      expect(actions.last.name, "Login");
+    });
   });
 
   group('currentUriStream', () {

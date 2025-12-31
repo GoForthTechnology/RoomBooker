@@ -178,6 +178,15 @@ class ViewBookingsViewModel extends ChangeNotifier {
 
   List<Action> getActions(BuildContext context) {
     List<Action> actions = [];
+
+    actions.add(
+      Action(
+        name: "Print",
+        icon: Icons.print,
+        onPressed: () => _onPrint(context),
+      ),
+    );
+
     if (_orgState.currentUserIsAdmin) {
       actions.add(
         Action(
@@ -221,14 +230,6 @@ class ViewBookingsViewModel extends ChangeNotifier {
         ),
       );
     }
-
-    actions.add(
-      Action(
-        name: "Print",
-        icon: Icons.print,
-        onPressed: () => _onPrint(context),
-      ),
-    );
 
     return actions;
   }
