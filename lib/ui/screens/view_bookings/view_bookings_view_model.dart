@@ -229,6 +229,13 @@ class ViewBookingsViewModel extends ChangeNotifier {
   }
 
   void _onPrint(BuildContext context) async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
     try {
       final service = printService ?? PrintService();
 
@@ -306,6 +313,11 @@ class ViewBookingsViewModel extends ChangeNotifier {
       );
     } catch (e) {
       log("Failed to print calendar: $e");
+    } finally {
+      // Dismiss loading dialog
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
     }
   }
 
