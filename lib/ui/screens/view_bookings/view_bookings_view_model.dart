@@ -12,6 +12,7 @@ import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:room_booker/utils/calendar_utils.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -29,6 +30,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
   final BookingRepo _bookingRepo;
   final RoomRepo _roomRepo;
   final OrgState _orgState;
+  final BookingService _bookingService;
 
   final CalendarViewModel _calendarViewModel;
   final RequestEditorViewModel _requestEditorViewModel;
@@ -49,6 +51,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
     required RoomRepo roomRepo,
     required AuthService authService,
     required OrgState orgState,
+    required BookingService bookingService,
     required StackRouter router,
     required this.sizeProvider,
     required CalendarViewModel calendarViewModel,
@@ -67,6 +70,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
   }) : _bookingRepo = bookingRepo,
        _roomRepo = roomRepo,
        _authService = authService,
+       _bookingService = bookingService,
        _router = router,
        _calendarViewModel = calendarViewModel,
        _requestEditorViewModel = requestEditorViewModel,
@@ -249,10 +253,11 @@ class ViewBookingsViewModel extends ChangeNotifier {
       DateTime end = range.end;
 
       // Wait for the stream to settle to get the latest data
-      final requestsStream = _bookingRepo.listRequests(
+      final requestsStream = _bookingService.getRequestsStream(
         orgID: orgID,
-        startTime: start,
-        endTime: end,
+        isAdmin: _orgState.currentUserIsAdmin,
+        start: start,
+        end: end,
         includeStatuses: {RequestStatus.confirmed},
       );
       List<Request> requests = [];
@@ -263,26 +268,6 @@ class ViewBookingsViewModel extends ChangeNotifier {
       // Wait for 500ms for data to fetch (skipping potential initial empty/cache states)
       await Future.delayed(const Duration(milliseconds: 500));
       await subscription.cancel();
-
-      // If user is admin, fetch private details to show real names instead of "Private"
-      if (_orgState.currentUserIsAdmin) {
-        requests = await Future.wait(
-          requests.map((r) async {
-            if (r.id == null) return r;
-            try {
-              final details = await _bookingRepo
-                  .getRequestDetails(orgID, r.id!)
-                  .first;
-              if (details != null && details.eventName.isNotEmpty) {
-                return r.copyWith(publicName: details.eventName);
-              }
-            } catch (e) {
-              log("Error fetching details for print: $e");
-            }
-            return r;
-          }),
-        );
-      }
 
       // Fetch room colors
       final rooms = await _roomRepo.listRooms(orgID).first;

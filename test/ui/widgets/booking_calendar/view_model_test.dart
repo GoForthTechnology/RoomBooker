@@ -6,6 +6,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/services/logging_service.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
@@ -14,6 +15,8 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 // Mock classes
 class MockBookingRepo extends Mock implements BookingRepo {}
+
+class MockBookingService extends Mock implements BookingService {}
 
 class MockOrgState extends Mock implements OrgState {}
 
@@ -29,6 +32,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late CalendarViewModel viewModel;
   late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockOrgState mockOrgState;
   late MockRoomState mockRoomState;
   late MockOrganization mockOrganization;
@@ -40,6 +44,7 @@ void main() {
 
   setUp(() {
     mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockOrgState = MockOrgState();
     mockRoomState = MockRoomState();
     mockOrganization = MockOrganization();
@@ -49,6 +54,8 @@ void main() {
     when(() => mockOrgState.org).thenReturn(mockOrganization);
     when(() => mockOrgState.currentUserIsAdmin).thenReturn(false);
     when(() => mockOrganization.id).thenReturn('org_id');
+
+    // BookingRepo stubs (mostly unused now, but good to keep)
     when(
       () => mockBookingRepo.listRequests(
         orgID: any(named: 'orgID'),
@@ -57,6 +64,19 @@ void main() {
         includeStatuses: any(named: 'includeStatuses'),
       ),
     ).thenAnswer((_) => Stream.value([]));
+
+    // BookingService stubs - KEY
+    when(
+      () => mockBookingService.getRequestsStream(
+        orgID: any(named: 'orgID'),
+        isAdmin: any(named: 'isAdmin'),
+        start: any(named: 'start'),
+        end: any(named: 'end'),
+        includeStatuses: any(named: 'includeStatuses'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
+
     when(() => mockBookingRepo.getRequestDetails(any(), any())).thenAnswer(
       (_) => Stream.value(
         PrivateRequestDetails(
@@ -82,6 +102,7 @@ void main() {
       orgState: mockOrgState,
       roomState: mockRoomState,
       loggingService: mockLoggingService,
+      bookingService: mockBookingService,
     );
   });
 
@@ -99,12 +120,15 @@ void main() {
             roomName: 'Test Room',
           ),
         ];
+
         when(
-          () => mockBookingRepo.listRequests(
+          () => mockBookingService.getRequestsStream(
             orgID: any(named: 'orgID'),
-            startTime: any(named: 'startTime'),
-            endTime: any(named: 'endTime'),
+            isAdmin: any(named: 'isAdmin'),
+            start: any(named: 'start'),
+            end: any(named: 'end'),
             includeStatuses: any(named: 'includeStatuses'),
+            includeRoomIDs: any(named: 'includeRoomIDs'),
           ),
         ).thenAnswer((_) => Stream.value(requests));
 
@@ -113,6 +137,7 @@ void main() {
           orgState: mockOrgState,
           roomState: mockRoomState,
           loggingService: mockLoggingService,
+          bookingService: mockBookingService,
           includePrivateBookings: false,
         );
 
@@ -142,12 +167,15 @@ void main() {
           roomName: 'Test Room',
         ),
       ];
+
       when(
-        () => mockBookingRepo.listRequests(
+        () => mockBookingService.getRequestsStream(
           orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
+          isAdmin: any(named: 'isAdmin'),
+          start: any(named: 'start'),
+          end: any(named: 'end'),
           includeStatuses: any(named: 'includeStatuses'),
+          includeRoomIDs: any(named: 'includeRoomIDs'),
         ),
       ).thenAnswer((_) => Stream.value(requests));
 
@@ -168,6 +196,7 @@ void main() {
         orgState: mockOrgState,
         roomState: mockRoomState,
         loggingService: mockLoggingService,
+        bookingService: mockBookingService,
         appendRoomName: true,
         targetDate: date,
       );
@@ -202,6 +231,7 @@ void main() {
         orgState: mockOrgState,
         roomState: mockRoomState,
         loggingService: mockLoggingService,
+        bookingService: mockBookingService,
       );
       viewModel.dateTapStream.listen((details) {
         expect(details.date, date);
@@ -231,11 +261,13 @@ void main() {
       final dropTime = now.add(Duration(hours: 2));
 
       when(
-        () => mockBookingRepo.listRequests(
+        () => mockBookingService.getRequestsStream(
           orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
+          isAdmin: any(named: 'isAdmin'),
+          start: any(named: 'start'),
+          end: any(named: 'end'),
           includeStatuses: any(named: 'includeStatuses'),
+          includeRoomIDs: any(named: 'includeRoomIDs'),
         ),
       ).thenAnswer((_) => Stream.value([request]));
 
@@ -245,6 +277,7 @@ void main() {
         orgState: mockOrgState,
         roomState: mockRoomState,
         loggingService: mockLoggingService,
+        bookingService: mockBookingService,
         onDragEnd: (details) {
           dragDetails.complete(details);
         },
@@ -298,6 +331,7 @@ void main() {
         bookingRepo: mockBookingRepo,
         roomState: mockRoomState,
         loggingService: mockLoggingService,
+        bookingService: mockBookingService,
         onResizeEnd: (details) => completer.complete(details),
       );
       viewModel.handleResizeEnd(details);
@@ -323,11 +357,13 @@ void main() {
         );
 
         when(
-          () => mockBookingRepo.listRequests(
+          () => mockBookingService.getRequestsStream(
             orgID: any(named: 'orgID'),
-            startTime: any(named: 'startTime'),
-            endTime: any(named: 'endTime'),
+            isAdmin: any(named: 'isAdmin'),
+            start: any(named: 'start'),
+            end: any(named: 'end'),
             includeStatuses: any(named: 'includeStatuses'),
+            includeRoomIDs: any(named: 'includeRoomIDs'),
           ),
         ).thenAnswer((_) => Stream.value([]));
 
@@ -337,6 +373,7 @@ void main() {
           orgState: mockOrgState,
           roomState: mockRoomState,
           loggingService: mockLoggingService,
+          bookingService: mockBookingService,
         );
         viewModel.dateTapStream.listen((_) {
           eventFired = true;
@@ -453,19 +490,26 @@ void main() {
         );
 
         when(
-          () => mockBookingRepo.listRequests(
+          () => mockBookingService.getRequestsStream(
             orgID: any(named: 'orgID'),
-            startTime: any(named: 'startTime'),
-            endTime: any(named: 'endTime'),
+            isAdmin: any(named: 'isAdmin'),
+            start: any(named: 'start'),
+            end: any(named: 'end'),
             includeStatuses: any(named: 'includeStatuses'),
+            includeRoomIDs: any(named: 'includeRoomIDs'),
           ),
-        ).thenAnswer((_) => Stream.value([request]));
+        ).thenAnswer((invocation) {
+          final start = invocation.namedArguments[#start] as DateTime;
+          final end = invocation.namedArguments[#end] as DateTime;
+          return Stream.value(request.expand(start, end));
+        });
 
         viewModel = CalendarViewModel(
           bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
           loggingService: mockLoggingService,
+          bookingService: mockBookingService,
         );
 
         viewModel.controller.view = CalendarView.week; // Set to week view
@@ -510,19 +554,26 @@ void main() {
         );
 
         when(
-          () => mockBookingRepo.listRequests(
+          () => mockBookingService.getRequestsStream(
             orgID: any(named: 'orgID'),
-            startTime: any(named: 'startTime'),
-            endTime: any(named: 'endTime'),
+            isAdmin: any(named: 'isAdmin'),
+            start: any(named: 'start'),
+            end: any(named: 'end'),
             includeStatuses: any(named: 'includeStatuses'),
+            includeRoomIDs: any(named: 'includeRoomIDs'),
           ),
-        ).thenAnswer((_) => Stream.value([request]));
+        ).thenAnswer((invocation) {
+          final start = invocation.namedArguments[#start] as DateTime;
+          final end = invocation.namedArguments[#end] as DateTime;
+          return Stream.value(request.expand(start, end));
+        });
 
         viewModel = CalendarViewModel(
           bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
           loggingService: mockLoggingService,
+          bookingService: mockBookingService,
         );
 
         viewModel.controller.view = CalendarView.month; // Set to month view
@@ -564,19 +615,26 @@ void main() {
         );
 
         when(
-          () => mockBookingRepo.listRequests(
+          () => mockBookingService.getRequestsStream(
             orgID: any(named: 'orgID'),
-            startTime: any(named: 'startTime'),
-            endTime: any(named: 'endTime'),
+            isAdmin: any(named: 'isAdmin'),
+            start: any(named: 'start'),
+            end: any(named: 'end'),
             includeStatuses: any(named: 'includeStatuses'),
+            includeRoomIDs: any(named: 'includeRoomIDs'),
           ),
-        ).thenAnswer((_) => Stream.value([request]));
+        ).thenAnswer((invocation) {
+          final start = invocation.namedArguments[#start] as DateTime;
+          final end = invocation.namedArguments[#end] as DateTime;
+          return Stream.value(request.expand(start, end));
+        });
 
         viewModel = CalendarViewModel(
           bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
           loggingService: mockLoggingService,
+          bookingService: mockBookingService,
         );
 
         viewModel.controller.view = CalendarView.month; // Set to month view
@@ -627,6 +685,7 @@ void main() {
           orgState: mockOrgState,
           roomState: mockRoomState,
           loggingService: mockLoggingService,
+          bookingService: mockBookingService,
         );
 
         viewModel.registerNewAppointmentStream(controller.stream);
@@ -665,23 +724,29 @@ void main() {
   group('Caching Logic', () {
     test('switching to contained view does not refetch', () async {
       // Reset mock to clear calls from setUp
+      reset(mockBookingService);
+      // Also reset mockBookingRepo just in case
       reset(mockBookingRepo);
 
       // Re-stub default behavior since reset clears stubs too
       when(
-        () => mockBookingRepo.listRequests(
+        () => mockBookingService.getRequestsStream(
           orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
+          isAdmin: any(named: 'isAdmin'),
+          start: any(named: 'start'),
+          end: any(named: 'end'),
           includeStatuses: any(named: 'includeStatuses'),
+          includeRoomIDs: any(named: 'includeRoomIDs'),
         ),
       ).thenAnswer((_) => Stream.value([]));
-      when(
-        () => mockBookingRepo.getRequestDetails(any(), any()),
-      ).thenAnswer((_) => Stream.value(null));
+
       when(
         () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
       ).thenAnswer((_) => Stream.value([]));
+      // Also request details which called by viewmodel sometimes
+      when(
+        () => mockBookingRepo.getRequestDetails(any(), any()),
+      ).thenAnswer((_) => Stream.value(null));
 
       // 1. Setup
       // Start with Month view
@@ -691,6 +756,7 @@ void main() {
         orgState: mockOrgState,
         roomState: mockRoomState,
         loggingService: mockLoggingService,
+        bookingService: mockBookingService,
         defaultView: CalendarView.month,
         targetDate: initialDate,
       );
@@ -700,11 +766,13 @@ void main() {
 
       // Verify initial fetch happened
       verify(
-        () => mockBookingRepo.listRequests(
+        () => mockBookingService.getRequestsStream(
           orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
+          isAdmin: any(named: 'isAdmin'),
+          start: any(named: 'start'),
+          end: any(named: 'end'),
           includeStatuses: any(named: 'includeStatuses'),
+          includeRoomIDs: any(named: 'includeRoomIDs'),
         ),
       ).called(1);
 
@@ -717,34 +785,39 @@ void main() {
 
       // Verify NO new fetch happened
       verifyNever(
-        () => mockBookingRepo.listRequests(
+        () => mockBookingService.getRequestsStream(
           orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
+          isAdmin: any(named: 'isAdmin'),
+          start: any(named: 'start'),
+          end: any(named: 'end'),
           includeStatuses: any(named: 'includeStatuses'),
+          includeRoomIDs: any(named: 'includeRoomIDs'),
         ),
       );
     });
 
     test('switching to uncontained view does refetch', () async {
       // Reset mock to clear calls from setUp
+      reset(mockBookingService);
       reset(mockBookingRepo);
 
       // Re-stub default behavior
       when(
-        () => mockBookingRepo.listRequests(
+        () => mockBookingService.getRequestsStream(
           orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
+          isAdmin: any(named: 'isAdmin'),
+          start: any(named: 'start'),
+          end: any(named: 'end'),
           includeStatuses: any(named: 'includeStatuses'),
+          includeRoomIDs: any(named: 'includeRoomIDs'),
         ),
+      ).thenAnswer((_) => Stream.value([]));
+      when(
+        () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
       ).thenAnswer((_) => Stream.value([]));
       when(
         () => mockBookingRepo.getRequestDetails(any(), any()),
       ).thenAnswer((_) => Stream.value(null));
-      when(
-        () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
-      ).thenAnswer((_) => Stream.value([]));
 
       // 1. Setup
       // Start with Month view
@@ -754,6 +827,7 @@ void main() {
         orgState: mockOrgState,
         roomState: mockRoomState,
         loggingService: mockLoggingService,
+        bookingService: mockBookingService,
         defaultView: CalendarView.month,
         targetDate: initialDate,
       );
@@ -763,11 +837,13 @@ void main() {
 
       // Verify initial fetch happened
       verify(
-        () => mockBookingRepo.listRequests(
+        () => mockBookingService.getRequestsStream(
           orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
+          isAdmin: any(named: 'isAdmin'),
+          start: any(named: 'start'),
+          end: any(named: 'end'),
           includeStatuses: any(named: 'includeStatuses'),
+          includeRoomIDs: any(named: 'includeRoomIDs'),
         ),
       ).called(1);
 
@@ -779,11 +855,13 @@ void main() {
 
       // Verify NEW fetch happened
       verify(
-        () => mockBookingRepo.listRequests(
+        () => mockBookingService.getRequestsStream(
+          start: any(named: 'start'),
+          end: any(named: 'end'),
           orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
+          isAdmin: any(named: 'isAdmin'),
           includeStatuses: any(named: 'includeStatuses'),
+          includeRoomIDs: any(named: 'includeRoomIDs'),
         ),
       ).called(1);
     });

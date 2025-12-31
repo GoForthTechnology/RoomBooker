@@ -46,6 +46,7 @@ class EmbedWidget extends StatelessWidget {
                     defaultView: defaultView,
                     bookingRepo: bookingRepo,
                     roomState: roomState,
+                    bookingService: context.read(),
                     showDatePickerButton: false,
                     includePrivateBookings: false,
                     showNavigationArrow: false,

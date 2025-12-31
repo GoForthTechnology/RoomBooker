@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/services/auth_service.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/services/logging_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
@@ -26,6 +27,8 @@ class MockUserRepo extends Mock implements UserRepo {}
 
 class MockBookingRepo extends Mock implements BookingRepo {}
 
+class MockBookingService extends Mock implements BookingService {}
+
 class MockAuthService extends Mock implements FirebaseAuthService {}
 
 class FakeAppointmentResizeEndDetails extends Fake
@@ -42,6 +45,7 @@ void main() {
   late MockOrgRepo mockOrgRepo;
   late MockRoomRepo mockRoomRepo;
   late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockUserRepo mockUserRepo;
   late MockAuthService mockAuthService;
 
@@ -76,10 +80,22 @@ void main() {
     mockOrgRepo = MockOrgRepo();
     mockRoomRepo = MockRoomRepo();
     mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockUserRepo = MockUserRepo();
     mockAuthService = MockAuthService();
 
     when(() => mockAuthService.getCurrentUserID()).thenReturn(null);
+
+    when(
+      () => mockBookingService.getRequestsStream(
+        orgID: any(named: 'orgID'),
+        isAdmin: any(named: 'isAdmin'),
+        start: any(named: 'start'),
+        end: any(named: 'end'),
+        includeStatuses: any(named: 'includeStatuses'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
 
     // Default BookingRepo stubs
     when(
@@ -106,6 +122,7 @@ void main() {
         ChangeNotifierProvider<OrgRepo>.value(value: mockOrgRepo),
         ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
         ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+        Provider<BookingService>.value(value: mockBookingService),
         ChangeNotifierProvider<AuthService>.value(value: mockAuthService),
         ChangeNotifierProvider<LoggingService>.value(
           value: FakeLoggingService(),

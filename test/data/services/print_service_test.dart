@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/services/print_service.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
-import 'package:pdf/widgets.dart' as pw; // For PDF widgets if needed
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

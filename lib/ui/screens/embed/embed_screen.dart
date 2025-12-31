@@ -46,6 +46,7 @@ class EmbedScreen extends StatelessWidget {
                     defaultView: defaultView,
                     bookingRepo: bookingRepo,
                     roomState: roomState,
+                    bookingService: context.read(),
                     showDatePickerButton: true,
                     includePrivateBookings: false,
                     showNavigationArrow: true,

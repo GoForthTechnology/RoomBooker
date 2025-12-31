@@ -11,6 +11,7 @@ import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/data/repos/user_repo.dart';
 import 'package:room_booker/ui/screens/embed/embed_screen.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
@@ -25,6 +26,8 @@ class MockRoomRepo extends Mock implements RoomRepo {}
 class MockUserRepo extends Mock implements UserRepo {}
 
 class MockBookingRepo extends Mock implements BookingRepo {}
+
+class MockBookingService extends Mock implements BookingService {}
 
 class MockAuthService extends Mock implements FirebaseAuthService {}
 
@@ -42,6 +45,7 @@ void main() {
   late MockOrgRepo mockOrgRepo;
   late MockRoomRepo mockRoomRepo;
   late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockUserRepo mockUserRepo;
   late MockAuthService mockAuthService;
 
@@ -75,7 +79,9 @@ void main() {
   setUp(() {
     mockOrgRepo = MockOrgRepo();
     mockRoomRepo = MockRoomRepo();
+    mockRoomRepo = MockRoomRepo();
     mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockUserRepo = MockUserRepo();
     mockAuthService = MockAuthService();
 
@@ -83,11 +89,13 @@ void main() {
 
     // Default BookingRepo stubs
     when(
-      () => mockBookingRepo.listRequests(
+      () => mockBookingService.getRequestsStream(
         orgID: any(named: 'orgID'),
-        startTime: any(named: 'startTime'),
-        endTime: any(named: 'endTime'),
+        isAdmin: any(named: 'isAdmin'),
+        start: any(named: 'start'),
+        end: any(named: 'end'),
         includeStatuses: any(named: 'includeStatuses'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
       ),
     ).thenAnswer((_) => Stream.value([]));
 
@@ -106,6 +114,7 @@ void main() {
         ChangeNotifierProvider<OrgRepo>.value(value: mockOrgRepo),
         ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
         ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+        Provider<BookingService>.value(value: mockBookingService),
         ChangeNotifierProvider<AuthService>.value(value: mockAuthService),
         ChangeNotifierProvider<LoggingService>.value(
           value: FakeLoggingService(),
@@ -170,11 +179,13 @@ void main() {
     );
 
     when(
-      () => mockBookingRepo.listRequests(
+      () => mockBookingService.getRequestsStream(
         orgID: any(named: 'orgID'),
-        startTime: any(named: 'startTime'),
-        endTime: any(named: 'endTime'),
+        isAdmin: any(named: 'isAdmin'),
+        start: any(named: 'start'),
+        end: any(named: 'end'),
         includeStatuses: any(named: 'includeStatuses'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
       ),
     ).thenAnswer((_) => Stream.value([booking]));
 
@@ -241,11 +252,13 @@ void main() {
     );
 
     when(
-      () => mockBookingRepo.listRequests(
+      () => mockBookingService.getRequestsStream(
         orgID: any(named: 'orgID'),
-        startTime: any(named: 'startTime'),
-        endTime: any(named: 'endTime'),
+        isAdmin: any(named: 'isAdmin'),
+        start: any(named: 'start'),
+        end: any(named: 'end'),
         includeStatuses: any(named: 'includeStatuses'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
       ),
     ).thenAnswer((_) => Stream.value([booking]));
 
@@ -438,6 +451,17 @@ void main() {
       when(
         () => mockRoomRepo.listRooms('org1'),
       ).thenAnswer((_) => Stream.value(rooms));
+
+      when(
+        () => mockBookingService.getRequestsStream(
+          orgID: any(named: 'orgID'),
+          isAdmin: any(named: 'isAdmin'),
+          start: any(named: 'start'),
+          end: any(named: 'end'),
+          includeStatuses: any(named: 'includeStatuses'),
+          includeRoomIDs: any(named: 'includeRoomIDs'),
+        ),
+      ).thenAnswer((_) => Stream.value([]));
 
       // Act
       await tester.pumpWidget(createWidgetUnderTest());

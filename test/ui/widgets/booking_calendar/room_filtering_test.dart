@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
@@ -12,6 +13,8 @@ import 'package:room_booker/data/services/logging_service.dart';
 
 // Mock classes
 class MockBookingRepo extends Mock implements BookingRepo {}
+
+class MockBookingService extends Mock implements BookingService {}
 
 class MockOrgState extends Mock implements OrgState {}
 
@@ -25,6 +28,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late CalendarViewModel viewModel;
   late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockOrgState mockOrgState;
   late RoomState roomState;
   late MockOrganization mockOrganization;
@@ -36,6 +40,7 @@ void main() {
 
   setUp(() {
     mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockOrgState = MockOrgState();
     mockOrganization = MockOrganization();
     mockLoggingService = MockLoggingService();
@@ -50,6 +55,16 @@ void main() {
         startTime: any(named: 'startTime'),
         endTime: any(named: 'endTime'),
         includeStatuses: any(named: 'includeStatuses'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockBookingService.getRequestsStream(
+        orgID: any(named: 'orgID'),
+        isAdmin: any(named: 'isAdmin'),
+        start: any(named: 'start'),
+        end: any(named: 'end'),
+        includeStatuses: any(named: 'includeStatuses'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
       ),
     ).thenAnswer((_) => Stream.value([]));
     when(
@@ -96,11 +111,23 @@ void main() {
       ),
     ).thenAnswer((_) => Stream.value([request1, request2]));
 
+    when(
+      () => mockBookingService.getRequestsStream(
+        orgID: any(named: 'orgID'),
+        isAdmin: any(named: 'isAdmin'),
+        start: any(named: 'start'),
+        end: any(named: 'end'),
+        includeStatuses: any(named: 'includeStatuses'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([request1, request2]));
+
     viewModel = CalendarViewModel(
       bookingRepo: mockBookingRepo,
       orgState: mockOrgState,
       roomState: roomState,
       loggingService: mockLoggingService,
+      bookingService: mockBookingService,
     );
 
     // Initial state: both events should be visible

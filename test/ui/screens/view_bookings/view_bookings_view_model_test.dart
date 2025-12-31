@@ -8,6 +8,7 @@ import 'package:room_booker/data/services/auth_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/screens/view_bookings/view_bookings_view_model.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
@@ -17,6 +18,8 @@ import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class MockBookingRepo extends Mock implements BookingRepo {}
+
+class MockBookingService extends Mock implements BookingService {}
 
 class MockRoomRepo extends Mock implements RoomRepo {}
 
@@ -51,6 +54,7 @@ class FakeViewBookingsRoute extends Fake implements ViewBookingsRoute {}
 
 void main() {
   late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockRoomRepo mockRoomRepo;
   late MockAuthService mockAuthService;
   late MockOrgState mockOrgState;
@@ -78,6 +82,7 @@ void main() {
 
   setUp(() {
     mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockRoomRepo = MockRoomRepo();
     mockAuthService = MockAuthService();
     mockOrgState = MockOrgState();
@@ -130,6 +135,7 @@ void main() {
   }) {
     return ViewBookingsViewModel(
       bookingRepo: mockBookingRepo,
+      bookingService: mockBookingService,
       roomRepo: mockRoomRepo,
       authService: mockAuthService,
       orgState: mockOrgState,

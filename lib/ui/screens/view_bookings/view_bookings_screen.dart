@@ -10,6 +10,7 @@ import 'package:room_booker/data/services/logging_service.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/ui/screens/view_bookings/view_bookings_view_model.dart';
+
 import 'package:room_booker/ui/utils/traced_stream_builder.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
@@ -68,20 +69,24 @@ class ViewBookingsScreen extends StatelessWidget {
           builder: (context, orgState, child) => RoomStateProvider(
             enableAllRooms: true,
             org: orgState.org,
-            builder: (context, _) => ChangeNotifierProvider.value(
-              value: createCalendarViewModel != null
-                  ? createCalendarViewModel!(context, targetDate)
-                  : _createCalendarViewModel(targetDate, context),
-              builder: (context, child) => ChangeNotifierProvider.value(
-                value: createRequestEditorViewModel != null
-                    ? createRequestEditorViewModel!(context)
-                    : _createRequestEditorViewModel(context),
-                builder: (context, child) => ChangeNotifierProvider.value(
-                  value: createViewModel != null
-                      ? createViewModel!(context)
-                      : _createViewModel(context),
-                  child: _content(orgState, logging),
+            builder: (context, _) => MultiProvider(
+              providers: [
+                ChangeNotifierProvider.value(
+                  value: createCalendarViewModel != null
+                      ? createCalendarViewModel!(context, targetDate)
+                      : _createCalendarViewModel(targetDate, context),
                 ),
+                ChangeNotifierProvider.value(
+                  value: createRequestEditorViewModel != null
+                      ? createRequestEditorViewModel!(context)
+                      : _createRequestEditorViewModel(context),
+                ),
+              ],
+              builder: (context, child) => ChangeNotifierProvider.value(
+                value: createViewModel != null
+                    ? createViewModel!(context)
+                    : _createViewModel(context),
+                child: _content(orgState, logging),
               ),
             ),
           ),
@@ -107,6 +112,7 @@ class ViewBookingsScreen extends StatelessWidget {
       authService: context.read(),
       sizeProvider: () => MediaQuery.sizeOf(context),
       orgState: context.read(),
+      bookingService: context.read(),
       requestEditorViewModel: context.read(),
       calendarViewModel: context.read(),
       createRequest: createRequest,
@@ -146,6 +152,7 @@ class ViewBookingsScreen extends StatelessWidget {
       orgState: context.read(),
       bookingRepo: context.read(),
       roomState: context.read(),
+      bookingService: context.read(),
       targetDate: targetDate,
       loggingService: context.read(),
       defaultView: CalendarView.values.firstWhere(

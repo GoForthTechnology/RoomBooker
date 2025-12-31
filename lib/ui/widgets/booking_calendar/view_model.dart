@@ -10,6 +10,7 @@ import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CalendarViewModel extends ChangeNotifier {
@@ -50,6 +51,7 @@ class CalendarViewModel extends ChangeNotifier {
   final OrgState _orgState;
   final RoomState _roomState;
   final LoggingService _loggingService;
+  final BookingService _bookingService;
 
   final BehaviorSubject<void> _roomStateSubject = BehaviorSubject.seeded(null);
 
@@ -58,6 +60,7 @@ class CalendarViewModel extends ChangeNotifier {
     required BookingRepo bookingRepo,
     required RoomState roomState,
     required LoggingService loggingService,
+    required BookingService bookingService,
     CalendarView defaultView = CalendarView.week,
     bool allowAppointmentResize = false,
     bool allowDragAndDrop = false,
@@ -82,6 +85,7 @@ class CalendarViewModel extends ChangeNotifier {
        _bookingRepo = bookingRepo,
        _orgState = orgState,
        _roomState = roomState,
+       _bookingService = bookingService,
        _loggingService = loggingService {
     controller.view = defaultView;
     controller.displayDate = targetDate ?? DateTime.now();
@@ -101,19 +105,20 @@ class CalendarViewModel extends ChangeNotifier {
     _roomState.addListener(_onRoomStateChanged);
 
     controller.addPropertyChangedListener(_handlePropertyChange);
-    _requestIndex.addStream(
-      _buildAppointmentStream(bookingRepo, orgState, roomState).map((
-        appointmentsToRequests,
-      ) {
-        Map<String, Request> index = {};
-        for (var e in appointmentsToRequests.entries) {
-          var appointment = e.key;
-          var request = e.value;
-          index[_appointmentID(appointment)] = request;
-        }
-        return index;
-      }),
-    );
+    var indexSub = _buildAppointmentStream(bookingRepo, orgState, roomState)
+        .map((appointmentsToRequests) {
+          Map<String, Request> index = {};
+          for (var e in appointmentsToRequests.entries) {
+            var appointment = e.key;
+            var request = e.value;
+            index[_appointmentID(appointment)] = request;
+          }
+          return index;
+        })
+        .listen((index) {
+          _requestIndex.add(index);
+        });
+    _subscriptions.add(indexSub);
   }
 
   void _onRoomStateChanged() {
@@ -226,20 +231,18 @@ class CalendarViewModel extends ChangeNotifier {
             description: 'Fetching requests for window $window',
           );
           try {
-            yield* bookingRepo
-                .listRequests(
+            // Use BookingService to fetch, expand, and enrich
+            yield* _bookingService
+                .getRequestsStream(
                   orgID: orgState.org.id!,
-                  startTime: window.start,
-                  endTime: window.end,
-                  includeStatuses: {
-                    RequestStatus.pending,
-                    RequestStatus.confirmed,
-                  },
+                  isAdmin: orgState.currentUserIsAdmin,
+                  start: window.start,
+                  end: window.end,
                 )
                 .handleError((e, s) {
                   span?.status = const SpanStatus.internalError();
                   span?.finish();
-                  throw 'Error in listRequests: $e';
+                  throw 'Error in getRequestsStream: $e';
                 })
                 .doOnData((_) {
                   span?.status = const SpanStatus.ok();
@@ -263,36 +266,36 @@ class CalendarViewModel extends ChangeNotifier {
       _roomStateSubject.handleError((e, s) {
         throw 'Error in _roomStateSubject: $e';
       }),
-      (List<Request> requests, VisibleWindow window, _) {
-        var visibleRequests = requests
-            .where(
-              (r) => r
-                  .expand(window.start, window.end, includeRequestDate: true)
-                  .isNotEmpty,
-            )
-            .toList();
-        return _detailStream(orgState, visibleRequests, bookingRepo)
-            .handleError((e, s) {
-              throw 'Error in _detailStream: $e';
-            })
-            .map((details) {
-              var converted = _convertRequests(
-                visibleRequests,
-                details,
-                window,
-                roomState,
-                _newAppointmentSubject.valueOrNull,
-              );
-              return converted;
-            })
-            .startWith({});
+      (List<Request> expandedRequests, VisibleWindow window, _) {
+        // BookingService already expanded requests. We just filter for window just in case?
+        // BookingService expands strictly to start/end passed.
+        // But window changes?
+        // _fetchWindowController drives the stream.
+        // If visible window is subset of fetch window, filtering might be needed if Syncfusion needs exact data?
+        // Actually Syncfusion ignores outside appointments usually.
+        // But let's check filtering.
+
+        // Actually, _convertRequests expects enriched requests now.
+        // And _detailStream is no longer needed here if BookingService handles it!
+        // Wait, BookingService handles details.
+
+        // So we just need to convert.
+        return _convertRequests(
+          expandedRequests,
+          window,
+          roomState,
+          _newAppointmentSubject.valueOrNull,
+        );
       },
-    ).switchMap((stream) => stream);
+    ).switchMap(
+      (map) => Stream.value(map),
+    ); // Flatten Future/Stream? No, _convertRequests returns Map.
+    // Wait, combineLatest3 returns T. Stream<T> is result.
+    // So distinct() might be useful.
   }
 
   Map<Appointment, Request> _convertRequests(
     List<Request> requests,
-    List<PrivateRequestDetails> details,
     VisibleWindow window,
     RoomState roomState,
     Appointment? newAppointment,
@@ -303,39 +306,34 @@ class CalendarViewModel extends ChangeNotifier {
     );
 
     try {
-      var detailIndex = _indexDetails(details);
       Map<Appointment, Request> appointments = {};
       for (var request in requests) {
         if (!roomState.isEnabled(request.roomID)) {
           continue;
         }
-        for (var repeat in request.expand(
-          window.start,
-          window.end,
-          includeRequestDate: true,
-        )) {
-          /*if (_isSameRequest(requestEditorState.existingRequest, repeat)) {
-            // Skip the current request
-            continue;
-          }*/
-          String? subject = repeat.publicName;
-          var details = detailIndex[request.id!];
-          if (subject == null && details != null) {
-            subject = "${details.eventName} (Private)";
-          }
-          var isPrivateBooking = (subject ?? "") == "";
-          if (isPrivateBooking && !includePrivateBookings) {
-            continue;
-          }
-          var appointment = repeat.toAppointment(
-            roomState,
-            subject: subject,
-            diminish: newAppointment != null,
-            appendRoomName: appendRoomName,
-            showIngnoringOverlaps: showIgnoringOverlaps,
-          );
-          appointments[appointment] = repeat;
+
+        // Requests are already expanded and enriched by BookingService
+
+        // Filter out if not in window?
+        // Service should return requests overlapping window.
+        // But let's check to be safe if Syncfusion behaves odd.
+        // Actually expands() logic in service handles trimming/window?
+        // request.expand() usually generates instances.
+
+        var subject = request.publicName;
+        var isPrivateBooking = (subject ?? "") == "";
+        if (isPrivateBooking && !includePrivateBookings) {
+          continue;
         }
+
+        var appointment = request.toAppointment(
+          roomState,
+          subject: subject,
+          diminish: newAppointment != null,
+          appendRoomName: appendRoomName,
+          showIngnoringOverlaps: showIgnoringOverlaps,
+        );
+        appointments[appointment] = request;
       }
       span?.status = const SpanStatus.ok();
       return appointments;
@@ -345,51 +343,6 @@ class CalendarViewModel extends ChangeNotifier {
     } finally {
       span?.finish();
     }
-  }
-
-  static Map<String, PrivateRequestDetails> _indexDetails(
-    List<PrivateRequestDetails> details,
-  ) {
-    var out = <String, PrivateRequestDetails>{};
-    for (var d in details) {
-      out[d.id!] = d;
-    }
-    return out;
-  }
-
-  Stream<List<PrivateRequestDetails>> _detailStream(
-    OrgState orgState,
-    List<Request> requests,
-    BookingRepo bookingRepo,
-  ) {
-    if (!orgState.currentUserIsAdmin || requests.isEmpty) {
-      return Stream.value([]);
-    }
-    var orgID = orgState.org.id!;
-    var streams = requests
-        .map((r) => bookingRepo.getRequestDetails(orgID, r.id!))
-        .toList();
-    return Rx.combineLatestList(streams).map((details) {
-      final span = Sentry.getSpan()?.startChild(
-        'fetch_request_details',
-        description: 'Fetching details for ${requests.length} requests',
-      );
-      try {
-        var out = <PrivateRequestDetails>[];
-        for (var d in details) {
-          if (d != null) {
-            out.add(d);
-          }
-        }
-        span?.status = const SpanStatus.ok();
-        span?.finish();
-        return out;
-      } catch (e) {
-        span?.status = const SpanStatus.internalError();
-        span?.finish();
-        rethrow;
-      }
-    });
   }
 
   void _handlePropertyChange(String property) {
