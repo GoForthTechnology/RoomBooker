@@ -1,10 +1,13 @@
 import 'dart:developer';
 
+import 'package:room_booker/data/services/print_service.dart';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/services/auth_service.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
@@ -23,6 +26,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
   final StackRouter _router;
   final AuthService _authService;
   final BookingRepo _bookingRepo;
+  final RoomRepo _roomRepo;
   final OrgState _orgState;
 
   final CalendarViewModel _calendarViewModel;
@@ -33,6 +37,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
   final Function() showEditorAsDialog;
   final Future<DateTime?> Function(DateTime, DateTime, DateTime) pickDate;
   final Future<TimeOfDay?> Function(DateTime) pickTime;
+  final PrintService? printService;
 
   static final dateFormat = DateFormat('yyyy-MM-dd');
 
@@ -40,6 +45,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
 
   ViewBookingsViewModel({
     required BookingRepo bookingRepo,
+    required RoomRepo roomRepo,
     required AuthService authService,
     required OrgState orgState,
     required StackRouter router,
@@ -56,7 +62,9 @@ class ViewBookingsViewModel extends ChangeNotifier {
     required Function(Uri) updateUri,
     required this.pickDate,
     required this.pickTime,
+    this.printService,
   }) : _bookingRepo = bookingRepo,
+       _roomRepo = roomRepo,
        _authService = authService,
        _router = router,
        _calendarViewModel = calendarViewModel,
@@ -208,7 +216,97 @@ class ViewBookingsViewModel extends ChangeNotifier {
         ),
       );
     }
+
+    actions.add(
+      Action(
+        name: "Print",
+        icon: Icons.print,
+        onPressed: () => _onPrint(context),
+      ),
+    );
+
     return actions;
+  }
+
+  void _onPrint(BuildContext context) async {
+    try {
+      final service = printService ?? PrintService();
+
+      var targetDate =
+          _calendarViewModel.controller.displayDate ?? DateTime.now();
+      var view = _calendarViewModel.controller.view ?? CalendarView.week;
+
+      DateTime start;
+      DateTime end;
+      if (view == CalendarView.day) {
+        start = DateTime(targetDate.year, targetDate.month, targetDate.day);
+        end = start.add(const Duration(days: 1));
+      } else if (view == CalendarView.week) {
+        start = targetDate.subtract(const Duration(days: 7));
+        end = targetDate.add(const Duration(days: 7));
+      } else {
+        start = DateTime(
+          targetDate.year,
+          targetDate.month,
+          1,
+        ).subtract(const Duration(days: 7));
+        end = DateTime(
+          targetDate.year,
+          targetDate.month + 1,
+          1,
+        ).add(const Duration(days: 7));
+      }
+
+      // Wait for the stream to settle to get the latest data
+      final requestsStream = _bookingRepo.listRequests(
+        orgID: orgID,
+        startTime: start,
+        endTime: end,
+        includeStatuses: {RequestStatus.confirmed},
+      );
+      List<Request> requests = [];
+      final subscription = requestsStream.listen((event) {
+        requests = event;
+      });
+
+      // Wait for 500ms for data to fetch (skipping potential initial empty/cache states)
+      await Future.delayed(const Duration(milliseconds: 500));
+      await subscription.cancel();
+
+      // If user is admin, fetch private details to show real names instead of "Private"
+      if (_orgState.currentUserIsAdmin) {
+        requests = await Future.wait(
+          requests.map((r) async {
+            if (r.id == null) return r;
+            try {
+              final details = await _bookingRepo
+                  .getRequestDetails(orgID, r.id!)
+                  .first;
+              if (details != null && details.eventName.isNotEmpty) {
+                return r.copyWith(publicName: details.eventName);
+              }
+            } catch (e) {
+              log("Error fetching details for print: $e");
+            }
+            return r;
+          }),
+        );
+      }
+
+      // Fetch room colors
+      final rooms = await _roomRepo.listRooms(orgID).first;
+      final roomColors = {for (var r in rooms) r.id!: r.colorHex ?? ""};
+
+      await service.printCalendar(
+        requests: requests,
+        targetDate: targetDate,
+        view: view,
+        orgName: _orgState.org.name,
+        roomColors: roomColors,
+      );
+    } catch (e) {
+      log("Failed to print calendar: $e");
+    }
   }
 
   bool isSmallView() {

@@ -103,6 +103,7 @@ class ViewBookingsScreen extends StatelessWidget {
       readOnlyMode: readOnlyMode,
       router: AutoRouter.of(context),
       bookingRepo: context.read(),
+      roomRepo: context.read(),
       authService: context.read(),
       sizeProvider: () => MediaQuery.sizeOf(context),
       orgState: context.read(),

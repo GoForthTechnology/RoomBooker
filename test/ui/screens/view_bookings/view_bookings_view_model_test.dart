@@ -11,11 +11,14 @@ import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/screens/view_bookings/view_bookings_view_model.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
+import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class MockBookingRepo extends Mock implements BookingRepo {}
+
+class MockRoomRepo extends Mock implements RoomRepo {}
 
 class MockAuthService extends Mock implements AuthService {}
 
@@ -48,6 +51,7 @@ class FakeViewBookingsRoute extends Fake implements ViewBookingsRoute {}
 
 void main() {
   late MockBookingRepo mockBookingRepo;
+  late MockRoomRepo mockRoomRepo;
   late MockAuthService mockAuthService;
   late MockOrgState mockOrgState;
   late MockStackRouter mockStackRouter;
@@ -74,6 +78,7 @@ void main() {
 
   setUp(() {
     mockBookingRepo = MockBookingRepo();
+    mockRoomRepo = MockRoomRepo();
     mockAuthService = MockAuthService();
     mockOrgState = MockOrgState();
     mockStackRouter = MockStackRouter();
@@ -125,6 +130,7 @@ void main() {
   }) {
     return ViewBookingsViewModel(
       bookingRepo: mockBookingRepo,
+      roomRepo: mockRoomRepo,
       authService: mockAuthService,
       orgState: mockOrgState,
       router: mockStackRouter,
@@ -473,6 +479,16 @@ void main() {
 
       expect(actions.any((a) => a.name == "Review Requests"), false);
       expect(actions.any((a) => a.name == "Login"), true);
+    });
+
+    test('Print action is always present', () {
+      when(() => mockOrgState.currentUserIsAdmin).thenReturn(false);
+      when(() => mockAuthService.getCurrentUserID()).thenReturn(null);
+
+      final viewModel = createViewModel(createRequest: false);
+      final actions = viewModel.getActions(mockContext);
+
+      expect(actions.any((a) => a.name == "Print"), true);
     });
   });
 

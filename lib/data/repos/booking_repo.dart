@@ -375,16 +375,22 @@ class BookingRepo extends ChangeNotifier {
           .map((q) => q.where("roomID", whereIn: includeRoomIDs))
           .toList();
     }
-    var streams = queries
-        .map(
-          (q) => q.snapshots().map((s) => s.docs.map((d) => d.data()).toList()),
-        )
-        .map((s) => s);
-    return Rx.combineLatestList(streams)
-        .map((listOfLists) {
-          return listOfLists.flattenedToList;
-        })
-        .startWith([]);
+    try {
+      var streams = queries
+          .map(
+            (q) =>
+                q.snapshots().map((s) => s.docs.map((d) => d.data()).toList()),
+          )
+          .map((s) => s);
+      return Rx.combineLatestList(streams)
+          .map((listOfLists) {
+            return listOfLists.flattenedToList;
+          })
+          .startWith([]);
+    } catch (e) {
+      _logging.error("Failed to list requests: $e");
+      return Stream.error(e);
+    }
   }
 
   final List<BlackoutWindow> _defaultBlackoutWindows = [
