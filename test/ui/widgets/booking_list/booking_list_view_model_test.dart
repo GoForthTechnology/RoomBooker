@@ -4,13 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_filter_view_model.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_list_view_model.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 
-class MockBookingRepo extends Mock implements BookingRepo {}
+class MockBookingService extends Mock implements BookingService {}
 
 class MockLogRepo extends Mock implements LogRepo {}
 
@@ -20,7 +20,7 @@ class MockBookingFilterViewModel extends Mock
     implements BookingFilterViewModel {}
 
 void main() {
-  late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockLogRepo mockLogRepo;
   late MockRoomState mockRoomState;
   late MockBookingFilterViewModel mockFilterViewModel;
@@ -46,7 +46,7 @@ void main() {
   );
 
   setUp(() {
-    mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockLogRepo = MockLogRepo();
     mockRoomState = MockRoomState();
     mockFilterViewModel = MockBookingFilterViewModel();
@@ -58,7 +58,7 @@ void main() {
 
     // Default empty stream
     when(
-      () => mockBookingRepo.listRequests(
+      () => mockBookingService.listRequests(
         orgID: any(named: 'orgID'),
         startTime: any(named: 'startTime'),
         endTime: any(named: 'endTime'),
@@ -70,7 +70,7 @@ void main() {
 
   test('initializes with empty requests', () async {
     viewModel = BookingListViewModel(
-      bookingRepo: mockBookingRepo,
+      bookingService: mockBookingService,
       logRepo: mockLogRepo,
       orgID: orgID,
       statusList: statusList,
@@ -83,7 +83,7 @@ void main() {
 
   test('loads requests and details', () async {
     when(
-      () => mockBookingRepo.listRequests(
+      () => mockBookingService.listRequests(
         orgID: any(named: 'orgID'),
         startTime: any(named: 'startTime'),
         endTime: any(named: 'endTime'),
@@ -93,7 +93,7 @@ void main() {
     ).thenAnswer((_) => Stream.value([request]));
 
     when(
-      () => mockBookingRepo.getRequestDetails(orgID, request.id!),
+      () => mockBookingService.getRequestDetails(orgID, request.id!),
     ).thenAnswer((_) => Stream.value(requestDetails));
 
     when(
@@ -104,7 +104,7 @@ void main() {
     ).thenAnswer((_) => Stream.value([]));
 
     viewModel = BookingListViewModel(
-      bookingRepo: mockBookingRepo,
+      bookingService: mockBookingService,
       logRepo: mockLogRepo,
       orgID: orgID,
       statusList: statusList,
@@ -120,7 +120,7 @@ void main() {
 
   test('filters requests by search query', () async {
     when(
-      () => mockBookingRepo.listRequests(
+      () => mockBookingService.listRequests(
         orgID: any(named: 'orgID'),
         startTime: any(named: 'startTime'),
         endTime: any(named: 'endTime'),
@@ -130,7 +130,7 @@ void main() {
     ).thenAnswer((_) => Stream.value([request]));
 
     when(
-      () => mockBookingRepo.getRequestDetails(orgID, request.id!),
+      () => mockBookingService.getRequestDetails(orgID, request.id!),
     ).thenAnswer((_) => Stream.value(requestDetails));
 
     when(
@@ -143,7 +143,7 @@ void main() {
     when(() => mockFilterViewModel.searchQuery).thenReturn('nomatch');
 
     viewModel = BookingListViewModel(
-      bookingRepo: mockBookingRepo,
+      bookingService: mockBookingService,
       logRepo: mockLogRepo,
       orgID: orgID,
       statusList: statusList,
@@ -157,7 +157,7 @@ void main() {
 
   test('uses overrideRequests if provided', () async {
     viewModel = BookingListViewModel(
-      bookingRepo: mockBookingRepo,
+      bookingService: mockBookingService,
       logRepo: mockLogRepo,
       orgID: orgID,
       statusList: statusList,
@@ -167,7 +167,7 @@ void main() {
     );
 
     when(
-      () => mockBookingRepo.getRequestDetails(orgID, request.id!),
+      () => mockBookingService.getRequestDetails(orgID, request.id!),
     ).thenAnswer((_) => Stream.value(requestDetails));
 
     when(

@@ -4,14 +4,14 @@ import 'package:room_booker/data/services/analytics_service.dart';
 import 'package:room_booker/data/services/auth_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 
 // Mock classes using mocktail
-class MockBookingRepo extends Mock implements BookingRepo {}
+class MockBookingService extends Mock implements BookingService {}
 
 class MockAnalyticsService extends Mock implements AnalyticsService {}
 
@@ -46,7 +46,7 @@ void main() {
   });
 
   group('RequestEditorViewModel', () {
-    late MockBookingRepo mockBookingRepo;
+    late MockBookingService mockBookingService;
     late MockAnalyticsService mockAnalyticsService;
     late MockAuthService mockAuthService;
     late MockOrgState mockOrgState;
@@ -57,7 +57,7 @@ void main() {
     late RoomState mockRoom;
 
     setUp(() {
-      mockBookingRepo = MockBookingRepo();
+      mockBookingService = MockBookingService();
       mockAnalyticsService = MockAnalyticsService();
       mockAuthService = MockAuthService();
       mockOrgState = MockOrgState();
@@ -118,7 +118,7 @@ void main() {
           roomState: mockRoom,
           analyticsService: mockAnalyticsService,
           authService: mockAuthService,
-          bookingRepo: mockBookingRepo,
+          bookingService: mockBookingService,
           orgState: mockOrgState,
           choiceProvider: () async => RecurringBookingEditChoice.thisInstance,
         );
@@ -460,7 +460,7 @@ void main() {
       group('Action Execution', () {
         test('Approve action confirms request and logs analytics', () async {
           when(
-            () => mockBookingRepo.confirmRequest(any(), any()),
+            () => mockBookingService.confirmRequest(any(), any()),
           ).thenAnswer((_) async {});
           when(
             () => mockAnalyticsService.logEvent(
@@ -491,7 +491,10 @@ void main() {
           await approveAction.onPressed();
 
           verify(
-            () => mockBookingRepo.confirmRequest('test-org', 'pending_request'),
+            () => mockBookingService.confirmRequest(
+              'test-org',
+              'pending_request',
+            ),
           ).called(1);
           verify(
             () => mockAnalyticsService.logEvent(
@@ -503,7 +506,7 @@ void main() {
 
         test('Reject action denies request and logs analytics', () async {
           when(
-            () => mockBookingRepo.denyRequest(any(), any()),
+            () => mockBookingService.denyRequest(any(), any()),
           ).thenAnswer((_) async {});
           when(
             () => mockAnalyticsService.logEvent(
@@ -533,7 +536,7 @@ void main() {
           await rejectAction.onPressed();
 
           verify(
-            () => mockBookingRepo.denyRequest('test-org', 'pending_request'),
+            () => mockBookingService.denyRequest('test-org', 'pending_request'),
           ).called(1);
           verify(
             () => mockAnalyticsService.logEvent(
@@ -545,7 +548,7 @@ void main() {
 
         test('Delete action deletes booking and logs analytics', () async {
           when(
-            () => mockBookingRepo.deleteBooking(any(), any(), any()),
+            () => mockBookingService.deleteBooking(any(), any(), any()),
           ).thenAnswer((_) async {});
           when(
             () => mockAnalyticsService.logEvent(
@@ -578,7 +581,7 @@ void main() {
           await deleteAction.onPressed();
 
           verify(
-            () => mockBookingRepo.deleteBooking(
+            () => mockBookingService.deleteBooking(
               'test-org',
               confirmedRequest,
               any(),
@@ -594,7 +597,7 @@ void main() {
 
         test('Revisit action revisits booking request', () async {
           when(
-            () => mockBookingRepo.revisitBookingRequest(any(), any()),
+            () => mockBookingService.revisitBookingRequest(any(), any()),
           ).thenAnswer((_) async {});
 
           final confirmedRequest = Request(
@@ -621,7 +624,7 @@ void main() {
 
           expect(result.message, contains('revisited'));
           verify(
-            () => mockBookingRepo.revisitBookingRequest(
+            () => mockBookingService.revisitBookingRequest(
               'test-org',
               confirmedRequest,
             ),
@@ -630,7 +633,7 @@ void main() {
 
         test('End action ends recurring booking and logs analytics', () async {
           when(
-            () => mockBookingRepo.endBooking(any(), any(), any()),
+            () => mockBookingService.endBooking(any(), any(), any()),
           ).thenAnswer((_) async {});
           when(
             () => mockAnalyticsService.logEvent(
@@ -671,7 +674,7 @@ void main() {
           await endAction.onPressed();
 
           verify(
-            () => mockBookingRepo.endBooking(
+            () => mockBookingService.endBooking(
               'test-org',
               'recurring_request',
               any(),
@@ -714,7 +717,7 @@ void main() {
 
         // Mock updateBooking
         when(
-          () => mockBookingRepo.updateBooking(
+          () => mockBookingService.updateBooking(
             any(),
             any(),
             any(),
@@ -737,7 +740,7 @@ void main() {
         await saveAction.onPressed();
 
         verify(
-          () => mockBookingRepo.updateBooking(
+          () => mockBookingService.updateBooking(
             'test-org',
             confirmedRequest,
             any(

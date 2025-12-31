@@ -15,6 +15,11 @@ This is a Flutter application for managing room reservations. It uses Firebase f
 - **Error Reporting:** `sentry_flutter`
 - **Calendar UI:** `syncfusion_flutter_calendar`
 
+## Architecture
+
+- **Booking Logic:** All booking-related logic and data access must go through `BookingService`.
+- **BookingRepo:** The `BookingRepo` is an internal data access layer for `BookingService` and **must not** be accessed directly by UI components or ViewModels. It is not a `ChangeNotifier` to enforce this rule.
+
 ## Getting Started
 
 ### Running the Application

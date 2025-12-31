@@ -4,7 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_filter_view_model.dart';
 import 'package:room_booker/ui/widgets/booking_list/rejected_bookings.dart';
@@ -13,7 +13,7 @@ import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'booking_lists_test.dart';
 
 void main() {
-  late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockLogRepo mockLogRepo;
   late MockRoomState mockRoomState;
   late MockBookingFilterViewModel mockFilterViewModel;
@@ -28,7 +28,7 @@ void main() {
     eventEndTime: DateTime.now().add(Duration(hours: 1)),
     status: RequestStatus.denied,
   );
-    final requestDetails = PrivateRequestDetails(
+  final requestDetails = PrivateRequestDetails(
     id: 'req1',
     name: 'John Doe',
     email: 'john@example.com',
@@ -36,9 +36,8 @@ void main() {
     eventName: 'Meeting',
   );
 
-
   setUp(() {
-    mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockLogRepo = MockLogRepo();
     mockRoomState = MockRoomState();
     mockFilterViewModel = MockBookingFilterViewModel();
@@ -55,35 +54,39 @@ void main() {
       home: Scaffold(
         body: MultiProvider(
           providers: [
-            ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+            Provider<BookingService>.value(value: mockBookingService),
             ChangeNotifierProvider<LogRepo>.value(value: mockLogRepo),
             ChangeNotifierProvider<RoomState>.value(value: mockRoomState),
             ChangeNotifierProvider<BookingFilterViewModel>.value(
-                value: mockFilterViewModel),
+              value: mockFilterViewModel,
+            ),
           ],
-          child: RejectedBookings(
-            orgID: orgID,
-            repo: mockBookingRepo,
-          ),
+          child: RejectedBookings(orgID: orgID, service: mockBookingService),
         ),
       ),
     );
   }
 
   testWidgets('displays rejected booking', (WidgetTester tester) async {
-    when(() => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: {RequestStatus.denied},
-        )).thenAnswer((_) => Stream.value([request]));
-    
-    when(() => mockBookingRepo.getRequestDetails(orgID, request.id!))
-        .thenAnswer((_) => Stream.value(requestDetails));
-    when(() => mockLogRepo.getLogEntries(orgID, requestIDs: any(named: 'requestIDs')))
-        .thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockBookingService.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+        includeStatuses: {RequestStatus.denied},
+      ),
+    ).thenAnswer((_) => Stream.value([request]));
 
+    when(
+      () => mockBookingService.getRequestDetails(orgID, request.id!),
+    ).thenAnswer((_) => Stream.value(requestDetails));
+    when(
+      () => mockLogRepo.getLogEntries(
+        orgID,
+        requestIDs: any(named: 'requestIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
 
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
@@ -93,26 +96,36 @@ void main() {
   });
 
   testWidgets('revisit action calls repo', (WidgetTester tester) async {
-    when(() => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: {RequestStatus.denied},
-        )).thenAnswer((_) => Stream.value([request]));
-    
-    when(() => mockBookingRepo.getRequestDetails(orgID, request.id!))
-        .thenAnswer((_) => Stream.value(requestDetails));
-    when(() => mockLogRepo.getLogEntries(orgID, requestIDs: any(named: 'requestIDs')))
-        .thenAnswer((_) => Stream.value([]));
-    when(() => mockBookingRepo.revisitBookingRequest(orgID, request))
-        .thenAnswer((_) async {});
+    when(
+      () => mockBookingService.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+        includeStatuses: {RequestStatus.denied},
+      ),
+    ).thenAnswer((_) => Stream.value([request]));
+
+    when(
+      () => mockBookingService.getRequestDetails(orgID, request.id!),
+    ).thenAnswer((_) => Stream.value(requestDetails));
+    when(
+      () => mockLogRepo.getLogEntries(
+        orgID,
+        requestIDs: any(named: 'requestIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockBookingService.revisitBookingRequest(orgID, request),
+    ).thenAnswer((_) async {});
 
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
-    
+
     await tester.tap(find.byIcon(Icons.assignment_return));
-    
-    verify(() => mockBookingRepo.revisitBookingRequest(orgID, request)).called(1);
+
+    verify(
+      () => mockBookingService.revisitBookingRequest(orgID, request),
+    ).called(1);
   });
 }

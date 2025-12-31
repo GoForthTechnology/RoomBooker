@@ -2,21 +2,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/widgets/request_logs_controller.dart';
 
 class MockLogRepo extends Mock implements LogRepo {}
 
-class MockBookingRepo extends Mock implements BookingRepo {}
+class MockBookingService extends Mock implements BookingService {}
 
 void main() {
   late MockLogRepo mockLogRepo;
-  late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
 
   setUp(() {
     mockLogRepo = MockLogRepo();
-    mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     registerFallbackValue(Stream<List<RequestLogEntry>>.empty());
     registerFallbackValue(<String>{});
   });
@@ -65,12 +65,12 @@ void main() {
     ).thenAnswer((_) => Stream.value([]));
 
     when(
-      () => mockBookingRepo.decorateLogs(any(), any()),
+      () => mockBookingService.decorateLogs(any(), any()),
     ).thenAnswer((_) => Stream.value([]));
 
     final controller = RequestLogsController(
       logRepo: mockLogRepo,
-      bookingRepo: mockBookingRepo,
+      bookingService: mockBookingService,
       orgID: 'org1',
     );
 
@@ -94,12 +94,12 @@ void main() {
     ).thenAnswer((_) => Stream.error('Test Error'));
 
     when(
-      () => mockBookingRepo.decorateLogs(any(), any()),
+      () => mockBookingService.decorateLogs(any(), any()),
     ).thenAnswer((_) => Stream.error('Test Error'));
 
     final controller = RequestLogsController(
       logRepo: mockLogRepo,
-      bookingRepo: mockBookingRepo,
+      bookingService: mockBookingService,
       orgID: 'org1',
     );
 
@@ -124,12 +124,12 @@ void main() {
     ).thenAnswer((_) => Stream.value([log1.entry]));
 
     when(
-      () => mockBookingRepo.decorateLogs(any(), any()),
+      () => mockBookingService.decorateLogs(any(), any()),
     ).thenAnswer((_) => Stream.value([log1]));
 
     final controller = RequestLogsController(
       logRepo: mockLogRepo,
-      bookingRepo: mockBookingRepo,
+      bookingService: mockBookingService,
       orgID: 'org1',
     );
 
@@ -150,7 +150,7 @@ void main() {
     ).thenAnswer((_) => Stream.value([log2.entry]));
 
     when(
-      () => mockBookingRepo.decorateLogs(any(), any()),
+      () => mockBookingService.decorateLogs(any(), any()),
     ).thenAnswer((_) => Stream.value([log2]));
 
     controller.nextPage();
@@ -173,7 +173,7 @@ void main() {
     ).thenAnswer((_) => Stream.value([log1.entry]));
 
     when(
-      () => mockBookingRepo.decorateLogs(any(), any()),
+      () => mockBookingService.decorateLogs(any(), any()),
     ).thenAnswer((_) => Stream.value([log1]));
 
     controller.previousPage();
@@ -197,12 +197,12 @@ void main() {
     ).thenAnswer((_) => Stream.value([]));
 
     when(
-      () => mockBookingRepo.decorateLogs(any(), any()),
+      () => mockBookingService.decorateLogs(any(), any()),
     ).thenAnswer((_) => Stream.value([]));
 
     final controller = RequestLogsController(
       logRepo: mockLogRepo,
-      bookingRepo: mockBookingRepo,
+      bookingService: mockBookingService,
       orgID: 'org1',
     );
 
@@ -239,12 +239,12 @@ void main() {
     ).thenAnswer((_) => Stream.value([]));
 
     when(
-      () => mockBookingRepo.decorateLogs(any(), any()),
+      () => mockBookingService.decorateLogs(any(), any()),
     ).thenAnswer((_) => Stream.value([]));
 
     final controller = RequestLogsController(
       logRepo: mockLogRepo,
-      bookingRepo: mockBookingRepo,
+      bookingService: mockBookingService,
       orgID: 'org1',
       requestID: 'req1',
     );

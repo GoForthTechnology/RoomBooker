@@ -4,7 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_filter_view_model.dart';
 import 'package:room_booker/ui/widgets/booking_list/conflicting_bookings.dart';
@@ -13,7 +13,7 @@ import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'booking_lists_test.dart'; // Reuse mocks
 
 void main() {
-  late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockLogRepo mockLogRepo;
   late MockRoomState mockRoomState;
   late MockBookingFilterViewModel mockFilterViewModel;
@@ -43,7 +43,7 @@ void main() {
     phone: '1234567890',
     eventName: 'Meeting 1',
   );
-    final requestDetails2 = PrivateRequestDetails(
+  final requestDetails2 = PrivateRequestDetails(
     id: 'req2',
     name: 'Jane Doe',
     email: 'jane@example.com',
@@ -51,9 +51,8 @@ void main() {
     eventName: 'Meeting 2',
   );
 
-
   setUp(() {
-    mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockLogRepo = MockLogRepo();
     mockRoomState = MockRoomState();
     mockFilterViewModel = MockBookingFilterViewModel();
@@ -70,33 +69,41 @@ void main() {
       home: Scaffold(
         body: MultiProvider(
           providers: [
-            ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+            Provider<BookingService>.value(value: mockBookingService),
             ChangeNotifierProvider<LogRepo>.value(value: mockLogRepo),
             ChangeNotifierProvider<RoomState>.value(value: mockRoomState),
             ChangeNotifierProvider<BookingFilterViewModel>.value(
-                value: mockFilterViewModel),
+              value: mockFilterViewModel,
+            ),
           ],
-          child: ConflictingBookings(
-            orgID: orgID,
-            repo: mockBookingRepo,
-          ),
+          child: ConflictingBookings(orgID: orgID, service: mockBookingService),
         ),
       ),
     );
   }
 
   testWidgets('displays conflicting bookings', (WidgetTester tester) async {
-    when(() => mockBookingRepo.findOverlappingBookings(any(), any(), any()))
-        .thenAnswer((_) => Stream.value([OverlapPair(request1, request2)]));
-    
-    // Need to mock getting details for these requests as BookingList uses BookingListViewModel which fetches details
-    when(() => mockBookingRepo.getRequestDetails(orgID, request1.id!))
-        .thenAnswer((_) => Stream.value(requestDetails));
-    when(() => mockBookingRepo.getRequestDetails(orgID, request2.id!))
-        .thenAnswer((_) => Stream.value(requestDetails2));
-    when(() => mockLogRepo.getLogEntries(orgID, requestIDs: any(named: 'requestIDs')))
-        .thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockBookingService.findOverlappingBookings(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+      ),
+    ).thenAnswer((_) => Stream.value([OverlapPair(request1, request2)]));
 
+    // Need to mock getting details for these requests as BookingList uses BookingListViewModel which fetches details
+    when(
+      () => mockBookingService.getRequestDetails(orgID, request1.id!),
+    ).thenAnswer((_) => Stream.value(requestDetails));
+    when(
+      () => mockBookingService.getRequestDetails(orgID, request2.id!),
+    ).thenAnswer((_) => Stream.value(requestDetails2));
+    when(
+      () => mockLogRepo.getLogEntries(
+        orgID,
+        requestIDs: any(named: 'requestIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
 
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
@@ -105,9 +112,16 @@ void main() {
     expect(find.text('Meeting 2 for Jane Doe'), findsOneWidget);
   });
 
-  testWidgets('displays empty text when no conflicts', (WidgetTester tester) async {
-    when(() => mockBookingRepo.findOverlappingBookings(any(), any(), any()))
-        .thenAnswer((_) => Stream.value([]));
+  testWidgets('displays empty text when no conflicts', (
+    WidgetTester tester,
+  ) async {
+    when(
+      () => mockBookingService.findOverlappingBookings(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
 
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();

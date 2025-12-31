@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_lists.dart';
 
 class RejectedBookings extends StatelessWidget {
-  final BookingRepo repo;
+  final BookingService service;
   final String orgID;
 
-  const RejectedBookings({super.key, required this.orgID, required this.repo});
+  const RejectedBookings({
+    super.key,
+    required this.orgID,
+    required this.service,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +23,7 @@ class RejectedBookings extends StatelessWidget {
         RequestAction(
           icon: Icons.assignment_return,
           text: "Revisit",
-          onClick: (request) => repo.revisitBookingRequest(orgID, request),
+          onClick: (request) => service.revisitBookingRequest(orgID, request),
         ),
       ],
     );

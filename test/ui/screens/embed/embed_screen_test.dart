@@ -104,7 +104,7 @@ void main() {
     ).thenAnswer((_) => Stream.value(null));
 
     when(
-      () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
+      () => mockBookingService.listBlackoutWindows(any(), any(), any()),
     ).thenAnswer((_) => Stream.value([]));
   });
 
@@ -113,7 +113,7 @@ void main() {
       providers: [
         ChangeNotifierProvider<OrgRepo>.value(value: mockOrgRepo),
         ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
-        ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+        Provider<BookingRepo>(create: (_) => mockBookingRepo),
         Provider<BookingService>.value(value: mockBookingService),
         ChangeNotifierProvider<AuthService>.value(value: mockAuthService),
         ChangeNotifierProvider<LoggingService>.value(

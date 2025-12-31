@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 
 class RequestLogsController extends ChangeNotifier {
   final LogRepo _logRepo;
-  final BookingRepo _bookingRepo;
+  final BookingService _bookingService;
   final String _orgID;
   final String? _requestID;
 
@@ -21,11 +21,11 @@ class RequestLogsController extends ChangeNotifier {
 
   RequestLogsController({
     required LogRepo logRepo,
-    required BookingRepo bookingRepo,
+    required BookingService bookingService,
     required String orgID,
     String? requestID,
   }) : _logRepo = logRepo,
-       _bookingRepo = bookingRepo,
+       _bookingService = bookingService,
        _orgID = orgID,
        _requestID = requestID {
     _loadLogs();
@@ -73,7 +73,7 @@ class RequestLogsController extends ChangeNotifier {
       requestIDs = {reqID};
     }
 
-    final stream = _bookingRepo.decorateLogs(
+    final stream = _bookingService.decorateLogs(
       _orgID,
       _logRepo.getLogEntries(
         _orgID,

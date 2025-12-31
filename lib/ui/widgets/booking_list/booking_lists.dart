@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_filter_view_model.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_list_view_model.dart';
@@ -39,12 +39,15 @@ class BookingList extends StatelessWidget {
       builder: (context, roomState, child) {
         return ChangeNotifierProvider(
           create: (context) => BookingListViewModel(
-            bookingRepo: Provider.of<BookingRepo>(context, listen: false),
+            bookingService: Provider.of<BookingService>(context, listen: false),
             logRepo: Provider.of<LogRepo>(context, listen: false),
             orgID: orgID,
             statusList: statusList,
             roomState: roomState,
-            filterViewModel: Provider.of<BookingFilterViewModel>(context, listen: false),
+            filterViewModel: Provider.of<BookingFilterViewModel>(
+              context,
+              listen: false,
+            ),
             requestFilter: requestFilter,
             overrideRequests: overrideRequests,
           ),

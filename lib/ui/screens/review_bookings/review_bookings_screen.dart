@@ -4,7 +4,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/services/analytics_service.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/widgets/booking_list/confirmed_bookings.dart';
@@ -37,7 +37,7 @@ class _ReviewBookingsScreenState extends State<ReviewBookingsScreen> {
       screenName: "Review Bookings",
       parameters: {"orgID": widget.orgID},
     );
-    var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
+    var bookingService = Provider.of<BookingService>(context, listen: false);
     var orgRepo = Provider.of<OrgRepo>(context, listen: false);
     return StreamBuilder(
       stream: orgRepo.getOrg(widget.orgID),
@@ -100,28 +100,28 @@ class _ReviewBookingsScreenState extends State<ReviewBookingsScreen> {
                               ),
                               const Heading("Pending"),
                               PendingBookings(
-                                repo: bookingRepo,
+                                service: bookingService,
                                 orgID: widget.orgID,
                               ),
                               const Heading("Conflicts"),
                               ConflictingBookings(
-                                repo: bookingRepo,
+                                service: bookingService,
                                 orgID: widget.orgID,
                               ),
                               const Heading("Confirmed"),
                               const Subheading("One-offs"),
                               ConfirmedOneOffBookings(
-                                repo: bookingRepo,
+                                service: bookingService,
                                 orgID: widget.orgID,
                               ),
                               const Subheading("Recurring"),
                               ConfirmedRepeatingBookings(
-                                repo: bookingRepo,
+                                service: bookingService,
                                 orgID: widget.orgID,
                               ),
                               const Heading("Denied"),
                               RejectedBookings(
-                                repo: bookingRepo,
+                                service: bookingService,
                                 orgID: widget.orgID,
                               ),
                             ],

@@ -6,20 +6,20 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/widgets/request_logs_widget.dart';
 
 class MockLogRepo extends Mock implements LogRepo {}
 
-class MockBookingRepo extends Mock implements BookingRepo {}
+class MockBookingService extends Mock implements BookingService {}
 
 class MockStackRouter extends Mock implements StackRouter {}
 
 void main() {
   late MockLogRepo mockLogRepo;
-  late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockStackRouter mockRouter;
 
   setUpAll(() {
@@ -37,7 +37,7 @@ void main() {
 
   setUp(() {
     mockLogRepo = MockLogRepo();
-    mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockRouter = MockStackRouter();
     when(() => mockRouter.push(any())).thenAnswer((_) async => null);
   });
@@ -51,7 +51,7 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<LogRepo>.value(value: mockLogRepo),
-        ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+        Provider<BookingService>.value(value: mockBookingService),
       ],
       child: MaterialApp(
         home: StackRouterScope(
@@ -88,7 +88,7 @@ void main() {
     ).thenAnswer((_) => Stream.value([]));
 
     when(
-      () => mockBookingRepo.decorateLogs(any(), any()),
+      () => mockBookingService.decorateLogs(any(), any()),
     ).thenAnswer((_) => Stream.value([])); // Initially empty or waiting
 
     await tester.pumpWidget(createWidgetUnderTest(org: org));
@@ -147,7 +147,7 @@ void main() {
     ).thenAnswer((_) => Stream.value([logEntry]));
 
     when(
-      () => mockBookingRepo.decorateLogs(any(), any()),
+      () => mockBookingService.decorateLogs(any(), any()),
     ).thenAnswer((_) => Stream.value([decoratedLog]));
 
     await tester.pumpWidget(createWidgetUnderTest(org: org));
@@ -208,7 +208,7 @@ void main() {
     ).thenAnswer((_) => Stream.value([logEntry]));
 
     when(
-      () => mockBookingRepo.decorateLogs(any(), any()),
+      () => mockBookingService.decorateLogs(any(), any()),
     ).thenAnswer((_) => Stream.value([decoratedLog]));
 
     await tester.pumpWidget(createWidgetUnderTest(org: org));

@@ -151,7 +151,7 @@ void main() {
     ).thenAnswer((_) => Stream.value([]));
 
     when(
-      () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
+      () => mockBookingService.listBlackoutWindows(any(), any(), any()),
     ).thenAnswer((_) => Stream.value([]));
 
     // UserRepo
@@ -163,7 +163,7 @@ void main() {
       providers: [
         ChangeNotifierProvider<OrgRepo>.value(value: mockOrgRepo),
         ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
-        ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+        Provider<BookingRepo>(create: (_) => mockBookingRepo),
         ChangeNotifierProvider<PreferencesRepo>.value(
           value: mockPreferencesRepo,
         ),
@@ -186,7 +186,7 @@ void main() {
             createViewModel: (context) => ViewBookingsViewModel(
               readOnlyMode: false,
               router: mockRouter,
-              bookingRepo: mockBookingRepo,
+
               roomRepo: mockRoomRepo,
               authService: mockAuthService,
               sizeProvider: () => const Size(1200, 800), // Default size
@@ -206,7 +206,7 @@ void main() {
             ),
             createCalendarViewModel: (context, targetDate) => CalendarViewModel(
               orgState: context.read(),
-              bookingRepo: mockBookingRepo,
+
               roomState: context.read(),
               bookingService: mockBookingService,
               targetDate: targetDate ?? DateTime.now(),
@@ -224,7 +224,7 @@ void main() {
               editorTitle: "Request Editor",
               analyticsService: fakeAnalyticsService,
               authService: mockAuthService,
-              bookingRepo: mockBookingRepo,
+              bookingService: mockBookingService,
               orgState: context.read(),
               roomState: context.read(),
               choiceProvider: () => Future.value(null),

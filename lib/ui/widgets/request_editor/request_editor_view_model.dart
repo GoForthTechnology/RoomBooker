@@ -5,7 +5,7 @@ import 'package:room_booker/data/services/analytics_service.dart';
 import 'package:room_booker/data/services/auth_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/controller_extensions.dart';
@@ -48,7 +48,7 @@ class RequestEditorViewModel extends ChangeNotifier {
   final Future<RecurringBookingEditChoice?> Function() _choiceProvider;
   final String editorTitle;
 
-  final BookingRepo _bookingRepo;
+  final BookingService _bookingService;
   final OrgState _orgState;
   final RoomState _roomState;
   final AnalyticsService _analyticsService;
@@ -86,11 +86,11 @@ class RequestEditorViewModel extends ChangeNotifier {
     required this.editorTitle,
     required AnalyticsService analyticsService,
     required AuthService authService,
-    required BookingRepo bookingRepo,
+    required BookingService bookingService,
     required OrgState orgState,
     required RoomState roomState,
     required Future<RecurringBookingEditChoice?> Function() choiceProvider,
-  }) : _bookingRepo = bookingRepo,
+  }) : _bookingService = bookingService,
        _analyticsService = analyticsService,
        _authService = authService,
        _roomState = roomState,
@@ -311,7 +311,7 @@ class RequestEditorViewModel extends ChangeNotifier {
     return [
       EditorAction("Approve", () async {
         var orgID = _orgState.org.id!;
-        await _bookingRepo.confirmRequest(orgID, initialRequest.id!);
+        await _bookingService.confirmRequest(orgID, initialRequest.id!);
         _analyticsService.logEvent(
           name: "Booking Approved",
           parameters: {"orgID": orgID},
@@ -328,7 +328,7 @@ class RequestEditorViewModel extends ChangeNotifier {
       }),
       EditorAction("Reject", () async {
         var orgID = _orgState.org.id!;
-        await _bookingRepo.denyRequest(orgID, initialRequest.id!);
+        await _bookingService.denyRequest(orgID, initialRequest.id!);
         _analyticsService.logEvent(
           name: "Booking Rejected",
           parameters: {"orgID": orgID},
@@ -368,7 +368,7 @@ class RequestEditorViewModel extends ChangeNotifier {
             return ActionResult(false, "Invalid details data.", false);
           }
 
-          await _bookingRepo.updateBooking(
+          await _bookingService.updateBooking(
             orgID,
             initialRequest,
             request,
@@ -387,13 +387,13 @@ class RequestEditorViewModel extends ChangeNotifier {
     }
     actions.add(
       EditorAction("Revisit", () async {
-        await _bookingRepo.revisitBookingRequest(orgID, initialRequest);
+        await _bookingService.revisitBookingRequest(orgID, initialRequest);
         return ActionResult(true, "Booking request revisited.", true);
       }),
     );
     actions.add(
       EditorAction("Delete", () async {
-        await _bookingRepo.deleteBooking(
+        await _bookingService.deleteBooking(
           orgID,
           initialRequest,
           _choiceProvider,
@@ -422,7 +422,7 @@ class RequestEditorViewModel extends ChangeNotifier {
           if (endDate == null) {
             return ActionResult(false, "No end date selected!", false);
           }
-          await _bookingRepo.endBooking(orgID, initialRequest.id!, endDate);
+          await _bookingService.endBooking(orgID, initialRequest.id!, endDate);
           _analyticsService.logEvent(
             name: "Recurring Booking Ended",
             parameters: {"orgID": orgID},
@@ -473,9 +473,9 @@ class RequestEditorViewModel extends ChangeNotifier {
 
     var orgID = _orgState.org.id!;
     if (_orgState.currentUserIsAdmin) {
-      await _bookingRepo.addBooking(orgID, request, details);
+      await _bookingService.addBooking(orgID, request, details);
     } else {
-      await _bookingRepo.submitBookingRequest(orgID, request, details);
+      await _bookingService.submitBookingRequest(orgID, request, details);
     }
     return true;
   }

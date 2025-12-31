@@ -107,7 +107,7 @@ class ViewBookingsScreen extends StatelessWidget {
     return ViewBookingsViewModel(
       readOnlyMode: readOnlyMode,
       router: AutoRouter.of(context),
-      bookingRepo: context.read(),
+
       roomRepo: context.read(),
       authService: context.read(),
       sizeProvider: () => MediaQuery.sizeOf(context),
@@ -150,7 +150,7 @@ class ViewBookingsScreen extends StatelessWidget {
     }
     return CalendarViewModel(
       orgState: context.read(),
-      bookingRepo: context.read(),
+
       roomState: context.read(),
       bookingService: context.read(),
       targetDate: targetDate,
@@ -295,7 +295,7 @@ class ViewBookingsScreen extends StatelessWidget {
       editorTitle: "Request Editor",
       analyticsService: context.read(),
       authService: context.read(),
-      bookingRepo: context.read(),
+      bookingService: context.read(),
       orgState: context.read(),
       roomState: context.read(),
       choiceProvider: () => showDialog<RecurringBookingEditChoice>(

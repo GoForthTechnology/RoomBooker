@@ -6,24 +6,25 @@ import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_filter_view_model.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_lists.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 
-class MockBookingRepo extends Mock implements BookingRepo {}
+class MockBookingService extends Mock implements BookingService {}
 
 class MockLogRepo extends Mock implements LogRepo {}
 
 class MockRoomState extends Mock implements RoomState {}
 
-class MockBookingFilterViewModel extends Mock implements BookingFilterViewModel {}
+class MockBookingFilterViewModel extends Mock
+    implements BookingFilterViewModel {}
 
 class FakeRequest extends Fake implements Request {}
 
 void main() {
-  late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockLogRepo mockLogRepo;
   late MockRoomState mockRoomState;
   late MockBookingFilterViewModel mockFilterViewModel;
@@ -47,7 +48,7 @@ void main() {
   );
 
   setUp(() {
-    mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockLogRepo = MockLogRepo();
     mockRoomState = MockRoomState();
     mockFilterViewModel = MockBookingFilterViewModel();
@@ -69,11 +70,12 @@ void main() {
       home: Scaffold(
         body: MultiProvider(
           providers: [
-            ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+            Provider<BookingService>.value(value: mockBookingService),
             ChangeNotifierProvider<LogRepo>.value(value: mockLogRepo),
             ChangeNotifierProvider<RoomState>.value(value: mockRoomState),
             ChangeNotifierProvider<BookingFilterViewModel>.value(
-                value: mockFilterViewModel),
+              value: mockFilterViewModel,
+            ),
           ],
           child: BookingList(
             orgID: orgID,
@@ -87,14 +89,18 @@ void main() {
     );
   }
 
-  testWidgets('displays empty text when no requests', (WidgetTester tester) async {
-    when(() => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        )).thenAnswer((_) => Stream.value([]));
+  testWidgets('displays empty text when no requests', (
+    WidgetTester tester,
+  ) async {
+    when(
+      () => mockBookingService.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+        includeStatuses: any(named: 'includeStatuses'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
 
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
@@ -103,17 +109,24 @@ void main() {
   });
 
   testWidgets('displays request tile', (WidgetTester tester) async {
-    when(() => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        )).thenAnswer((_) => Stream.value([request]));
-    when(() => mockBookingRepo.getRequestDetails(orgID, request.id!))
-        .thenAnswer((_) => Stream.value(requestDetails));
-    when(() => mockLogRepo.getLogEntries(orgID, requestIDs: any(named: 'requestIDs')))
-        .thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockBookingService.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+        includeStatuses: any(named: 'includeStatuses'),
+      ),
+    ).thenAnswer((_) => Stream.value([request]));
+    when(
+      () => mockBookingService.getRequestDetails(orgID, request.id!),
+    ).thenAnswer((_) => Stream.value(requestDetails));
+    when(
+      () => mockLogRepo.getLogEntries(
+        orgID,
+        requestIDs: any(named: 'requestIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
 
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
@@ -122,17 +135,24 @@ void main() {
   });
 
   testWidgets('executes action on click', (WidgetTester tester) async {
-     when(() => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: any(named: 'includeStatuses'),
-        )).thenAnswer((_) => Stream.value([request]));
-    when(() => mockBookingRepo.getRequestDetails(orgID, request.id!))
-        .thenAnswer((_) => Stream.value(requestDetails));
-    when(() => mockLogRepo.getLogEntries(orgID, requestIDs: any(named: 'requestIDs')))
-        .thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockBookingService.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+        includeStatuses: any(named: 'includeStatuses'),
+      ),
+    ).thenAnswer((_) => Stream.value([request]));
+    when(
+      () => mockBookingService.getRequestDetails(orgID, request.id!),
+    ).thenAnswer((_) => Stream.value(requestDetails));
+    when(
+      () => mockLogRepo.getLogEntries(
+        orgID,
+        requestIDs: any(named: 'requestIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
 
     bool actionCalled = false;
     final action = RequestAction(

@@ -6,13 +6,13 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/services/auth_service.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
-import 'package:room_booker/data/services/booking_service.dart';
+
 import 'package:rxdart/rxdart.dart';
 import 'package:room_booker/utils/calendar_utils.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
@@ -27,7 +27,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
 
   final StackRouter _router;
   final AuthService _authService;
-  final BookingRepo _bookingRepo;
+
   final RoomRepo _roomRepo;
   final OrgState _orgState;
   final BookingService _bookingService;
@@ -47,7 +47,6 @@ class ViewBookingsViewModel extends ChangeNotifier {
   final _showRoomSelectorSubject = BehaviorSubject<bool>.seeded(false);
 
   ViewBookingsViewModel({
-    required BookingRepo bookingRepo,
     required RoomRepo roomRepo,
     required AuthService authService,
     required OrgState orgState,
@@ -67,8 +66,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
     required this.pickDate,
     required this.pickTime,
     this.printService,
-  }) : _bookingRepo = bookingRepo,
-       _roomRepo = roomRepo,
+  }) : _roomRepo = roomRepo,
        _authService = authService,
        _bookingService = bookingService,
        _router = router,
@@ -119,7 +117,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
     if (readOnlyMode || !_orgState.currentUserIsAdmin) {
       showRequestDialog(request);
     } else {
-      var details = await _bookingRepo
+      var details = await _bookingService
           .getRequestDetails(orgID, request.id!)
           .first;
       if (details == null) {
@@ -148,11 +146,13 @@ class ViewBookingsViewModel extends ChangeNotifier {
 
   Future<void> loadExistingRequest(String requestID) async {
     log("Loading existing request with ID $requestID");
-    var request = await _bookingRepo.getRequest(orgID, requestID).first;
+    var request = await _bookingService.getRequest(orgID, requestID).first;
     if (request == null) {
       throw Exception("Request with ID $requestID not found");
     }
-    var details = await _bookingRepo.getRequestDetails(orgID, requestID).first;
+    var details = await _bookingService
+        .getRequestDetails(orgID, requestID)
+        .first;
     if (details == null) {
       throw Exception("Request details with ID $requestID not found");
     }
@@ -299,14 +299,14 @@ class ViewBookingsViewModel extends ChangeNotifier {
     if (_existingRequestID == null) {
       return Future.value(null);
     }
-    return _bookingRepo.getRequest(orgID, _existingRequestID).first;
+    return _bookingService.getRequest(orgID, _existingRequestID).first;
   }
 
   Future<PrivateRequestDetails?> get existingRequestDetails {
     if (_existingRequestID == null) {
       return Future.value(null);
     }
-    return _bookingRepo.getRequestDetails(orgID, _existingRequestID).first;
+    return _bookingService.getRequestDetails(orgID, _existingRequestID).first;
   }
 
   String get orgID => _orgState.org.id!;

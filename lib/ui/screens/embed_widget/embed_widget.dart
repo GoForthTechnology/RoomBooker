@@ -1,7 +1,7 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+
 import 'package:room_booker/ui/widgets/booking_calendar/booking_calendar.dart';
 import 'package:room_booker/ui/widgets/booking_calendar/view_model.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
@@ -24,8 +24,6 @@ class EmbedWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final span = Sentry.getSpan()?.startChild('ui.embed_widget.build');
     try {
-      var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
-
       var defaultView = CalendarView.values.firstWhere(
         (element) => element.name == (view ?? 'week'),
       );
@@ -44,7 +42,7 @@ class EmbedWidget extends StatelessWidget {
                     orgState: orgState,
                     loggingService: context.read(),
                     defaultView: defaultView,
-                    bookingRepo: bookingRepo,
+
                     roomState: roomState,
                     bookingService: context.read(),
                     showDatePickerButton: false,

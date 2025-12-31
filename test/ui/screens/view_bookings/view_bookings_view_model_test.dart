@@ -7,7 +7,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:room_booker/data/services/auth_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+
 import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/screens/view_bookings/view_bookings_view_model.dart';
@@ -16,8 +16,6 @@ import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/request_editor/request_editor_view_model.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
-
-class MockBookingRepo extends Mock implements BookingRepo {}
 
 class MockBookingService extends Mock implements BookingService {}
 
@@ -53,7 +51,6 @@ class FakePrivateRequestDetails extends Fake implements PrivateRequestDetails {}
 class FakeViewBookingsRoute extends Fake implements ViewBookingsRoute {}
 
 void main() {
-  late MockBookingRepo mockBookingRepo;
   late MockBookingService mockBookingService;
   late MockRoomRepo mockRoomRepo;
   late MockAuthService mockAuthService;
@@ -81,7 +78,6 @@ void main() {
   });
 
   setUp(() {
-    mockBookingRepo = MockBookingRepo();
     mockBookingService = MockBookingService();
     mockRoomRepo = MockRoomRepo();
     mockAuthService = MockAuthService();
@@ -134,7 +130,6 @@ void main() {
     Future<TimeOfDay?> Function(DateTime)? pickTime,
   }) {
     return ViewBookingsViewModel(
-      bookingRepo: mockBookingRepo,
       bookingService: mockBookingService,
       roomRepo: mockRoomRepo,
       authService: mockAuthService,
@@ -202,7 +197,7 @@ void main() {
       await Future.delayed(Duration.zero);
 
       expect(dialogCalled, true);
-      verifyZeroInteractions(mockBookingRepo);
+      verifyZeroInteractions(mockBookingService);
     });
 
     test('!readOnlyMode loads details and initializes editor', () async {
@@ -210,7 +205,7 @@ void main() {
 
       when(() => mockOrgState.currentUserIsAdmin).thenReturn(true);
       when(
-        () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
+        () => mockBookingService.getRequestDetails('test_org_id', 'req-1'),
       ).thenAnswer((_) => Stream.value(details));
       when(
         () => mockRequestEditorViewModel.initializeFromExistingRequest(
@@ -222,10 +217,10 @@ void main() {
       requestTapController.add(request);
 
       await untilCalled(
-        () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
+        () => mockBookingService.getRequestDetails('test_org_id', 'req-1'),
       );
       verify(
-        () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
+        () => mockBookingService.getRequestDetails('test_org_id', 'req-1'),
       ).called(1);
 
       await untilCalled(
@@ -254,7 +249,7 @@ void main() {
       when(() => mockOrgState.currentUserIsAdmin).thenReturn(true);
 
       when(
-        () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
+        () => mockBookingService.getRequestDetails('test_org_id', 'req-1'),
       ).thenAnswer((_) => Stream.value(details));
       when(
         () => mockRequestEditorViewModel.initializeFromExistingRequest(
@@ -291,7 +286,7 @@ void main() {
       await Future.delayed(Duration.zero);
 
       expect(dialogCalled, true);
-      verifyZeroInteractions(mockBookingRepo);
+      verifyZeroInteractions(mockBookingService);
     });
   });
 
@@ -364,10 +359,10 @@ void main() {
       final viewModel = createViewModel(createRequest: false);
 
       when(
-        () => mockBookingRepo.getRequest('test_org_id', 'req-1'),
+        () => mockBookingService.getRequest('test_org_id', 'req-1'),
       ).thenAnswer((_) => Stream.value(request));
       when(
-        () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
+        () => mockBookingService.getRequestDetails('test_org_id', 'req-1'),
       ).thenAnswer((_) => Stream.value(details));
       when(
         () => mockRequestEditorViewModel.initializeFromExistingRequest(
@@ -379,10 +374,10 @@ void main() {
       await viewModel.loadExistingRequest('req-1');
 
       verify(
-        () => mockBookingRepo.getRequest('test_org_id', 'req-1'),
+        () => mockBookingService.getRequest('test_org_id', 'req-1'),
       ).called(1);
       verify(
-        () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
+        () => mockBookingService.getRequestDetails('test_org_id', 'req-1'),
       ).called(1);
       verify(
         () => mockRequestEditorViewModel.initializeFromExistingRequest(
@@ -396,10 +391,10 @@ void main() {
       'is called on initialization when existingRequestID is provided',
       () async {
         when(
-          () => mockBookingRepo.getRequest('test_org_id', 'req-1'),
+          () => mockBookingService.getRequest('test_org_id', 'req-1'),
         ).thenAnswer((_) => Stream.value(request));
         when(
-          () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
+          () => mockBookingService.getRequestDetails('test_org_id', 'req-1'),
         ).thenAnswer((_) => Stream.value(details));
         when(
           () => mockRequestEditorViewModel.initializeFromExistingRequest(
@@ -414,10 +409,10 @@ void main() {
         await Future.delayed(Duration.zero);
 
         verify(
-          () => mockBookingRepo.getRequest('test_org_id', 'req-1'),
+          () => mockBookingService.getRequest('test_org_id', 'req-1'),
         ).called(1);
         verify(
-          () => mockBookingRepo.getRequestDetails('test_org_id', 'req-1'),
+          () => mockBookingService.getRequestDetails('test_org_id', 'req-1'),
         ).called(1);
         verify(
           () => mockRequestEditorViewModel.initializeFromExistingRequest(

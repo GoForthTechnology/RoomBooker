@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -29,23 +29,23 @@ class OrgDetailsProvider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var orgRepo = Provider.of<OrgRepo>(context, listen: false);
-    var bookingRepo = Provider.of<BookingRepo>(context, listen: false);
+    var bookingService = Provider.of<BookingService>(context, listen: false);
     var today = DateTime.now();
     var startOfToday = DateTime(today.year, today.month, today.day);
 
     return StreamBuilder(
       stream: Rx.combineLatest3(
-        bookingRepo.listRequests(
+        bookingService.listRequests(
           orgID: orgID,
           startTime: startOfToday,
           endTime: startOfToday.add(Duration(days: 365)),
           includeStatuses: {RequestStatus.pending},
         ),
         orgRepo.adminRequests(orgID),
-        bookingRepo.findOverlappingBookings(
-          orgID,
-          startOfToday,
-          startOfToday.add(Duration(days: 365)),
+        bookingService.findOverlappingBookings(
+          orgID: orgID,
+          startTime: startOfToday,
+          endTime: startOfToday.add(Duration(days: 365)),
         ),
         (pendingRequests, adminRequests, overlaps) => OrgDetails(
           numPendingRequests: pendingRequests.length,

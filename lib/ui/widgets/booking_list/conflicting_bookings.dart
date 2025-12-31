@@ -5,28 +5,28 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_lists.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class ConflictingBookings extends StatelessWidget {
-  final BookingRepo repo;
+  final BookingService service;
   final String orgID;
 
   const ConflictingBookings({
     super.key,
     required this.orgID,
-    required this.repo,
+    required this.service,
   });
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: repo.findOverlappingBookings(
-        orgID,
-        DateTime.now(),
-        DateTime.now().add(Duration(days: 365)),
+      stream: service.findOverlappingBookings(
+        orgID: orgID,
+        startTime: DateTime.now(),
+        endTime: DateTime.now().add(Duration(days: 365)),
       ),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -94,7 +94,7 @@ class ConflictingBookings extends StatelessWidget {
                         if (!shouldIgnore) {
                           return Future.value();
                         }
-                        await repo.ignoreOverlaps(orgID, request.id!);
+                        await service.ignoreOverlaps(orgID, request.id!);
                       },
               ),
             ];

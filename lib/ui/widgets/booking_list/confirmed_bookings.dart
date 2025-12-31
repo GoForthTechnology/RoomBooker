@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_lists.dart';
 
 class ConfirmedOneOffBookings extends StatelessWidget {
-  final BookingRepo repo;
+  final BookingService service;
   final String orgID;
 
   const ConfirmedOneOffBookings({
     super.key,
     required this.orgID,
-    required this.repo,
+    required this.service,
   });
 
   @override
@@ -24,7 +24,7 @@ class ConfirmedOneOffBookings extends StatelessWidget {
         RequestAction(
           icon: Icons.assignment_return,
           text: "Revisit",
-          onClick: (request) => repo.revisitBookingRequest(orgID, request),
+          onClick: (request) => service.revisitBookingRequest(orgID, request),
         ),
       ],
     );
@@ -32,13 +32,13 @@ class ConfirmedOneOffBookings extends StatelessWidget {
 }
 
 class ConfirmedRepeatingBookings extends StatelessWidget {
-  final BookingRepo repo;
+  final BookingService service;
   final String orgID;
 
   const ConfirmedRepeatingBookings({
     super.key,
     required this.orgID,
-    required this.repo,
+    required this.service,
   });
 
   @override
@@ -57,7 +57,7 @@ class ConfirmedRepeatingBookings extends StatelessWidget {
         RequestAction(
           icon: Icons.assignment_return,
           text: "Revisit",
-          onClick: (request) => repo.revisitBookingRequest(orgID, request),
+          onClick: (request) => service.revisitBookingRequest(orgID, request),
         ),
       ],
     );
@@ -99,6 +99,6 @@ class ConfirmedRepeatingBookings extends StatelessWidget {
     if (endDate == null) {
       return;
     }
-    await repo.endBooking(orgID, request.id!, endDate);
+    await service.endBooking(orgID, request.id!, endDate);
   }
 }

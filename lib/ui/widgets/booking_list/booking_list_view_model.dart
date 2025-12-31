@@ -4,7 +4,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_filter_view_model.dart';
@@ -33,7 +33,7 @@ class RenderedRequest {
 }
 
 class BookingListViewModel extends ChangeNotifier {
-  final BookingRepo _bookingRepo;
+  final BookingService _bookingService;
   final LogRepo _logRepo;
   final String _orgID;
   final List<RequestStatus> _statusList;
@@ -45,7 +45,7 @@ class BookingListViewModel extends ChangeNotifier {
   late Stream<List<RenderedRequest>> renderedRequests;
 
   BookingListViewModel({
-    required BookingRepo bookingRepo,
+    required BookingService bookingService,
     required LogRepo logRepo,
     required String orgID,
     required List<RequestStatus> statusList,
@@ -53,7 +53,7 @@ class BookingListViewModel extends ChangeNotifier {
     required BookingFilterViewModel filterViewModel,
     bool Function(Request)? requestFilter,
     List<Request>? overrideRequests,
-  }) : _bookingRepo = bookingRepo,
+  }) : _bookingService = bookingService,
        _logRepo = logRepo,
        _orgID = orgID,
        _statusList = statusList,
@@ -80,7 +80,7 @@ class BookingListViewModel extends ChangeNotifier {
     if (_overrideRequests != null) {
       requestStream = Stream.value(_overrideRequests);
     } else {
-      requestStream = _bookingRepo
+      requestStream = _bookingService
           .listRequests(
             orgID: _orgID,
             startTime: DateTime.now(),
@@ -102,7 +102,7 @@ class BookingListViewModel extends ChangeNotifier {
           if (requests.isEmpty) {
             return Stream.value([]);
           }
-          return _renderedRequests(_bookingRepo, _logRepo, _orgID, requests);
+          return _renderedRequests(_bookingService, _logRepo, _orgID, requests);
         })
         .map<List<RenderedRequest>>((requests) {
           var query = _filterViewModel.searchQuery.toLowerCase();
@@ -115,14 +115,14 @@ class BookingListViewModel extends ChangeNotifier {
   }
 
   Stream<List<RenderedRequest>> _renderedRequests(
-    BookingRepo bookingRepo,
+    BookingService bookingService,
     LogRepo logRepo,
     String orgID,
     List<Request> requests,
   ) {
     var detailStream = Rx.combineLatest(
       requests.map(
-        (request) => bookingRepo.getRequestDetails(orgID, request.id!),
+        (request) => bookingService.getRequestDetails(orgID, request.id!),
       ),
       (l) => l,
     );

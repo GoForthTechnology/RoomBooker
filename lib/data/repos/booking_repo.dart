@@ -3,11 +3,9 @@ import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart' hide Action;
+
 import 'package:room_booker/data/services/analytics_service.dart';
-import 'package:room_booker/data/entities/blackout_window.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
-import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/services/logging_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
@@ -17,7 +15,7 @@ import 'package:rxdart/rxdart.dart';
 typedef RecurringBookingEditChoiceProvider =
     Future<RecurringBookingEditChoice?> Function();
 
-class BookingRepo extends ChangeNotifier {
+class BookingRepo {
   BookingRepo({
     required this.logRepo,
     required AnalyticsService analytics,
@@ -68,18 +66,11 @@ class BookingRepo extends ChangeNotifier {
     }
   }
 
-  void validateRequest(Request request) {
-    if (request.eventEndTime.isBefore(request.eventStartTime)) {
-      throw ArgumentError("Event end time cannot be before event start time");
-    }
-  }
-
   Future<void> submitBookingRequest(
     String orgID,
     Request request,
     PrivateRequestDetails privateDetails,
   ) async {
-    validateRequest(request);
     var id = await _db.runTransaction((t) async {
       var requestRef = _pendingBookingsRef(orgID).doc();
       t.set(requestRef, request);
@@ -98,7 +89,6 @@ class BookingRepo extends ChangeNotifier {
     RequestStatus status,
     RecurringBookingEditChoiceProvider choiceProvider,
   ) async {
-    validateRequest(updatedRequest);
     await _db.runTransaction((t) async {
       try {
         switch (status) {
@@ -145,7 +135,6 @@ class BookingRepo extends ChangeNotifier {
     Request request,
     PrivateRequestDetails privateDetails,
   ) async {
-    validateRequest(request);
     var id = await _db.runTransaction((t) async {
       return _addBooking(orgID, request, privateDetails, t);
     });
@@ -393,46 +382,6 @@ class BookingRepo extends ChangeNotifier {
     }
   }
 
-  final List<BlackoutWindow> _defaultBlackoutWindows = [
-    BlackoutWindow(
-      start: DateTime(2023, 1, 1, 0, 0),
-      end: DateTime(2023, 1, 1, 5, 59),
-      recurrenceRule: 'FREQ=DAILY',
-      reason: "Too Early",
-    ),
-    BlackoutWindow(
-      start: DateTime(2023, 1, 1, 22, 0),
-      end: DateTime(2023, 1, 1, 23, 59),
-      recurrenceRule: 'FREQ=DAILY',
-      reason: "Too Late",
-    ),
-  ];
-
-  Stream<List<BlackoutWindow>> listBlackoutWindows(
-    Organization org,
-    DateTime startTime,
-    DateTime endTime,
-  ) {
-    Set<String>? roomIDs;
-    if (org.globalRoomID != null) {
-      roomIDs = {org.globalRoomID!};
-    }
-    return listRequests(
-      orgID: org.id!,
-      startTime: startTime,
-      endTime: endTime,
-      includeStatuses: {RequestStatus.confirmed},
-      includeRoomIDs: roomIDs,
-    ).map((requests) {
-      var windows = requests
-          .where((r) => r.roomID == org.globalRoomID)
-          .map((r) => BlackoutWindow.fromRequest(r))
-          .toList();
-      windows.addAll(_defaultBlackoutWindows);
-      return windows;
-    });
-  }
-
   Future<void> confirmRequest(String orgID, String requestID) async {
     var requestRef = _pendingBookingsRef(orgID).doc(requestID);
     var confirmedRef = _confirmedRequestsRef(orgID).doc(requestID);
@@ -590,62 +539,6 @@ class BookingRepo extends ChangeNotifier {
           toFirestore: (request, _) => request.toJson(),
         );
   }
-
-  Stream<List<OverlapPair>> findOverlappingBookings(
-    String orgID,
-    DateTime startTime,
-    DateTime endTime,
-  ) {
-    return listRequests(
-      orgID: orgID,
-      startTime: startTime,
-      endTime: endTime,
-      includeStatuses: {RequestStatus.confirmed},
-    ).map((requests) {
-      var overlaps = <OverlapPair>[];
-      // Group requests by roomID
-      var requestsByRoom = <String, List<Request>>{};
-      for (var request in requests) {
-        if (request.ignoreOverlaps) {
-          continue;
-        }
-        requestsByRoom
-            .putIfAbsent(request.roomID, () => [])
-            .addAll(request.expand(startTime, endTime));
-      }
-      for (var roomID in requestsByRoom.keys) {
-        overlaps.addAll(findOverlaps(requestsByRoom[roomID]!));
-      }
-      return overlaps;
-    });
-  }
-}
-
-List<OverlapPair> findOverlaps(List<Request> requests) {
-  var overlaps = <OverlapPair>[];
-  requests.sort((a, b) => a.eventStartTime.compareTo(b.eventStartTime));
-  for (var i = 0; i < requests.length; i++) {
-    var l = requests[i];
-    for (var j = i + 1; j < requests.length; j++) {
-      var r = requests[j];
-      if (r.eventStartTime.isAfter(l.eventEndTime)) {
-        break;
-      }
-      if (_doRequestsOverlap(l, r)) {
-        overlaps.add(OverlapPair(l, r));
-      }
-    }
-  }
-  return overlaps;
-}
-
-bool _doRequestsOverlap(Request a, Request b) {
-  if (a.roomID != b.roomID) return false;
-  if (!a.eventStartTime.isBefore(b.eventEndTime) ||
-      !b.eventStartTime.isBefore(a.eventEndTime)) {
-    return false;
-  }
-  return true;
 }
 
 DateTime _stripTime(DateTime dt) {
@@ -662,29 +555,6 @@ Request _overrideRecurrance(Request request, Request override) {
   var overrides = request.recurranceOverrides ?? {};
   overrides[_stripTime(override.eventStartTime)] = override;
   return request.copyWith(recurranceOverrides: overrides);
-}
-
-class OverlapPair {
-  final Request first;
-  final Request second;
-
-  OverlapPair(this.first, this.second);
-
-  @override
-  String toString() {
-    return "OverlapPair(first: ${first.id}, second: ${second.id})";
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is OverlapPair &&
-          runtimeType == other.runtimeType &&
-          first == other.first &&
-          second == other.second;
-
-  @override
-  int get hashCode => first.hashCode ^ second.hashCode;
 }
 
 class DetailCache {

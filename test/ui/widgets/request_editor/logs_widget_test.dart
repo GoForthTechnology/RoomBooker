@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/widgets/request_editor/logs_widget.dart';
 
@@ -14,7 +14,7 @@ class MockOrganization extends Mock implements Organization {}
 
 class MockLogRepo extends Mock implements LogRepo {}
 
-class MockBookingRepo extends Mock implements BookingRepo {}
+class MockBookingService extends Mock implements BookingService {}
 
 class MockRequestLogEntry extends Mock implements RequestLogEntry {}
 
@@ -23,7 +23,7 @@ class MockDecoratedLogEntry extends Mock implements DecoratedLogEntry {}
 void main() {
   late MockOrganization mockOrg;
   late MockLogRepo mockLogRepo;
-  late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
 
   setUpAll(() {
     registerFallbackValue(MockRequestLogEntry());
@@ -34,19 +34,22 @@ void main() {
   setUp(() {
     mockOrg = MockOrganization();
     mockLogRepo = MockLogRepo();
-    mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
 
     // Reset mocks or just creating new ones is fine.
-    
+
     // Basic stubs that don't depend on arguments
     when(() => mockOrg.id).thenReturn('org-1');
   });
 
-  Widget createWidgetUnderTest({required String requestID, bool readOnly = false}) {
+  Widget createWidgetUnderTest({
+    required String requestID,
+    bool readOnly = false,
+  }) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<LogRepo>.value(value: mockLogRepo),
-        ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+        Provider<BookingService>.value(value: mockBookingService),
       ],
       child: MaterialApp(
         home: Scaffold(
@@ -64,15 +67,18 @@ void main() {
     testWidgets('renders ExpansionTile with correct title', (tester) async {
       // Arrange
       // We need to mock the calls made by RequestLogsWidget even if we don't expect data yet
-      when(() => mockLogRepo.getLogEntries(
-            any(),
-            limit: any(named: 'limit'),
-            startAfter: any(named: 'startAfter'),
-            requestIDs: any(named: 'requestIDs'),
-          )).thenAnswer((_) => Stream.value([]));
+      when(
+        () => mockLogRepo.getLogEntries(
+          any(),
+          limit: any(named: 'limit'),
+          startAfter: any(named: 'startAfter'),
+          requestIDs: any(named: 'requestIDs'),
+        ),
+      ).thenAnswer((_) => Stream.value([]));
 
-      when(() => mockBookingRepo.decorateLogs(any(), any()))
-          .thenAnswer((_) => Stream.value([]));
+      when(
+        () => mockBookingService.decorateLogs(any(), any()),
+      ).thenAnswer((_) => Stream.value([]));
 
       // Act
       await tester.pumpWidget(createWidgetUnderTest(requestID: 'req-1'));
@@ -91,7 +97,7 @@ void main() {
         action: Action.create,
         adminEmail: 'admin@example.com',
       );
-      
+
       // Need dummy request and details for DecoratedLogEntry
       final request = Request(
         eventStartTime: DateTime.now(),
@@ -99,8 +105,10 @@ void main() {
         roomID: 'room-1',
         roomName: 'Room 1',
         id: 'req-1',
+        status: RequestStatus
+            .confirmed, // Added status as it's required for some operations maybe
       );
-      
+
       final details = PrivateRequestDetails(
         eventName: 'Test Event',
         name: 'User',
@@ -114,24 +122,28 @@ void main() {
         request: request,
       );
 
-      when(() => mockLogRepo.getLogEntries(
-            any(),
-            limit: any(named: 'limit'),
-            startAfter: any(named: 'startAfter'),
-            requestIDs: any(named: 'requestIDs'),
-          )).thenAnswer((_) => Stream.value([logEntry]));
+      when(
+        () => mockLogRepo.getLogEntries(
+          any(),
+          limit: any(named: 'limit'),
+          startAfter: any(named: 'startAfter'),
+          requestIDs: any(named: 'requestIDs'),
+        ),
+      ).thenAnswer((_) => Stream.value([logEntry]));
 
-      when(() => mockBookingRepo.decorateLogs(any(), any()))
-          .thenAnswer((_) => Stream.value([decoratedLog]));
+      when(
+        () => mockBookingService.decorateLogs(any(), any()),
+      ).thenAnswer((_) => Stream.value([decoratedLog]));
 
       // Act
       await tester.pumpWidget(createWidgetUnderTest(requestID: 'req-1'));
-      await tester.pump(); // Allow FutureBuilder/StreamBuilder to settle if needed
+      await tester
+          .pump(); // Allow FutureBuilder/StreamBuilder to settle if needed
 
-      // Initially collapsed, but ExpansionTile keeps children in tree? 
+      // Initially collapsed, but ExpansionTile keeps children in tree?
       // Actually ExpansionTile by default doesn't build children until expanded unless maintainState is true (default).
       // But let's tap to expand to be sure and to see the content visible.
-      
+
       await tester.tap(find.text('Request Log'));
       await tester.pumpAndSettle();
 
@@ -147,27 +159,34 @@ void main() {
     });
 
     testWidgets('is disabled when readOnly is true', (tester) async {
-        // Arrange
-      when(() => mockLogRepo.getLogEntries(
-            any(),
-            limit: any(named: 'limit'),
-            startAfter: any(named: 'startAfter'),
-            requestIDs: any(named: 'requestIDs'),
-          )).thenAnswer((_) => Stream.value([]));
+      // Arrange
+      when(
+        () => mockLogRepo.getLogEntries(
+          any(),
+          limit: any(named: 'limit'),
+          startAfter: any(named: 'startAfter'),
+          requestIDs: any(named: 'requestIDs'),
+        ),
+      ).thenAnswer((_) => Stream.value([]));
 
-      when(() => mockBookingRepo.decorateLogs(any(), any()))
-          .thenAnswer((_) => Stream.value([]));
+      when(
+        () => mockBookingService.decorateLogs(any(), any()),
+      ).thenAnswer((_) => Stream.value([]));
 
       // Act
-      await tester.pumpWidget(createWidgetUnderTest(requestID: 'req-1', readOnly: true));
+      await tester.pumpWidget(
+        createWidgetUnderTest(requestID: 'req-1', readOnly: true),
+      );
 
       // Assert
-      // Verify ExpansionTile is disabled. 
+      // Verify ExpansionTile is disabled.
       // We can check if the ListTile (part of ExpansionTile header) is disabled or if tapping does nothing.
       // ExpansionTile doesn't have an explicit 'enabled' property in older Flutter versions, but the snippet has 'enabled: !readOnly'.
       // So we can check that property.
-      
-      final expansionTile = tester.widget<ExpansionTile>(find.byType(ExpansionTile));
+
+      final expansionTile = tester.widget<ExpansionTile>(
+        find.byType(ExpansionTile),
+      );
       expect(expansionTile.enabled, isFalse);
     });
   });

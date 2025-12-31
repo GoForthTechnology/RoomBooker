@@ -89,7 +89,7 @@ void main() {
       ),
     );
     when(
-      () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
+      () => mockBookingService.listBlackoutWindows(any(), any(), any()),
     ).thenAnswer((_) => Stream.value([]));
     when(
       () => mockRoomState.getRoom(any()),
@@ -98,7 +98,6 @@ void main() {
     when(() => mockRoomState.isEnabled(any())).thenReturn(true);
 
     viewModel = CalendarViewModel(
-      bookingRepo: mockBookingRepo,
       orgState: mockOrgState,
       roomState: mockRoomState,
       loggingService: mockLoggingService,
@@ -133,7 +132,6 @@ void main() {
         ).thenAnswer((_) => Stream.value(requests));
 
         viewModel = CalendarViewModel(
-          bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
           loggingService: mockLoggingService,
@@ -192,7 +190,6 @@ void main() {
       );
 
       viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
         orgState: mockOrgState,
         roomState: mockRoomState,
         loggingService: mockLoggingService,
@@ -227,7 +224,6 @@ void main() {
 
       bool called = false;
       viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
         orgState: mockOrgState,
         roomState: mockRoomState,
         loggingService: mockLoggingService,
@@ -273,7 +269,6 @@ void main() {
 
       Completer<DragDetails> dragDetails = Completer();
       viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
         orgState: mockOrgState,
         roomState: mockRoomState,
         loggingService: mockLoggingService,
@@ -328,7 +323,7 @@ void main() {
       var completer = Completer<ResizeDetails>();
       var viewModel = CalendarViewModel(
         orgState: mockOrgState,
-        bookingRepo: mockBookingRepo,
+
         roomState: mockRoomState,
         loggingService: mockLoggingService,
         bookingService: mockBookingService,
@@ -369,7 +364,6 @@ void main() {
 
         var eventFired = false;
         viewModel = CalendarViewModel(
-          bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
           loggingService: mockLoggingService,
@@ -505,7 +499,6 @@ void main() {
         });
 
         viewModel = CalendarViewModel(
-          bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
           loggingService: mockLoggingService,
@@ -569,7 +562,6 @@ void main() {
         });
 
         viewModel = CalendarViewModel(
-          bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
           loggingService: mockLoggingService,
@@ -630,7 +622,6 @@ void main() {
         });
 
         viewModel = CalendarViewModel(
-          bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
           loggingService: mockLoggingService,
@@ -681,7 +672,6 @@ void main() {
             StreamController<(Request?, PrivateRequestDetails?)>();
 
         viewModel = CalendarViewModel(
-          bookingRepo: mockBookingRepo,
           orgState: mockOrgState,
           roomState: mockRoomState,
           loggingService: mockLoggingService,
@@ -741,7 +731,7 @@ void main() {
       ).thenAnswer((_) => Stream.value([]));
 
       when(
-        () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
+        () => mockBookingService.listBlackoutWindows(any(), any(), any()),
       ).thenAnswer((_) => Stream.value([]));
       // Also request details which called by viewmodel sometimes
       when(
@@ -752,7 +742,6 @@ void main() {
       // Start with Month view
       final initialDate = DateTime(2023, 1, 15);
       viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
         orgState: mockOrgState,
         roomState: mockRoomState,
         loggingService: mockLoggingService,
@@ -813,7 +802,7 @@ void main() {
         ),
       ).thenAnswer((_) => Stream.value([]));
       when(
-        () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
+        () => mockBookingService.listBlackoutWindows(any(), any(), any()),
       ).thenAnswer((_) => Stream.value([]));
       when(
         () => mockBookingRepo.getRequestDetails(any(), any()),
@@ -823,7 +812,6 @@ void main() {
       // Start with Month view
       final initialDate = DateTime(2023, 1, 15);
       viewModel = CalendarViewModel(
-        bookingRepo: mockBookingRepo,
         orgState: mockOrgState,
         roomState: mockRoomState,
         loggingService: mockLoggingService,

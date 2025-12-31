@@ -45,7 +45,7 @@ class AppProviders extends StatelessWidget {
     var bookingService = BookingService(bookingRepo: bookingRepo);
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => bookingRepo),
+        Provider(create: (_) => bookingRepo),
         ChangeNotifierProvider(create: (_) => userRepo),
         ChangeNotifierProvider(create: (_) => orgRepo),
         ChangeNotifierProvider(create: (_) => roomRepo),

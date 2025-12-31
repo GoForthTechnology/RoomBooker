@@ -71,7 +71,7 @@ void main() {
       () => mockBookingRepo.getRequestDetails(any(), any()),
     ).thenAnswer((_) => Stream.value(null));
     when(
-      () => mockBookingRepo.listBlackoutWindows(any(), any(), any()),
+      () => mockBookingService.listBlackoutWindows(any(), any(), any()),
     ).thenAnswer((_) => Stream.value([]));
   });
 
@@ -123,7 +123,6 @@ void main() {
     ).thenAnswer((_) => Stream.value([request1, request2]));
 
     viewModel = CalendarViewModel(
-      bookingRepo: mockBookingRepo,
       orgState: mockOrgState,
       roomState: roomState,
       loggingService: mockLoggingService,

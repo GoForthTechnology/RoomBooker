@@ -4,7 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/entities/request.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/widgets/booking_list/booking_filter_view_model.dart';
 import 'package:room_booker/ui/widgets/booking_list/pending_bookings.dart';
@@ -16,7 +16,7 @@ import 'booking_lists_test.dart';
 class MockStackRouter extends Mock implements StackRouter {}
 
 void main() {
-  late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockLogRepo mockLogRepo;
   late MockRoomState mockRoomState;
   late MockBookingFilterViewModel mockFilterViewModel;
@@ -32,7 +32,7 @@ void main() {
     eventEndTime: DateTime.now().add(Duration(hours: 1)),
     status: RequestStatus.pending,
   );
-    final requestDetails = PrivateRequestDetails(
+  final requestDetails = PrivateRequestDetails(
     id: 'req1',
     name: 'John Doe',
     email: 'john@example.com',
@@ -40,9 +40,8 @@ void main() {
     eventName: 'Meeting',
   );
 
-
   setUp(() {
-    mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockLogRepo = MockLogRepo();
     mockRoomState = MockRoomState();
     mockFilterViewModel = MockBookingFilterViewModel();
@@ -63,16 +62,14 @@ void main() {
         child: Scaffold(
           body: MultiProvider(
             providers: [
-              ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+              Provider<BookingService>.value(value: mockBookingService),
               ChangeNotifierProvider<LogRepo>.value(value: mockLogRepo),
               ChangeNotifierProvider<RoomState>.value(value: mockRoomState),
               ChangeNotifierProvider<BookingFilterViewModel>.value(
-                  value: mockFilterViewModel),
+                value: mockFilterViewModel,
+              ),
             ],
-            child: PendingBookings(
-              orgID: orgID,
-              repo: mockBookingRepo,
-            ),
+            child: PendingBookings(orgID: orgID, service: mockBookingService),
           ),
         ),
       ),
@@ -80,46 +77,63 @@ void main() {
   }
 
   testWidgets('displays pending booking', (WidgetTester tester) async {
-    when(() => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: {RequestStatus.pending},
-        )).thenAnswer((_) => Stream.value([request]));
-    
-    when(() => mockBookingRepo.getRequestDetails(orgID, request.id!))
-        .thenAnswer((_) => Stream.value(requestDetails));
-    when(() => mockLogRepo.getLogEntries(orgID, requestIDs: any(named: 'requestIDs')))
-        .thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockBookingService.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+        includeStatuses: {RequestStatus.pending},
+      ),
+    ).thenAnswer((_) => Stream.value([request]));
 
+    when(
+      () => mockBookingService.getRequestDetails(orgID, request.id!),
+    ).thenAnswer((_) => Stream.value(requestDetails));
+    when(
+      () => mockLogRepo.getLogEntries(
+        orgID,
+        requestIDs: any(named: 'requestIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
 
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
 
     expect(find.text('Meeting for John Doe'), findsOneWidget);
   });
-  
+
   testWidgets('approve action calls repo', (WidgetTester tester) async {
-     when(() => mockBookingRepo.listRequests(
-          orgID: any(named: 'orgID'),
-          startTime: any(named: 'startTime'),
-          endTime: any(named: 'endTime'),
-          includeRoomIDs: any(named: 'includeRoomIDs'),
-          includeStatuses: {RequestStatus.pending},
-        )).thenAnswer((_) => Stream.value([request]));
-    
-    when(() => mockBookingRepo.getRequestDetails(orgID, request.id!))
-        .thenAnswer((_) => Stream.value(requestDetails));
-    when(() => mockLogRepo.getLogEntries(orgID, requestIDs: any(named: 'requestIDs')))
-        .thenAnswer((_) => Stream.value([]));
-    when(() => mockBookingRepo.confirmRequest(orgID, request.id!)).thenAnswer((_) async {});
+    when(
+      () => mockBookingService.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeRoomIDs: any(named: 'includeRoomIDs'),
+        includeStatuses: {RequestStatus.pending},
+      ),
+    ).thenAnswer((_) => Stream.value([request]));
+
+    when(
+      () => mockBookingService.getRequestDetails(orgID, request.id!),
+    ).thenAnswer((_) => Stream.value(requestDetails));
+    when(
+      () => mockLogRepo.getLogEntries(
+        orgID,
+        requestIDs: any(named: 'requestIDs'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockBookingService.confirmRequest(orgID, request.id!),
+    ).thenAnswer((_) async {});
 
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.check_circle));
-    
-    verify(() => mockBookingRepo.confirmRequest(orgID, request.id!)).called(1);
+
+    verify(
+      () => mockBookingService.confirmRequest(orgID, request.id!),
+    ).called(1);
   });
 }

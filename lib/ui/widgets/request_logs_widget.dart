@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
 import 'package:room_booker/data/entities/organization.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/widgets/request_logs_controller.dart';
@@ -35,7 +35,7 @@ class RequestLogsWidget extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => RequestLogsController(
         logRepo: Provider.of<LogRepo>(context, listen: false),
-        bookingRepo: Provider.of<BookingRepo>(context, listen: false),
+        bookingService: Provider.of<BookingService>(context, listen: false),
         orgID: org.id!,
         requestID: requestID,
       ),

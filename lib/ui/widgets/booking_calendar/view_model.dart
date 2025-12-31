@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/blackout_window.dart';
 import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/services/logging_service.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
 import 'package:room_booker/ui/widgets/org_state_provider.dart';
 import 'package:room_booker/ui/widgets/room_selector.dart';
 import 'package:rxdart/rxdart.dart';
@@ -47,7 +46,6 @@ class CalendarViewModel extends ChangeNotifier {
 
   bool initialized = false;
 
-  final BookingRepo _bookingRepo;
   final OrgState _orgState;
   final RoomState _roomState;
   final LoggingService _loggingService;
@@ -57,7 +55,7 @@ class CalendarViewModel extends ChangeNotifier {
 
   CalendarViewModel({
     required OrgState orgState,
-    required BookingRepo bookingRepo,
+    // required BookingRepo bookingRepo, // Removed
     required RoomState roomState,
     required LoggingService loggingService,
     required BookingService bookingService,
@@ -82,7 +80,7 @@ class CalendarViewModel extends ChangeNotifier {
     ],
   }) : _allowAppointmentResize = allowAppointmentResize,
        _allowDragAndDrop = allowDragAndDrop,
-       _bookingRepo = bookingRepo,
+
        _orgState = orgState,
        _roomState = roomState,
        _bookingService = bookingService,
@@ -105,7 +103,7 @@ class CalendarViewModel extends ChangeNotifier {
     _roomState.addListener(_onRoomStateChanged);
 
     controller.addPropertyChangedListener(_handlePropertyChange);
-    var indexSub = _buildAppointmentStream(bookingRepo, orgState, roomState)
+    var indexSub = _buildAppointmentStream(orgState, roomState)
         .map((appointmentsToRequests) {
           Map<String, Request> index = {};
           for (var e in appointmentsToRequests.entries) {
@@ -171,7 +169,6 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   Stream<CalendarViewState> _viewStateStream(
-    BookingRepo bookingRepo,
     OrgState orgState,
     RoomState roomState,
   ) {
@@ -180,13 +177,12 @@ class CalendarViewModel extends ChangeNotifier {
         throw 'Error in _newAppointmentSubject: $e';
       }),
       _buildAppointmentStream(
-        bookingRepo,
         orgState,
         roomState,
       ).startWith(const {}).handleError((e, s) {
         throw 'Error in _buildAppointmentStream: $e';
       }),
-      bookingRepo
+      _bookingService
           .listBlackoutWindows(orgState.org, startOfView, endOfView)
           .startWith(const [])
           .handleError((e, s) {
@@ -219,7 +215,6 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   Stream<Map<Appointment, Request>> _buildAppointmentStream(
-    BookingRepo bookingRepo,
     OrgState orgState,
     RoomState roomState,
   ) {
@@ -373,7 +368,7 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   Stream<CalendarViewState> calendarViewState() {
-    return _viewStateStream(_bookingRepo, _orgState, _roomState);
+    return _viewStateStream(_orgState, _roomState);
   }
 
   // Bizarre things happen when you shink the screen which makes this

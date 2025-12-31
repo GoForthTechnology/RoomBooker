@@ -5,10 +5,11 @@ import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/services/analytics_service.dart';
 import 'package:room_booker/data/entities/organization.dart';
+import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/room_repo.dart';
 import 'package:room_booker/data/entities/log_entry.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/log_repo.dart';
 import 'package:room_booker/ui/screens/org_settings/org_settings_screen.dart';
 import 'package:room_booker/ui/widgets/org_settings/admin_widget.dart';
@@ -23,7 +24,7 @@ class MockRoomRepo extends Mock implements RoomRepo {}
 
 class MockLogRepo extends Mock implements LogRepo {}
 
-class MockBookingRepo extends Mock implements BookingRepo {}
+class MockBookingService extends Mock implements BookingService {}
 
 class MockFirebaseAnalyticsService extends Mock
     implements FirebaseAnalyticsService {}
@@ -37,7 +38,7 @@ void main() {
   late MockOrgRepo mockOrgRepo;
   late MockRoomRepo mockRoomRepo;
   late MockLogRepo mockLogRepo;
-  late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockFirebaseAnalyticsService mockAnalyticsService;
   late MockStackRouter mockRouter;
 
@@ -53,13 +54,14 @@ void main() {
     registerFallbackValue(FakeRequestLogEntryStream());
     registerFallbackValue(<String, Object>{});
     registerFallbackValue(const PageRouteInfo('LandingRoute'));
+    registerFallbackValue(RequestStatus.confirmed);
   });
 
   setUp(() {
     mockOrgRepo = MockOrgRepo();
     mockRoomRepo = MockRoomRepo();
     mockLogRepo = MockLogRepo();
-    mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockAnalyticsService = MockFirebaseAnalyticsService();
     mockRouter = MockStackRouter();
 
@@ -96,7 +98,25 @@ void main() {
     ).thenAnswer((_) => Stream.value([]));
 
     when(
-      () => mockBookingRepo.decorateLogs(any(), any()),
+      () => mockBookingService.decorateLogs(any(), any()),
+    ).thenAnswer((_) => Stream.value([]));
+
+    // Stubbing for OrgDetails (BookingService)
+    when(
+      () => mockBookingService.listRequests(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+        includeStatuses: any(named: 'includeStatuses'),
+      ),
+    ).thenAnswer((_) => Stream.value([]));
+
+    when(
+      () => mockBookingService.findOverlappingBookings(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+      ),
     ).thenAnswer((_) => Stream.value([]));
   });
 
@@ -106,7 +126,7 @@ void main() {
         ChangeNotifierProvider<OrgRepo>.value(value: mockOrgRepo),
         ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
         ChangeNotifierProvider<LogRepo>.value(value: mockLogRepo),
-        ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+        Provider<BookingService>.value(value: mockBookingService),
         ChangeNotifierProvider<AnalyticsService>.value(
           value: mockAnalyticsService,
         ),

@@ -4,7 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
-import 'package:room_booker/data/repos/booking_repo.dart';
+import 'package:room_booker/data/entities/request.dart';
+import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/ui/screens/landing/landing.dart';
@@ -18,7 +19,7 @@ class MockPreferencesRepo extends Mock implements PreferencesRepo {}
 
 class MockOrgRepo extends Mock implements OrgRepo {}
 
-class MockBookingRepo extends Mock implements BookingRepo {}
+class MockBookingService extends Mock implements BookingService {}
 
 class MockStackRouter extends Mock implements StackRouter {}
 
@@ -26,14 +27,14 @@ void main() {
   late MockLandingViewModel mockViewModel;
   late MockPreferencesRepo mockPrefsRepo;
   late MockOrgRepo mockOrgRepo;
-  late MockBookingRepo mockBookingRepo;
+  late MockBookingService mockBookingService;
   late MockStackRouter mockRouter;
 
   setUp(() {
     mockViewModel = MockLandingViewModel();
     mockPrefsRepo = MockPreferencesRepo();
     mockOrgRepo = MockOrgRepo();
-    mockBookingRepo = MockBookingRepo();
+    mockBookingService = MockBookingService();
     mockRouter = MockStackRouter();
 
     // Stub view model methods and streams
@@ -61,18 +62,21 @@ void main() {
       () => mockOrgRepo.adminRequests(any()),
     ).thenAnswer((_) => Stream.value([]));
 
-    // Stub booking repo
+    // Stub booking service
     when(
-      () => mockBookingRepo.listRequests(
+      () => mockBookingService.listRequests(
         orgID: any(named: 'orgID'),
         startTime: any(named: 'startTime'),
         endTime: any(named: 'endTime'),
         includeStatuses: any(named: 'includeStatuses'),
-        includeRoomIDs: any(named: 'includeRoomIDs'),
       ),
     ).thenAnswer((_) => Stream.value([]));
     when(
-      () => mockBookingRepo.findOverlappingBookings(any(), any(), any()),
+      () => mockBookingService.findOverlappingBookings(
+        orgID: any(named: 'orgID'),
+        startTime: any(named: 'startTime'),
+        endTime: any(named: 'endTime'),
+      ),
     ).thenAnswer((_) => Stream.value([]));
   });
 
@@ -82,7 +86,7 @@ void main() {
         ChangeNotifierProvider<LandingViewModel>.value(value: mockViewModel),
         ChangeNotifierProvider<PreferencesRepo>.value(value: mockPrefsRepo),
         ChangeNotifierProvider<OrgRepo>.value(value: mockOrgRepo),
-        ChangeNotifierProvider<BookingRepo>.value(value: mockBookingRepo),
+        Provider<BookingService>.value(value: mockBookingService),
       ],
       child: MaterialApp(
         home: StackRouterScope(
