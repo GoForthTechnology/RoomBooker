@@ -358,14 +358,18 @@ class RequestEditor extends StatelessWidget {
           .map(
             (action) => ElevatedButton(
               onPressed: () async {
-                var result = await action.onPressed();
-                if (result.message.isNotEmpty) {
-                  messenger.showSnackBar(
-                    SnackBar(content: Text(result.message)),
-                  );
-                }
-                if (result.shouldCloseEditor && onClose != null) {
-                  onClose!();
+                try {
+                  var result = await action.onPressed();
+                  if (result.message.isNotEmpty) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text(result.message)),
+                    );
+                  }
+                  if (result.shouldCloseEditor && onClose != null) {
+                    onClose!();
+                  }
+                } catch (e) {
+                  messenger.showSnackBar(SnackBar(content: Text(e.toString())));
                 }
               },
               child: Text(action.title),
