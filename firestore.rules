@@ -89,12 +89,9 @@ service cloud.firestore {
       match /request-details/{requestID} {
         // Validating the request structure on creation
         allow create: if true 
-                      && hasAll(['name', 'email', 'eventName', 'eventStartTime', 'eventEndTime'])
+                      && hasAll(['name', 'email', 'eventName'])
                       && isNotEmptyString('name')
-                      && isNotEmptyString('email')
-                      && isTimestamp('eventStartTime')
-                      && isTimestamp('eventEndTime')
-                      && incomingData().eventEndTime > incomingData().eventStartTime;
+                      && isNotEmptyString('email');
                       
         allow read: if isAdmin();
         allow write: if isAdmin();
