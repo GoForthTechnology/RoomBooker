@@ -7,12 +7,10 @@ import 'package:rxdart/rxdart.dart';
 
 class OrgDetails extends ChangeNotifier {
   final int numPendingRequests;
-  final int numConflictingRequests;
   final int numAdminRequests;
 
   OrgDetails({
     required this.numPendingRequests,
-    required this.numConflictingRequests,
     required this.numAdminRequests,
   });
 }
@@ -34,7 +32,7 @@ class OrgDetailsProvider extends StatelessWidget {
     var startOfToday = DateTime(today.year, today.month, today.day);
 
     return StreamBuilder(
-      stream: Rx.combineLatest3(
+      stream: Rx.combineLatest2(
         bookingService.listRequests(
           orgID: orgID,
           startTime: startOfToday,
@@ -42,14 +40,8 @@ class OrgDetailsProvider extends StatelessWidget {
           includeStatuses: {RequestStatus.pending},
         ),
         orgRepo.adminRequests(orgID),
-        bookingService.findOverlappingBookings(
-          orgID: orgID,
-          startTime: startOfToday,
-          endTime: startOfToday.add(Duration(days: 365)),
-        ),
-        (pendingRequests, adminRequests, overlaps) => OrgDetails(
+        (pendingRequests, adminRequests) => OrgDetails(
           numPendingRequests: pendingRequests.length,
-          numConflictingRequests: overlaps.length,
           numAdminRequests: adminRequests.length,
         ),
       ),

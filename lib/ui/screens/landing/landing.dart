@@ -366,10 +366,6 @@ class OrgTile extends StatelessWidget {
           if (details.numAdminRequests > 0) {
             subtitle += ", ${details.numAdminRequests} admin requests";
           }
-          if (details.numConflictingRequests > 0) {
-            subtitle +=
-                ", ${details.numConflictingRequests} overlapping bookings";
-          }
         }
         return Card(
           elevation: 1,
