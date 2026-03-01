@@ -56,8 +56,23 @@ class BookingCalendarView extends StatelessWidget {
           appointmentBuilder: (context, calendarAppointmentDetails) {
             final Appointment appointment =
                 calendarAppointmentDetails.appointments.first;
+            final bounds = calendarAppointmentDetails.bounds;
+
+            Widget content = Text(
+              appointment.subject,
+              style: const TextStyle(color: Colors.white, fontSize: 10),
+              overflow: TextOverflow.ellipsis,
+              maxLines: (bounds.height / 15).floor(),
+              softWrap: true,
+            );
+
+            final tooltipMessage =
+                appointment.notes != null && appointment.notes!.isNotEmpty
+                ? "${appointment.subject}\n${appointment.notes}"
+                : appointment.subject;
+
             return Tooltip(
-              message: appointment.notes ?? '',
+              message: tooltipMessage,
               waitDuration: const Duration(milliseconds: 500),
               child: Container(
                 decoration: BoxDecoration(
@@ -65,10 +80,8 @@ class BookingCalendarView extends StatelessWidget {
                   borderRadius: BorderRadius.circular(3),
                 ),
                 padding: const EdgeInsets.all(3),
-                child: Text(
-                  appointment.subject,
-                  style: const TextStyle(color: Colors.white, fontSize: 10),
-                ),
+                alignment: Alignment.topLeft,
+                child: content,
               ),
             );
           },
