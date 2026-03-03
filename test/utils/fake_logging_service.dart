@@ -33,6 +33,12 @@ class FakeLoggingService implements LoggingService {
   }
 
   @override
+  void startColdStartTrace(DateTime startTime) {}
+
+  @override
+  void stopColdStartTrace() {}
+
+  @override
   bool get hasListeners => false;
 
   @override

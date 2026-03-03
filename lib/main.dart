@@ -20,6 +20,9 @@ import 'package:room_booker/app_router_observer.dart';
 bool useEmulator = false;
 
 void main() async {
+  // Capture cold start time as early as possible
+  final coldStartTime = DateTime.now();
+
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseAppCheck.instance.activate(
@@ -29,6 +32,7 @@ void main() async {
   );
   final loggingService = getLoggingService();
   final prefs = await SharedPreferences.getInstance();
+  loggingService.startColdStartTrace(coldStartTime);
 
   if (useEmulator && kDebugMode) {
     try {

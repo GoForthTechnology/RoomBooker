@@ -51,7 +51,6 @@ dependencies:
   test: ^1.25.8
   intl: ^0.20.0
   firebase_analytics: ^12.0.3
-  firebase_performance: ^0.11.1+1
   shared_preferences: ^2.3.2
   badges: ^3.1.2
   universal_html: ^2.2.4

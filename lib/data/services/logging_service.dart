@@ -10,6 +10,9 @@ abstract class LoggingService extends ChangeNotifier {
   void fatal(String message, [dynamic error, StackTrace? stackTrace]);
 
   T trace<T>(String operation, T Function() action);
+
+  void startColdStartTrace(DateTime startTime);
+  void stopColdStartTrace();
 }
 
 class DebugLoggingService extends ChangeNotifier implements LoggingService {
@@ -44,6 +47,16 @@ class DebugLoggingService extends ChangeNotifier implements LoggingService {
   T trace<T>(String operation, T Function() action) {
     return action();
   }
+
+  @override
+  void startColdStartTrace(DateTime startTime) {
+    _logger.i("Starting cold start trace at $startTime");
+  }
+
+  @override
+  void stopColdStartTrace() {
+    _logger.i("Stopping cold start trace");
+  }
 }
 
 class CustomLogPrinter extends PrettyPrinter {
@@ -60,6 +73,8 @@ class CustomLogPrinter extends PrettyPrinter {
 }
 
 class SentryLoggingService extends ChangeNotifier implements LoggingService {
+  ISentrySpan? _coldStartTrace;
+
   @override
   void debug(String message) {
     Sentry.logger.info(message);
@@ -95,6 +110,25 @@ class SentryLoggingService extends ChangeNotifier implements LoggingService {
       rethrow;
     } finally {
       span?.finish();
+    }
+  }
+
+  @override
+  void startColdStartTrace(DateTime startTime) {
+    _coldStartTrace = Sentry.startTransaction(
+      'cold_start_to_calendar',
+      'ui.load',
+      startTimestamp: startTime,
+      bindToScope: true,
+    );
+  }
+
+  @override
+  void stopColdStartTrace() {
+    if (_coldStartTrace != null) {
+      _coldStartTrace?.status = const SpanStatus.ok();
+      _coldStartTrace?.finish();
+      _coldStartTrace = null;
     }
   }
 }
