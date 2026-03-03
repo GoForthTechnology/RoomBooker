@@ -356,7 +356,8 @@ class BookingRepo {
                   isGreaterThanOrEqualTo: startTime.toIso8601String(),
                 ),
               ),
-            ),
+            )
+            .where("eventStartTime", isLessThanOrEqualTo: endDateStr),
       );
     }
     if (includeRoomIDs != null) {

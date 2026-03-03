@@ -517,7 +517,7 @@ void main() {
             isA<CalendarViewState>().having(
               (state) => state.dataSource.appointments!.length,
               'appointments.length',
-              4, // Expect 4 appointments for a week
+              7, // Expect 7 appointments because the window is padded and encompasses the entire 7-day recurrance
             ),
           ),
         );
@@ -640,7 +640,7 @@ void main() {
             isA<CalendarViewState>().having(
               (state) => state.dataSource.appointments!.length,
               'appointments.length',
-              1,
+              2,
             ),
           ),
         );
@@ -836,7 +836,7 @@ void main() {
       ).called(1);
 
       // 2. Switch to Next Month
-      viewModel.controller.displayDate = DateTime(2023, 2, 15);
+      viewModel.controller.displayDate = DateTime(2023, 6, 15);
 
       // Wait for potential fetch logic to run
       await Future.delayed(Duration(milliseconds: 100));

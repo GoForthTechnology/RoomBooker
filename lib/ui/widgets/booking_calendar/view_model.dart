@@ -89,13 +89,22 @@ class CalendarViewModel extends ChangeNotifier {
     controller.displayDate = targetDate ?? DateTime.now();
     var currentWindow = VisibleWindow(start: startOfView, end: endOfView);
     _visibleWindowController.add(currentWindow);
-    _fetchWindowController.add(currentWindow);
+
+    final paddedWindow = VisibleWindow(
+      start: currentWindow.start.subtract(const Duration(days: 30)),
+      end: currentWindow.end.add(const Duration(days: 30)),
+    );
+    _fetchWindowController.add(paddedWindow);
 
     var sub = _visibleWindowController.listen((visibleWindow) {
       var fetchedWindow = _fetchWindowController.valueOrNull;
       if (fetchedWindow == null || !fetchedWindow.contains(visibleWindow)) {
         _loggingService.debug("CALENDAR: Fetching new window: $visibleWindow");
-        _fetchWindowController.add(visibleWindow);
+        final newPaddedWindow = VisibleWindow(
+          start: visibleWindow.start.subtract(const Duration(days: 30)),
+          end: visibleWindow.end.add(const Duration(days: 30)),
+        );
+        _fetchWindowController.add(newPaddedWindow);
       }
     });
     _subscriptions.add(sub);
@@ -182,8 +191,15 @@ class CalendarViewModel extends ChangeNotifier {
       ).startWith(const {}).handleError((e, s) {
         throw 'Error in _buildAppointmentStream: $e';
       }),
-      _bookingService
-          .listBlackoutWindows(orgState.org, startOfView, endOfView)
+      _fetchWindowController
+          .distinct()
+          .switchMap(
+            (window) => _bookingService.listBlackoutWindows(
+              orgState.org,
+              window.start,
+              window.end,
+            ),
+          )
           .startWith(const [])
           .handleError((e, s) {
             throw 'Error in listBlackoutWindows: $e';
