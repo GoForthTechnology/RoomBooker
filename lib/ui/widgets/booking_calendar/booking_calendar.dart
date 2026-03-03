@@ -53,40 +53,48 @@ class BookingCalendarView extends StatelessWidget {
           onTap: viewModel.handleTap,
           specialRegions: viewState.specialRegions,
           dataSource: viewState.dataSource,
-          appointmentBuilder: (context, calendarAppointmentDetails) {
-            final Appointment appointment =
-                calendarAppointmentDetails.appointments.first;
-            final bounds = calendarAppointmentDetails.bounds;
-
-            Widget content = Text(
-              appointment.subject,
-              style: const TextStyle(color: Colors.white, fontSize: 10),
-              overflow: TextOverflow.ellipsis,
-              maxLines: (bounds.height / 15).floor(),
-              softWrap: true,
-            );
-
-            final tooltipMessage =
-                appointment.notes != null && appointment.notes!.isNotEmpty
-                ? "${appointment.subject}\n${appointment.notes}"
-                : appointment.subject;
-
-            return Tooltip(
-              message: tooltipMessage,
-              waitDuration: const Duration(milliseconds: 500),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: appointment.color,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                padding: const EdgeInsets.all(3),
-                alignment: Alignment.topLeft,
-                child: content,
-              ),
-            );
-          },
+          appointmentBuilder: _appointmentBuilder(viewState.currentView),
         );
       },
     );
+  }
+
+  Widget Function(BuildContext, CalendarAppointmentDetails)?
+  _appointmentBuilder(CalendarView view) {
+    if (view == CalendarView.schedule) {
+      return null;
+    }
+    return (context, calendarAppointmentDetails) {
+      final Appointment appointment =
+          calendarAppointmentDetails.appointments.first;
+      final bounds = calendarAppointmentDetails.bounds;
+
+      Widget content = Text(
+        appointment.subject,
+        style: const TextStyle(color: Colors.white, fontSize: 10),
+        overflow: TextOverflow.ellipsis,
+        maxLines: (bounds.height / 15).floor(),
+        softWrap: true,
+      );
+
+      final tooltipMessage =
+          appointment.notes != null && appointment.notes!.isNotEmpty
+          ? "${appointment.subject}\n${appointment.notes}"
+          : appointment.subject;
+
+      return Tooltip(
+        message: tooltipMessage,
+        waitDuration: const Duration(milliseconds: 500),
+        child: Container(
+          decoration: BoxDecoration(
+            color: appointment.color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+          padding: const EdgeInsets.all(3),
+          alignment: Alignment.topLeft,
+          child: content,
+        ),
+      );
+    };
   }
 }
