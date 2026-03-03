@@ -201,7 +201,7 @@ void main() {
               showRequestDialog: (_) {},
               showEditorAsDialog: () {},
               updateUri: (_) {},
-              pickDate: (d, _, __) async => d,
+              pickDate: (d, _, _) async => d,
               pickTime: (d) async => TimeOfDay.fromDateTime(d),
             ),
             createCalendarViewModel: (context, targetDate) => CalendarViewModel(

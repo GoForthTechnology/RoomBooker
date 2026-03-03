@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
-import 'package:room_booker/data/entities/request.dart';
 import 'package:room_booker/data/services/booking_service.dart';
 import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
