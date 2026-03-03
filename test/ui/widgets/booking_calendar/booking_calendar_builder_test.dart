@@ -90,9 +90,9 @@ void main() {
     final tooltipFinder = find.byType(Tooltip);
     expect(tooltipFinder, findsOneWidget);
 
-    // Verify Tooltip message matches room name
+    // Verify Tooltip message matches subject and room name
     final tooltip = tester.widget<Tooltip>(tooltipFinder);
-    expect(tooltip.message, 'Conference Room A');
+    expect(tooltip.message, 'Test Meeting\nConference Room A');
 
     // Verify Appointment subject is rendered in Text widget
     expect(find.text('Test Meeting'), findsOneWidget);
