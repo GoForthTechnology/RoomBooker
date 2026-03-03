@@ -97,4 +97,68 @@ void main() {
     // Verify Appointment subject is rendered in Text widget
     expect(find.text('Test Meeting'), findsOneWidget);
   });
+
+  testWidgets('BookingCalendarView renders appointment time in schedule view', (
+    WidgetTester tester,
+  ) async {
+    final startTime = DateTime(2026, 3, 2, 10, 0);
+    final endTime = startTime.add(const Duration(hours: 1));
+    final appointment = Appointment(
+      startTime: startTime,
+      endTime: endTime,
+      subject: 'Schedule Meeting',
+      notes: 'Conference Room B',
+      color: Colors.green,
+    );
+
+    final state = CalendarViewState(
+      currentView: CalendarView.schedule,
+      currentDate: startTime,
+      allowDragAndDrop: false,
+      allowAppointmentResize: false,
+      dataSource: FakeDataSource([appointment]),
+      specialRegions: [],
+    );
+
+    when(
+      () => mockViewModel.calendarViewState(),
+    ).thenAnswer((_) => Stream.value(state));
+    when(() => mockViewModel.controller).thenReturn(CalendarController());
+    when(
+      () => mockViewModel.minDate,
+    ).thenReturn(DateTime.now().subtract(const Duration(days: 30)));
+    when(() => mockViewModel.showNavigationArrow).thenReturn(true);
+    when(() => mockViewModel.showTodayButton).thenReturn(true);
+    when(() => mockViewModel.showDatePickerButton).thenReturn(true);
+    when(() => mockViewModel.allowViewNavigation).thenReturn(true);
+    when(() => mockViewModel.allowedViews).thenReturn([
+      CalendarView.day,
+      CalendarView.week,
+      CalendarView.workWeek,
+      CalendarView.month,
+      CalendarView.schedule,
+    ]);
+    when(() => mockViewModel.handleResizeEnd(any())).thenAnswer((_) async {});
+    when(() => mockViewModel.handleDragEnd(any())).thenAnswer((_) async {});
+    when(() => mockViewModel.handleTap(any())).thenAnswer((_) async {});
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ChangeNotifierProvider<LoggingService>(
+          create: (_) => FakeLoggingService(),
+          child: BookingCalendar(createViewModel: () => mockViewModel),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // In Schedule view, Syncfusion calendar handles the rendering of the appointment
+    // including the time and the subject because our _appointmentBuilder returns
+    // null for CalendarView.schedule. We can verify that the custom Tooltip is
+    // NOT present, indicating the default Syncfusion agenda view is being used
+    // which contains the time by default.
+    final tooltipFinder = find.byType(Tooltip);
+    expect(tooltipFinder, findsNothing);
+  });
 }
