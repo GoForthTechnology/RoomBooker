@@ -17,6 +17,7 @@ abstract class LoggingService extends ChangeNotifier {
 
 class DebugLoggingService extends ChangeNotifier implements LoggingService {
   final Logger _logger = Logger(printer: CustomLogPrinter());
+  bool _coldStartTraceStopped = false;
 
   @override
   void debug(String message) {
@@ -51,11 +52,15 @@ class DebugLoggingService extends ChangeNotifier implements LoggingService {
   @override
   void startColdStartTrace(DateTime startTime) {
     _logger.i("Starting cold start trace at $startTime");
+    _coldStartTraceStopped = false;
   }
 
   @override
   void stopColdStartTrace() {
-    _logger.i("Stopping cold start trace");
+    if (!_coldStartTraceStopped) {
+      _logger.i("Stopping cold start trace");
+      _coldStartTraceStopped = true;
+    }
   }
 }
 

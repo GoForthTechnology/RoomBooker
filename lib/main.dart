@@ -101,6 +101,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      loggingService.stopColdStartTrace();
+    });
     try {
       FirebaseAnalytics.instance.logAppOpen();
       FirebaseUIAuth.configureProviders(providers);
