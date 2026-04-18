@@ -223,7 +223,7 @@ class CalendarViewModel extends ChangeNotifier {
           allowDragAndDrop: _allowDragAndDrop && newAppointment == null,
           dataSource: _DataSource(out),
           specialRegions: blackoutWindows.map((w) => w.toTimeRegion()).toList(),
-          currentView: controller.view!,
+          currentView: controller.view ?? CalendarView.month,
           currentDate: _safeDisplayDate,
           activeRequestID: newAppointment != null ? _id(newAppointment) : null,
         );
@@ -393,15 +393,19 @@ class CalendarViewModel extends ChangeNotifier {
   DateTime? get minDate =>
       controller.view == CalendarView.schedule ? DateTime.now() : null;
 
-  DateTime get _safeDisplayDate => DateTime(
-    controller.displayDate!.year,
-    controller.displayDate!.month,
-    controller.displayDate!.day,
-  );
+  DateTime get _safeDisplayDate {
+    final displayDate = controller.displayDate ?? DateTime.now();
+    return DateTime(
+      displayDate.year,
+      displayDate.month,
+      displayDate.day,
+    );
+  }
 
   DateTime get startOfView {
     var displayDate = _safeDisplayDate;
-    switch (controller.view) {
+    final view = controller.view ?? CalendarView.month;
+    switch (view) {
       case CalendarView.schedule:
       case CalendarView.day:
         return displayDate;
@@ -422,14 +426,14 @@ class CalendarViewModel extends ChangeNotifier {
       case CalendarView.timelineWorkWeek:
       case CalendarView.timelineMonth:
       case CalendarView.workWeek:
-      case null:
         throw UnimplementedError();
     }
   }
 
   DateTime get endOfView {
     var start = _safeDisplayDate;
-    switch (controller.view) {
+    final view = controller.view ?? CalendarView.month;
+    switch (view) {
       case CalendarView.day:
         return start.add(Duration(days: 1));
       case CalendarView.week:
@@ -451,7 +455,6 @@ class CalendarViewModel extends ChangeNotifier {
       case CalendarView.timelineWorkWeek:
       case CalendarView.timelineMonth:
       case CalendarView.workWeek:
-      case null:
         throw UnimplementedError();
     }
   }
@@ -545,7 +548,10 @@ class CalendarViewModel extends ChangeNotifier {
     if (date == null) {
       return;
     }
-    _dateTapSubject.add(DateTapDetails(date: date, view: controller.view!));
+    _dateTapSubject.add(DateTapDetails(
+      date: date,
+      view: controller.view ?? CalendarView.month,
+    ));
   }
 }
 
