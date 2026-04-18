@@ -157,6 +157,12 @@ class ViewBookingsViewModel extends ChangeNotifier {
       throw Exception("Request details with ID $requestID not found");
     }
     _requestEditorViewModel.initializeFromExistingRequest(request, details);
+
+    // Center the calendar on the event and open the editor on small screens
+    _calendarViewModel.scrollToTime(request.eventStartTime);
+    if (isSmallView()) {
+      showEditorAsDialog();
+    }
   }
 
   Future<void> loadNewRequest(DateTime targetDate) async {

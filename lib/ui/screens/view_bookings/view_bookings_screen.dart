@@ -213,17 +213,20 @@ class ViewBookingsScreen extends StatelessWidget {
         !isSmall && viewState.showRoomSelector && !viewState.showEditor;
     var showEditor = !isSmall && viewState.showEditor;
     var panelWidth = MediaQuery.sizeOf(context).width / 4;
+    var router = AutoRouter.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(orgState.org.name),
         actions: _renderActions(viewModel.getActions(context)),
-        leading: viewModel.isSmallView()
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: viewModel.toggleRoomSelector,
-              ),
+        leading: router.canPop()
+            ? BackButton()
+            : !isSmall
+                ? IconButton(
+                    icon: const Icon(Icons.menu),
+                    onPressed: viewModel.toggleRoomSelector,
+                  )
+                : null,
       ),
       floatingActionButton:
           calendarViewModel.controller.view != CalendarView.day

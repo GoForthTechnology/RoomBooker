@@ -55,14 +55,17 @@ class BookingCalendarView extends StatelessWidget {
           onTap: viewModel.handleTap,
           specialRegions: viewState.specialRegions,
           dataSource: viewState.dataSource,
-          appointmentBuilder: _appointmentBuilder(viewState.currentView),
+          appointmentBuilder: _appointmentBuilder(
+            viewState.currentView,
+            viewState.activeRequestID,
+          ),
         );
       },
     );
   }
 
   Widget Function(BuildContext, CalendarAppointmentDetails)?
-  _appointmentBuilder(CalendarView view) {
+  _appointmentBuilder(CalendarView view, String? activeRequestID) {
     if (view == CalendarView.schedule) {
       return null;
     }
@@ -70,6 +73,10 @@ class BookingCalendarView extends StatelessWidget {
       final Appointment appointment =
           calendarAppointmentDetails.appointments.first;
       final bounds = calendarAppointmentDetails.bounds;
+
+      final appointmentID = appointment.resourceIds?.first.toString();
+      final isActive =
+          activeRequestID != null && appointmentID == activeRequestID;
 
       Widget content = Text(
         appointment.subject,
@@ -91,6 +98,17 @@ class BookingCalendarView extends StatelessWidget {
           decoration: BoxDecoration(
             color: appointment.color,
             borderRadius: BorderRadius.circular(3),
+            border:
+                isActive ? Border.all(color: Colors.black, width: 2) : null,
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 4,
+                      offset: const Offset(2, 2),
+                    ),
+                  ]
+                : null,
           ),
           padding: const EdgeInsets.all(3),
           alignment: Alignment.topLeft,

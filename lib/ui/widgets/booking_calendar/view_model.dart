@@ -225,6 +225,7 @@ class CalendarViewModel extends ChangeNotifier {
           specialRegions: blackoutWindows.map((w) => w.toTimeRegion()).toList(),
           currentView: controller.view!,
           currentDate: _safeDisplayDate,
+          activeRequestID: newAppointment != null ? _id(newAppointment) : null,
         );
       },
     );
@@ -511,6 +512,10 @@ class CalendarViewModel extends ChangeNotifier {
     controller.view = CalendarView.day;
   }
 
+  void scrollToTime(DateTime time) {
+    controller.displayDate = time;
+  }
+
   static String _appointmentID(Appointment appointment) {
     if (appointment.resourceIds == null || appointment.resourceIds!.isEmpty) {
       throw ArgumentError("Appointment has no resource ID");
@@ -603,7 +608,7 @@ String? _id(Appointment appointment) {
   if (ids.isEmpty) {
     return null;
   }
-  return (ids.first as Object?)?.toString();
+  return ids.first.toString();
 }
 
 extension on Appointment {}
@@ -649,6 +654,7 @@ class CalendarViewState {
   final List<TimeRegion> specialRegions;
   final CalendarView currentView;
   final DateTime currentDate;
+  final String? activeRequestID;
 
   CalendarViewState({
     required this.allowAppointmentResize,
@@ -657,6 +663,7 @@ class CalendarViewState {
     required this.dataSource,
     required this.currentView,
     required this.currentDate,
+    this.activeRequestID,
   });
 }
 

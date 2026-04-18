@@ -49,3 +49,24 @@ The request log widget MUST clearly distinguish between actions taken by the ori
 #### Scenario: Display Admin Action
 - **WHEN** viewing the request log for a booking that has been approved
 - **THEN** the approval entry MUST display the admin's email or name as the actor, not the requester's details.
+
+### Requirement: Log-to-Calendar Deep Linking
+When a user navigates to a booking from an audit log entry, the calendar SHALL automatically center on the relevant time slot and open the booking details panel.
+
+#### Scenario: Navigate from Log to Calendar
+- **WHEN** a user clicks "View" on a log entry for a specific booking
+- **THEN** the calendar view SHALL open, the target booking SHALL be centered in the view, and the booking details panel SHALL be open.
+
+### Requirement: Navigation Stack Persistence
+Deep-linking from the settings screen to the calendar view SHALL preserve the navigation stack such that the user can return to the settings screen using the system back button or UI back affordance.
+
+#### Scenario: Return to Settings from Calendar
+- **WHEN** a user has navigated from the settings log to the calendar view and clicks the back button
+- **THEN** the application SHALL return the user to the settings screen.
+
+### Requirement: Active Booking Highlighting
+The system SHALL provide a clear visual indicator for the booking currently being viewed or edited in the editor panel.
+
+#### Scenario: Active Booking Border
+- **WHEN** an event's details are open in the editor panel
+- **THEN** the corresponding event on the calendar SHALL be displayed with a high-contrast border or outline.
