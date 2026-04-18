@@ -42,3 +42,10 @@ The system MUST NOT allow any room to be booked for overlapping time slots.
 #### Scenario: Attempt Overlapping Booking
 - **WHEN** a user tries to book a slot that overlaps with an existing confirmed booking
 - **THEN** the system rejects the request or shows a conflict warning
+
+### Requirement: Accurate Audit Logs
+The system SHALL maintain an audit log of all booking-related actions, correctly attributing each action to the person who performed it (the actor).
+
+#### Scenario: Verify Admin Action Attribution
+- **WHEN** an admin approves or denies a booking request
+- **THEN** the audit log SHALL record the admin's email as the actor for that action.

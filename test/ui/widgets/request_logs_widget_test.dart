@@ -227,4 +227,161 @@ void main() {
       ),
     ).called(1);
   });
+
+  testWidgets('RequestLogsWidget shows admin email for admin actions', (
+    tester,
+  ) async {
+    final org = Organization(
+      id: 'org1',
+      name: 'Test Org',
+      ownerID: 'owner1',
+      acceptingAdminRequests: true,
+    );
+
+    final logEntry = RequestLogEntry(
+      id: 'log1',
+      requestID: 'req1',
+      timestamp: DateTime.now(),
+      action: Action.approve,
+      adminEmail: 'admin@example.com',
+    );
+
+    final request = Request(
+      id: 'req1',
+      roomID: 'room1',
+      roomName: 'Room 1',
+      eventStartTime: DateTime.now(),
+      eventEndTime: DateTime.now().add(const Duration(hours: 1)),
+      publicName: 'Test Event',
+    );
+
+    final decoratedLog = DecoratedLogEntry(
+      PrivateRequestDetails(
+        email: 'requester@example.com',
+        eventName: 'Test Event',
+        name: 'Test User',
+        phone: '1234567890',
+      ),
+      entry: logEntry,
+      request: request,
+    );
+
+    when(
+      () => mockLogRepo.getLogEntries(any(), limit: any(named: 'limit')),
+    ).thenAnswer((_) => Stream.value([logEntry]));
+
+    when(
+      () => mockBookingService.decorateLogs(any(), any()),
+    ).thenAnswer((_) => Stream.value([decoratedLog]));
+
+    await tester.pumpWidget(createWidgetUnderTest(org: org));
+    await tester.pumpAndSettle();
+
+    expect(find.text('admin@example.com - approve'), findsOneWidget);
+  });
+
+  testWidgets(
+    'RequestLogsWidget falls back to requester email if adminEmail is missing',
+    (tester) async {
+      final org = Organization(
+        id: 'org1',
+        name: 'Test Org',
+        ownerID: 'owner1',
+        acceptingAdminRequests: true,
+      );
+
+      final logEntry = RequestLogEntry(
+        id: 'log1',
+        requestID: 'req1',
+        timestamp: DateTime.now(),
+        action: Action.approve,
+        adminEmail: null,
+      );
+
+      final request = Request(
+        id: 'req1',
+        roomID: 'room1',
+        roomName: 'Room 1',
+        eventStartTime: DateTime.now(),
+        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
+        publicName: 'Test Event',
+      );
+
+      final decoratedLog = DecoratedLogEntry(
+        PrivateRequestDetails(
+          email: 'requester@example.com',
+          eventName: 'Test Event',
+          name: 'Test User',
+          phone: '1234567890',
+        ),
+        entry: logEntry,
+        request: request,
+      );
+
+      when(
+        () => mockLogRepo.getLogEntries(any(), limit: any(named: 'limit')),
+      ).thenAnswer((_) => Stream.value([logEntry]));
+
+      when(
+        () => mockBookingService.decorateLogs(any(), any()),
+      ).thenAnswer((_) => Stream.value([decoratedLog]));
+
+      await tester.pumpWidget(createWidgetUnderTest(org: org));
+      await tester.pumpAndSettle();
+
+      expect(find.text('requester@example.com - approve'), findsOneWidget);
+    },
+  );
+
+  testWidgets('RequestLogsWidget shows requester email for create action', (
+    tester,
+  ) async {
+    final org = Organization(
+      id: 'org1',
+      name: 'Test Org',
+      ownerID: 'owner1',
+      acceptingAdminRequests: true,
+    );
+
+    final logEntry = RequestLogEntry(
+      id: 'log1',
+      requestID: 'req1',
+      timestamp: DateTime.now(),
+      action: Action.create,
+      adminEmail: 'somebody@example.com', // Should be ignored for create
+    );
+
+    final request = Request(
+      id: 'req1',
+      roomID: 'room1',
+      roomName: 'Room 1',
+      eventStartTime: DateTime.now(),
+      eventEndTime: DateTime.now().add(const Duration(hours: 1)),
+      publicName: 'Test Event',
+    );
+
+    final decoratedLog = DecoratedLogEntry(
+      PrivateRequestDetails(
+        email: 'requester@example.com',
+        eventName: 'Test Event',
+        name: 'Test User',
+        phone: '1234567890',
+      ),
+      entry: logEntry,
+      request: request,
+    );
+
+    when(
+      () => mockLogRepo.getLogEntries(any(), limit: any(named: 'limit')),
+    ).thenAnswer((_) => Stream.value([logEntry]));
+
+    when(
+      () => mockBookingService.decorateLogs(any(), any()),
+    ).thenAnswer((_) => Stream.value([decoratedLog]));
+
+    await tester.pumpWidget(createWidgetUnderTest(org: org));
+    await tester.pumpAndSettle();
+
+    expect(find.text('requester@example.com - create'), findsOneWidget);
+  });
 }

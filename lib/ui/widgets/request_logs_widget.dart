@@ -70,6 +70,19 @@ class RequestLogsWidget extends StatelessWidget {
     );
   }
 
+  String _getActorEmail(DecoratedLogEntry log) {
+    const requesterActions = {Action.create, Action.request};
+    final action = log.entry.action;
+    final adminEmail = log.entry.adminEmail;
+
+    if (requesterActions.contains(action)) {
+      return log.details.email;
+    }
+
+    // For admin actions, use adminEmail if present, otherwise fallback
+    return adminEmail ?? log.details.email;
+  }
+
   Widget _logView(BuildContext context, RequestLogsController controller) {
     final logs = controller.logs;
     final isLoading = controller.isLoading;
@@ -102,9 +115,10 @@ class RequestLogsWidget extends StatelessWidget {
                   child: Text("VIEW"),
                 );
               }
+              final actorEmail = _getActorEmail(log);
               Widget title = titleBuilder != null
                   ? titleBuilder!(log.entry)
-                  : Text("${log.details.email} - ${log.entry.action.name}");
+                  : Text("$actorEmail - ${log.entry.action.name}");
               Widget subtitle = subtitleBuilder != null
                   ? subtitleBuilder!(log.entry)
                   : Text(
