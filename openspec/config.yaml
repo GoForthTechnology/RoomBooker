@@ -1,0 +1,28 @@
+schema: spec-driven
+
+# Project context
+context: |
+  Project: Room Booker
+  Tech Stack:
+    - Framework: Flutter (SDK >=3.4.3 <4.0.0)
+    - Backend: Firebase (Auth, Firestore, Analytics, Performance)
+    - Routing: auto_route
+    - State Management: provider
+    - Error Reporting: sentry_flutter
+    - Calendar UI: syncfusion_flutter_calendar
+  Conventions:
+    - Booking logic must go through BookingService.
+    - BookingRepo is internal and should not be accessed directly by UI.
+    - Use camelCase for variables/functions, PascalCase for classes, snake_case for files.
+    - Max line length: 80 characters.
+  Architecture:
+    - Presentation: lib/ui/
+    - Domain: lib/data/entities/, lib/logic/
+    - Data: lib/data/repos/, lib/data/services/
+    - Router: lib/router.dart
+
+# Per-artifact rules
+rules:
+  specs:
+    - "All requirements MUST follow RFC 2119 for requirement levels (MUST, MUST NOT, SHALL, SHALL NOT, SHOULD, SHOULD NOT, RECOMMENDED, MAY, OPTIONAL)."
+    - "Keywords MUST be written in ALL CAPS."

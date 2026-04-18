@@ -1,0 +1,51 @@
+# Architecture Specification: Room Booker
+
+## Purpose
+This document defines the high-level architecture, tech stack, and structural constraints for the Room Booker project.
+
+## [ARCH-000] Compliance
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
+
+## Requirements
+
+### Requirement: Supported Frameworks
+The system SHALL be built using Flutter with SDK version >=3.4.3 <4.0.0.
+
+#### Scenario: Verify Framework Version
+- **WHEN** checking the `pubspec.yaml` file
+- **THEN** the Flutter SDK constraint matches the requirement
+
+### Requirement: Firebase Backend
+The system MUST use Firebase for Authentication, Firestore, Analytics, and Performance Monitoring.
+
+#### Scenario: Verify Firebase Integration
+- **WHEN** initializing the app
+- **THEN** Firebase services are correctly configured and reachable
+
+### Requirement: Presentation Layer
+The presentation layer SHALL be located in `lib/ui/` and SHALL follow a widget-based composition.
+
+#### Scenario: Verify UI Structure
+- **WHEN** adding a new screen
+- **THEN** it is placed in `lib/ui/screens/`
+
+### Requirement: Domain Layer
+The domain layer SHALL contain entities and business logic, independent of external services.
+
+#### Scenario: Verify Entity Location
+- **WHEN** defining a data model
+- **THEN** it is placed in `lib/data/entities/`
+
+### Requirement: Service-First Logic
+All booking-related logic SHALL go through the `BookingService` class.
+
+#### Scenario: Verify Booking Logic Entry
+- **WHEN** a UI component needs to create a booking
+- **THEN** it calls a method on `BookingService`
+
+### Requirement: Repository Isolation
+The `BookingRepo` MUST NOT be accessed directly by UI components or ViewModels.
+
+#### Scenario: Verify Repository Access
+- **WHEN** checking imports in a UI widget
+- **THEN** `BookingRepo` is not imported
