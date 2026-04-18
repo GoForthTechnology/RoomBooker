@@ -22,18 +22,60 @@
   <meta name="description" content="An app for booking rooms..">
 
   <!-- iOS meta tags & icons -->
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="room_booker">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Room Booker">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- PWA meta tags -->
+  <meta name="theme-color" content="#673ab7">
+  <meta name="mobile-web-app-capable" content="yes">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png" />
 
   <title>Room Booker</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      background-color: #673ab7;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .splash-container {
+      text-align: center;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 
 <body>
+  <div class="splash-container">
+    <div class="spinner"></div>
+    <div style="font-size: 24px; font-weight: bold;">Room Booker</div>
+  </div>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 

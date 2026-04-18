@@ -19,67 +19,132 @@ import 'package:room_booker/app_router_observer.dart';
 
 bool useEmulator = false;
 
-void main() async {
+void main() {
   // Capture cold start time as early as possible
   final coldStartTime = DateTime.now();
 
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await FirebaseAppCheck.instance.activate(
-    providerWeb: ReCaptchaV3Provider(
-      '6Lej2S0sAAAAAKBEX9lCwb1g4RBlAMb3dXeJHWv-',
-    ),
-  );
-  final loggingService = getLoggingService();
-  final prefs = await SharedPreferences.getInstance();
-  loggingService.startColdStartTrace(coldStartTime);
+  runApp(AppInitializer(coldStartTime: coldStartTime));
+}
 
-  if (useEmulator && kDebugMode) {
-    try {
-      FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8081);
-      await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
-    } catch (e) {
-      // ignore: avoid_print
-      print(e);
-    }
+class AppInitializer extends StatefulWidget {
+  final DateTime coldStartTime;
+
+  const AppInitializer({super.key, required this.coldStartTime});
+
+  @override
+  State<AppInitializer> createState() => _AppInitializerState();
+}
+
+class _AppInitializerState extends State<AppInitializer> {
+  late Future<({SharedPreferences prefs, LoggingService loggingService})>
+  _initFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFuture = _initialize();
   }
-  if (kDebugMode) {
-    // App is running in debug mode
-    loggingService.debug(
-      'App is running in debug mode, not initializing Sentry',
+
+  Future<({SharedPreferences prefs, LoggingService loggingService})>
+  _initialize() async {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await FirebaseAppCheck.instance.activate(
+      providerWeb: ReCaptchaV3Provider(
+        '6Lej2S0sAAAAAKBEX9lCwb1g4RBlAMb3dXeJHWv-',
+      ),
     );
-    runApp(MyApp(prefs: prefs, loggingService: loggingService));
-  } else {
-    await SentryFlutter.init(
-      (options) {
+
+    final loggingService = getLoggingService();
+    final prefs = await SharedPreferences.getInstance();
+    loggingService.startColdStartTrace(widget.coldStartTime);
+
+    if (useEmulator && kDebugMode) {
+      try {
+        FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8081);
+        await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
+      } catch (e) {
+        // ignore: avoid_print
+        print(e);
+      }
+    }
+
+    if (!kDebugMode) {
+      await SentryFlutter.init((options) {
         options.enableLogs = true;
         options.dsn =
             'https://c5ed84ffedec25c193d642e9a8e6ba0f@o4509504243630080.ingest.us.sentry.io/4509504245071872';
-        // Adds request headers and IP for users, for more info visit:
-        // https://docs.sentry.io/platforms/dart/guides/flutter/data-management/data-collected/
         options.sendDefaultPii = true;
-        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-        // We recommend adjusting this value in production.
         options.tracesSampleRate = 1.0;
-        // The sampling rate for profiling is relative to tracesSampleRate
-        // Setting to 1.0 will profile 100% of sampled transactions:
         options.profilesSampleRate = 1.0;
         options.attachScreenshot = true;
         options.replay.sessionSampleRate = 1.0;
         options.replay.onErrorSampleRate = 1.0;
-      },
-      appRunner: () => runZonedGuarded(
-        () {
-          runApp(
-            SentryWidget(
-              child: MyApp(prefs: prefs, loggingService: loggingService),
-            ),
+      });
+    } else {
+      loggingService.debug(
+        'App is running in debug mode, not initializing Sentry',
+      );
+    }
+
+    FirebaseUIAuth.configureProviders(providers);
+    FirebaseAnalytics.instance.logAppOpen();
+
+    return (prefs: prefs, loggingService: loggingService);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<({SharedPreferences prefs, LoggingService loggingService})>(
+      future: _initFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done &&
+            snapshot.hasData) {
+          final data = snapshot.data!;
+          final myApp = MyApp(
+            prefs: data.prefs,
+            loggingService: data.loggingService,
           );
-        },
-        (error, stackTrace) {
-          loggingService.error("Error running app: $error", error, stackTrace);
-        },
-      ),
+
+          if (kDebugMode) {
+            return myApp;
+          } else {
+            return SentryWidget(child: myApp);
+          }
+        }
+
+        // Native-like splash screen while loading
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: Scaffold(
+            backgroundColor: const Color(0xFF673AB7), // Match CSS splash
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Room Booker',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -104,26 +169,20 @@ class MyApp extends StatelessWidget {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       loggingService.stopColdStartTrace();
     });
-    try {
-      FirebaseAnalytics.instance.logAppOpen();
-      FirebaseUIAuth.configureProviders(providers);
-      return AppProviders(
-        prefs: prefs,
-        loggingService: loggingService,
-        child: MaterialApp.router(
-          title: 'Room Booker',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-            useMaterial3: true,
-          ),
-          routerConfig: _appRouter.config(
-            navigatorObservers: () => [AppRouterObserver(loggingService)],
-          ),
+
+    return AppProviders(
+      prefs: prefs,
+      loggingService: loggingService,
+      child: MaterialApp.router(
+        title: 'Room Booker',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          useMaterial3: true,
         ),
-      );
-    } catch (e) {
-      loggingService.error("Error initializing MyApp: $e");
-      return Text("Error initializing app");
-    }
+        routerConfig: _appRouter.config(
+          navigatorObservers: () => [AppRouterObserver(loggingService)],
+        ),
+      ),
+    );
   }
 }

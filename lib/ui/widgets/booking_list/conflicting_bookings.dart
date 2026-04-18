@@ -36,7 +36,11 @@ class ConflictingBookings extends StatelessWidget {
               context,
             ).showSnackBar(SnackBar(content: Text('Error: ${snapshot.error}')));
           });
-          return const CircularProgressIndicator();
+          return const SizedBox(
+            width: 40,
+            height: 40,
+            child: CircularProgressIndicator(),
+          );
         }
         if (!snapshot.hasData) {
           return Container();

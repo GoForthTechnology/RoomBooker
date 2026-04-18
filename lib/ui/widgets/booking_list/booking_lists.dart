@@ -66,7 +66,13 @@ class BookingList extends StatelessWidget {
                     return const Placeholder();
                   }
                   if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(
+                      child: SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
                   }
 
                   var renderedRequests = snapshot.data ?? [];

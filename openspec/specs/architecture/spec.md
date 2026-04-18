@@ -49,3 +49,19 @@ The `BookingRepo` MUST NOT be accessed directly by UI components or ViewModels.
 #### Scenario: Verify Repository Access
 - **WHEN** checking imports in a UI widget
 - **THEN** `BookingRepo` is not imported
+
+### Requirement: Cold Start Trace Lifecycle
+The application SHALL only stop the cold start performance trace once per application lifecycle, specifically after the initial landing page has rendered successfully.
+
+#### Scenario: Verify Cold Start Trace Single Stop
+- **WHEN** the application is first launched and the main view is rendered
+- **THEN** the cold start trace SHALL be stopped exactly once.
+- **WHEN** the window is resized or subsequent rebuilds occur
+- **THEN** the cold start trace SHALL NOT be stopped again.
+
+### Requirement: Non-Blocking Initialization
+The application initialization sequence in `main()` SHALL be designed to reach the first `runApp()` call as quickly as possible. Heavy asynchronous operations (like full Firebase initialization or deep-link parsing) SHALL be handled in a way that allows a placeholder UI to be rendered first if they take more than 200ms.
+
+#### Scenario: Verify Fast main() Execution
+- **WHEN** the `main()` function is executed
+- **THEN** it SHALL call `runApp()` with a minimal `MaterialApp` or splash container if subsequent initializations are slow.

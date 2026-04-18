@@ -73,7 +73,15 @@ class LandingScreenViewState extends State<LandingScreenView> {
     final viewModel = context.watch<LandingViewModel>();
 
     if (viewModel.shouldShowRedirecting) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
     }
 
     return Scaffold(
@@ -320,7 +328,13 @@ class OrgList extends StatelessWidget {
             return const Text('Error loading organizations');
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(),
+              ),
+            );
           }
           var orgs = snapshot.data!;
           if (orgs.isEmpty) {
