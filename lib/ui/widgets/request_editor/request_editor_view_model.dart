@@ -209,9 +209,7 @@ class RequestEditorViewModel extends ChangeNotifier {
   );
 
   void _initializeCurrentDataSubscription() {
-    if (_currentDataSubscription != null) {
-      throw Exception("Current data subscription already initialized!");
-    }
+    _cancelCurrentDataSubscription();
     _currentDataSubscription = Rx.combineLatest2(
       _requestStream(),
       _detailsStream(),

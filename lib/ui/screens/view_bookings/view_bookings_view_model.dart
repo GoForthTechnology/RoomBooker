@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:room_booker/data/services/print_service.dart';
@@ -45,6 +46,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
   static final dateFormat = DateFormat('yyyy-MM-dd');
 
   final _showRoomSelectorSubject = BehaviorSubject<bool>.seeded(false);
+  final _subscriptions = <StreamSubscription>[];
 
   ViewBookingsViewModel({
     required RoomRepo roomRepo,
@@ -78,13 +80,24 @@ class ViewBookingsViewModel extends ChangeNotifier {
     _calendarViewModel.registerNewAppointmentStream(
       _requestEditorViewModel.currentDataStream(),
     );
-    _calendarViewModel.dateTapStream.listen(_onTapDate);
-    _calendarViewModel.requestTapStream.listen(_onTapBooking);
-    _currentUriStream().listen(updateUri);
+    _subscriptions.add(_calendarViewModel.dateTapStream.listen(_onTapDate));
+    _subscriptions.add(
+      _calendarViewModel.requestTapStream.listen(_onTapBooking),
+    );
+    _subscriptions.add(_currentUriStream().listen(updateUri));
 
     if (_existingRequestID != null) {
       loadExistingRequest(_existingRequestID);
     }
+  }
+
+  @override
+  void dispose() {
+    for (var sub in _subscriptions) {
+      sub.cancel();
+    }
+    _showRoomSelectorSubject.close();
+    super.dispose();
   }
 
   Stream<Uri> _currentUriStream() {

@@ -71,19 +71,19 @@ class ViewBookingsScreen extends StatelessWidget {
             org: orgState.org,
             builder: (context, _) => MultiProvider(
               providers: [
-                ChangeNotifierProvider.value(
-                  value: createCalendarViewModel != null
+                ChangeNotifierProvider(
+                  create: (context) => createCalendarViewModel != null
                       ? createCalendarViewModel!(context, targetDate)
                       : _createCalendarViewModel(targetDate, context),
                 ),
-                ChangeNotifierProvider.value(
-                  value: createRequestEditorViewModel != null
+                ChangeNotifierProvider(
+                  create: (context) => createRequestEditorViewModel != null
                       ? createRequestEditorViewModel!(context)
                       : _createRequestEditorViewModel(context),
                 ),
               ],
-              builder: (context, child) => ChangeNotifierProvider.value(
-                value: createViewModel != null
+              builder: (context, child) => ChangeNotifierProvider(
+                create: (context) => createViewModel != null
                     ? createViewModel!(context)
                     : _createViewModel(context),
                 child: _content(orgState, logging),

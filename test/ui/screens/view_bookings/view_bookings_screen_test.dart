@@ -102,6 +102,7 @@ void main() {
     mockRouter = MockStackRouter();
 
     // Default Stubs
+    when(() => mockRouter.canPop()).thenReturn(false);
     when(() => mockAuthService.getCurrentUserID()).thenReturn('user1');
     when(
       () => mockAuthService.getCurrentUserEmail(),
