@@ -336,11 +336,11 @@ class ViewBookingsViewModel extends ChangeNotifier {
   }
 
   void onAddNewBooking() async {
-    var focusDate = _calendarViewModel.controller.displayDate!;
-    var firstDate = BookingDateHelper.getFirstDate(focusDate);
-    var lastDate = BookingDateHelper.getLastDate(firstDate);
+    final focusDate = _calendarViewModel.controller.displayDate ?? DateTime.now();
+    final firstDate = BookingDateHelper.getFirstDate(focusDate);
+    final lastDate = BookingDateHelper.getLastDate(firstDate);
 
-    var targetDate = await pickDate(focusDate, firstDate, lastDate);
+    final targetDate = await pickDate(focusDate, firstDate, lastDate);
     if (targetDate == null) {
       return;
     }

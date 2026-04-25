@@ -119,10 +119,11 @@ class LandingScreenViewState extends State<LandingScreenView> {
               builder: (context) => const CreateOrgDialog(),
             );
             if (result != null) {
-              await viewModel.createOrg(
-                result['orgName']!,
-                result['roomName']!,
-              );
+              final orgName = result['orgName'];
+              final roomName = result['roomName'];
+              if (orgName != null && roomName != null) {
+                await viewModel.createOrg(orgName, roomName);
+              }
             }
           } else {
             viewModel.navigateToLogin();
