@@ -64,11 +64,27 @@ class _AppInitializerState extends State<AppInitializer> {
   Future<({SharedPreferences prefs, LoggingService loggingService})>
   _initialize() async {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    await FirebaseAppCheck.instance.activate(
-      providerWeb: ReCaptchaV3Provider(
-        '6Lej2S0sAAAAAKBEX9lCwb1g4RBlAMb3dXeJHWv-',
-      ),
-    );
+    try {
+      await FirebaseAppCheck.instance.activate(
+        providerWeb: ReCaptchaV3Provider(
+          '6Lej2S0sAAAAAKBEX9lCwb1g4RBlAMb3dXeJHWv-',
+        ),
+      );
+    } catch (e) {
+      // ReCAPTCHA error or AppCheck exception usually indicates abusive traffic
+      // on Web if configuration is correct.
+      // We use captureMessage with a custom level and tag to track these rejections
+      // without triggering unhandled exception alerts in Sentry.
+      Sentry.captureMessage(
+        'AppCheck Security Rejection',
+        level: SentryLevel.warning,
+        withScope: (scope) {
+          scope.setTag('security', 'abusive_traffic');
+          scope.setContexts('error', {'message': e.toString()});
+        },
+      );
+      throw AbusiveTrafficException(e.toString());
+    }
 
     final loggingService = getLoggingService();
     final prefs = await SharedPreferences.getInstance();
@@ -96,6 +112,59 @@ class _AppInitializerState extends State<AppInitializer> {
       future: _initFuture,
       builder: (context, snapshot) {
         final data = snapshot.data;
+
+        if (snapshot.hasError) {
+          final error = snapshot.error;
+          final isAbusive = error is AbusiveTrafficException;
+
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
+              backgroundColor: const Color(0xFF673AB7),
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.security, color: Colors.white, size: 64),
+                      const SizedBox(height: 24),
+                      Text(
+                        isAbusive
+                            ? 'Access Denied: Abusive Traffic Detected'
+                            : 'Initialization Failed',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (!isAbusive) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          error.toString(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _initFuture = _initialize();
+                            });
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
         if (snapshot.connectionState == ConnectionState.done && data != null) {
           final myApp = MyApp(
             prefs: data.prefs,
@@ -143,6 +212,14 @@ class _AppInitializerState extends State<AppInitializer> {
       },
     );
   }
+}
+
+class AbusiveTrafficException implements Exception {
+  final String message;
+  AbusiveTrafficException(this.message);
+
+  @override
+  String toString() => 'AbusiveTrafficException: $message';
 }
 
 LoggingService getLoggingService() {
