@@ -19,11 +19,26 @@ import 'package:room_booker/app_router_observer.dart';
 
 bool useEmulator = false;
 
-void main() {
+Future<void> main() async {
   // Capture cold start time as early as possible
   final coldStartTime = DateTime.now();
 
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kDebugMode) {
+    await SentryFlutter.init((options) {
+      options.enableLogs = true;
+      options.dsn =
+          'https://c5ed84ffedec25c193d642e9a8e6ba0f@o4509504243630080.ingest.us.sentry.io/4509504245071872';
+      options.sendDefaultPii = true;
+      options.tracesSampleRate = 1.0;
+      options.profilesSampleRate = 1.0;
+      options.attachScreenshot = true;
+      options.replay.sessionSampleRate = 1.0;
+      options.replay.onErrorSampleRate = 1.0;
+    });
+  }
+
   runApp(AppInitializer(coldStartTime: coldStartTime));
 }
 
@@ -67,24 +82,6 @@ class _AppInitializerState extends State<AppInitializer> {
         // ignore: avoid_print
         print(e);
       }
-    }
-
-    if (!kDebugMode) {
-      await SentryFlutter.init((options) {
-        options.enableLogs = true;
-        options.dsn =
-            'https://c5ed84ffedec25c193d642e9a8e6ba0f@o4509504243630080.ingest.us.sentry.io/4509504245071872';
-        options.sendDefaultPii = true;
-        options.tracesSampleRate = 1.0;
-        options.profilesSampleRate = 1.0;
-        options.attachScreenshot = true;
-        options.replay.sessionSampleRate = 1.0;
-        options.replay.onErrorSampleRate = 1.0;
-      });
-    } else {
-      loggingService.debug(
-        'App is running in debug mode, not initializing Sentry',
-      );
     }
 
     FirebaseUIAuth.configureProviders(providers);
