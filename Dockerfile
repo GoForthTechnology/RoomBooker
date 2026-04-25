@@ -11,12 +11,12 @@ RUN flutter upgrade
 RUN flutter config --enable-web
 RUN flutter doctor -v
 
-# Copy files to container and build
+# Copy files to container and build (DEPRECATED: Use GitHub Actions for deployment)
 RUN mkdir /app/
 COPY . /app/
 WORKDIR /app/
-RUN flutter pub get
-RUN flutter build web
+# RUN flutter pub get
+# RUN flutter build web
 
 # Record the exposed port
 EXPOSE 5000

@@ -39,7 +39,12 @@ jobs:
         run: flutter test
 
       - name: Build app
-        run: flutter build web --pwa-strategy=none
+        run: flutter build web --pwa-strategy=none --source-maps
+
+      - name: Upload symbols to Sentry
+        run: dart run sentry_dart_plugin
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - name: Deploy app
         uses: FirebaseExtended/action-hosting-deploy@v0

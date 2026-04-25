@@ -55,6 +55,23 @@ This project uses Firebase for backend services. You need to configure it with y
 
 Sentry is used for error tracking and performance monitoring. The DSN is configured in `lib/main.dart`.
 
+For production builds (via GitHub Actions), the project is configured to upload source maps and debug symbols to Sentry. This requires a `SENTRY_AUTH_TOKEN` to be set as a GitHub Secret.
+
+## Deployment & Observability
+
+### Continuous Deployment (CD)
+
+The project uses GitHub Actions for automatic deployment to Firebase Hosting when changes are merged into the `main` branch with a specific versioning tag (e.g., `Cut v1.2.3+10`).
+
+### Production Error Reporting
+
+To ensure production errors have readable stack traces, the deployment pipeline:
+1.  Generates Web source maps using the `--source-maps` flag during `flutter build web`.
+2.  Uploads these maps and Dart symbols to Sentry using the `sentry_dart_plugin`.
+
+**Setup Requirement:**
+A `SENTRY_AUTH_TOKEN` must be added to the GitHub repository secrets. You can generate this token in your Sentry User Settings.
+
 ## Project Structure
 
 *   `lib/`: Main application code.
