@@ -73,11 +73,12 @@ class OrgStateProvider extends StatelessWidget {
             log('Error loading organization state', error: snapshot.error);
             return const Center(child: Text('Error loading organization'));
           }
-          if (!snapshot.hasData || snapshot.data == null) {
+          final data = snapshot.data;
+          if (!snapshot.hasData || data == null) {
             return const Center(child: Text('Organization not found'));
           }
           return ChangeNotifierProvider(
-            create: (_) => snapshot.data!,
+            create: (_) => data,
             child: child,
           );
         },

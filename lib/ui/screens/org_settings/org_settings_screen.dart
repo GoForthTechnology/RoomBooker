@@ -57,7 +57,8 @@ class OrgSettingsScreen extends StatelessWidget {
         builder: (context, repo, child) => StreamBuilder(
           stream: repo.getOrg(orgID),
           builder: (context, snapshot) {
-            if (!snapshot.hasData) {
+            final org = snapshot.data;
+            if (org == null) {
               return const CircularProgressIndicator();
             }
             return SingleChildScrollView(
@@ -66,17 +67,17 @@ class OrgSettingsScreen extends StatelessWidget {
                 children: [
                   OrgDetails(orgID: orgID),
                   const Divider(),
-                  LogsWidget(org: snapshot.data!),
+                  LogsWidget(org: org),
                   const Divider(),
-                  RoomListWidget(org: snapshot.data!, repo: roomRepo),
+                  RoomListWidget(org: org, repo: roomRepo),
                   const Divider(),
-                  NotificationWidget(org: snapshot.data!, repo: repo),
+                  NotificationWidget(org: org, repo: repo),
                   const Divider(),
-                  AdminWidget(org: snapshot.data!, repo: repo),
+                  AdminWidget(org: org, repo: repo),
                   const Divider(),
                   AppInfoWidget(),
                   const Divider(),
-                  OrgActions(org: snapshot.data!, repo: repo),
+                  OrgActions(org: org, repo: repo),
                 ],
               ),
             );

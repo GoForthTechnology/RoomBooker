@@ -56,20 +56,26 @@ class LoginScreen extends StatelessWidget {
             Navigator.pushNamed(context, '/phone');
           }),
           AuthStateChangeAction<SignedIn>((context, state) async {
+            final user = state.user;
+            if (user == null) return;
+
             var router = AutoRouter.of(context);
             var userRepo = Provider.of<UserRepo>(context, listen: false);
-            var user = await userRepo.getUser(state.user!.uid);
-            if (user == null) {
-              await userRepo.addUser(state.user!);
+            var profile = await userRepo.getUser(user.uid);
+            if (profile == null) {
+              await userRepo.addUser(user);
             }
-            if (!state.user!.emailVerified) {
+            if (!user.emailVerified) {
               router.push(const EmailVerifyRoute());
             } else {
               router.pop(true);
             }
           }),
           AuthStateChangeAction<UserCreated>((context, state) {
-            if (!state.credential.user!.emailVerified) {
+            final user = state.credential.user;
+            if (user == null) return;
+
+            if (!user.emailVerified) {
               AutoRouter.of(context).push(const EmailVerifyRoute());
             } else {
               AutoRouter.of(context).push(const LandingRoute());

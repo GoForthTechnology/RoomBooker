@@ -84,3 +84,10 @@ The application MUST remain stable and MUST NOT crash when a user initiates an a
 #### Scenario: Click Add New Booking during initialization
 - **WHEN** the user clicks the "Add New Booking" button immediately after the screen loads
 - **THEN** the system SHALL handle potentially null calendar properties (like `displayDate`) gracefully by using sensible defaults instead of crashing.
+
+### Requirement: Initialization Safety
+The application SHALL NOT crash during core startup or authentication flows if asynchronous data (e.g., Firebase Auth user, Firestore data) is momentarily unavailable or null.
+
+#### Scenario: Race condition during auth state change
+- **WHEN** an authentication state change occurs (e.g., user signs in)
+- **THEN** the system SHALL verify all required user and credential objects are non-null before performing null assertions or navigation.

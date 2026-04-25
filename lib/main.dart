@@ -98,9 +98,8 @@ class _AppInitializerState extends State<AppInitializer> {
     return FutureBuilder<({SharedPreferences prefs, LoggingService loggingService})>(
       future: _initFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done &&
-            snapshot.hasData) {
-          final data = snapshot.data!;
+        final data = snapshot.data;
+        if (snapshot.connectionState == ConnectionState.done && data != null) {
           final myApp = MyApp(
             prefs: data.prefs,
             loggingService: data.loggingService,
