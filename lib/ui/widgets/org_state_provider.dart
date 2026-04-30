@@ -61,13 +61,7 @@ class OrgStateProvider extends StatelessWidget {
         }),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(),
-              ),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
             log('Error loading organization state', error: snapshot.error);

@@ -29,13 +29,7 @@ class RequestEditor extends StatelessWidget {
         stream: viewModel.viewStateStream,
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(),
-              ),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
           var state = snapshot.data!;
           var formContents = Column(

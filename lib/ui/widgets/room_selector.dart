@@ -106,13 +106,7 @@ class RoomStateProvider extends StatelessWidget {
       future: roomRepo.listRooms(org.id!).first,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return const Center(
-            child: SizedBox(
-              width: 40,
-              height: 40,
-              child: CircularProgressIndicator(),
-            ),
-          );
+          return const CircularProgressIndicator();
         }
         var rooms = snapshot.data!;
         var activeRooms = enableAllRooms ? rooms.toSet() : {rooms.first};

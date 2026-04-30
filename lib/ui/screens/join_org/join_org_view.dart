@@ -18,13 +18,7 @@ class JoinOrgView extends StatelessWidget {
     }
 
     if (!snapshot.hasData) {
-      return const Center(
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     final org = snapshot.data;

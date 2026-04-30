@@ -129,13 +129,7 @@ class OrgDetails extends StatelessWidget {
             return const Text('Error loading organization');
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(),
-              ),
-            );
+            return const CircularProgressIndicator();
           }
           var org = snapshot.data;
           if (org == null) {
