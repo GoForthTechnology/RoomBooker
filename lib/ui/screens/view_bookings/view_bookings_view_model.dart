@@ -80,6 +80,9 @@ class ViewBookingsViewModel extends ChangeNotifier {
     _calendarViewModel.registerNewAppointmentStream(
       _requestEditorViewModel.currentDataStream(),
     );
+    _calendarViewModel.registerInitialRequestStream(
+      _requestEditorViewModel.initialRequestStream,
+    );
     _subscriptions.add(_calendarViewModel.dateTapStream.listen(_onTapDate));
     _subscriptions.add(
       _calendarViewModel.requestTapStream.listen(_onTapBooking),
@@ -148,13 +151,24 @@ class ViewBookingsViewModel extends ChangeNotifier {
     if (readOnlyMode) {
       return;
     }
+
     if (details.view == CalendarView.month) {
+      if (_requestEditorViewModel.isRescheduling) {
+        log("Ignoring month tap during reschedule");
+        return;
+      }
       log("Changing to day view for date ${details.date}");
       _calendarViewModel.focusDate(details.date);
       return;
     }
-    log("Loading new request for date ${details.date}");
-    loadNewRequest(details.date);
+
+    if (_requestEditorViewModel.isRescheduling) {
+      log("Teleporting event to ${details.date}");
+      _requestEditorViewModel.moveEventTo(details.date);
+    } else {
+      log("Loading new request for date ${details.date}");
+      loadNewRequest(details.date);
+    }
   }
 
   Future<void> loadExistingRequest(String requestID) async {

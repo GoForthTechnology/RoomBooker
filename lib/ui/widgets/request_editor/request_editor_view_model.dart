@@ -247,6 +247,9 @@ class RequestEditorViewModel extends ChangeNotifier {
     _initializeCurrentDataSubscription();
   }
 
+  bool get isRescheduling =>
+      _initialDataSubject.value.$1?.id != null && _editingEnabledSubject.value;
+
   String get roomID => _roomIDSubject.value;
 
   String get orgID => _orgState.org.id!;
@@ -558,6 +561,17 @@ class RequestEditorViewModel extends ChangeNotifier {
 
   void updateEventEnd(DateTime newEnd) {
     _eventEndSubject.add(newEnd);
+  }
+
+  void moveEventTo(DateTime newStart) {
+    final currentStart = _eventStartSubject.value;
+    final currentEnd = _eventEndSubject.value;
+
+    if (currentStart != null && currentEnd != null) {
+      final duration = currentEnd.difference(currentStart);
+      _eventStartSubject.add(newStart);
+      _eventEndSubject.add(newStart.add(duration));
+    }
   }
 
   void updateRoom(Room newRoom) {

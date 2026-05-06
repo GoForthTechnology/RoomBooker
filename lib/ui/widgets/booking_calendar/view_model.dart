@@ -23,6 +23,8 @@ class CalendarViewModel extends ChangeNotifier {
 
   final BehaviorSubject<Appointment?> _newAppointmentSubject =
       BehaviorSubject.seeded(null);
+  final BehaviorSubject<Request?> _initialRequestSubject =
+      BehaviorSubject.seeded(null);
 
   final PublishSubject<DateTapDetails> _dateTapSubject = PublishSubject();
   Stream<DateTapDetails> get dateTapStream => _dateTapSubject.stream;
@@ -139,10 +141,12 @@ class CalendarViewModel extends ChangeNotifier {
       sub.cancel();
     }
     _newAppointmentSubscription?.cancel();
+    _initialRequestSubscription?.cancel();
     _visibleWindowController.close();
     _fetchWindowController.close();
     _requestIndex.close();
     _newAppointmentSubject.close();
+    _initialRequestSubject.close();
     _dateTapSubject.close();
     _requestTapSubject.close();
     _roomStateSubject.close();
@@ -152,6 +156,7 @@ class CalendarViewModel extends ChangeNotifier {
   final List<StreamSubscription> _subscriptions = [];
 
   StreamSubscription? _newAppointmentSubscription;
+  StreamSubscription? _initialRequestSubscription;
 
   void registerNewAppointmentStream(
     Stream<(Request?, PrivateRequestDetails?)> stream,
@@ -177,13 +182,23 @@ class CalendarViewModel extends ChangeNotifier {
     });
   }
 
+  void registerInitialRequestStream(Stream<Request?> stream) {
+    _initialRequestSubscription?.cancel();
+    _initialRequestSubscription = stream.listen((request) {
+      _initialRequestSubject.add(request);
+    });
+  }
+
   Stream<CalendarViewState> _viewStateStream(
     OrgState orgState,
     RoomState roomState,
   ) {
-    return Rx.combineLatest3(
+    return Rx.combineLatest4(
       _newAppointmentSubject.stream.distinct().handleError((e, s) {
         throw 'Error in _newAppointmentSubject: $e';
+      }),
+      _initialRequestSubject.stream.distinct().handleError((e, s) {
+        throw 'Error in _initialRequestSubject: $e';
       }),
       _buildAppointmentStream(
         orgState,
@@ -204,7 +219,7 @@ class CalendarViewModel extends ChangeNotifier {
           .handleError((e, s) {
             throw 'Error in listBlackoutWindows: $e';
           }),
-      (newAppointment, appointments, blackoutWindows) {
+      (newAppointment, initialRequest, appointments, blackoutWindows) {
         List<Appointment> out = [];
         if (newAppointment != null) {
           out.add(newAppointment);
@@ -215,6 +230,14 @@ class CalendarViewModel extends ChangeNotifier {
             // Skip the new appointment to avoid duplication
             continue;
           }
+
+          // Skip the original appointment being edited
+          if (initialRequest != null &&
+              _id(appointment) == initialRequest.id &&
+              appointment.startTime == initialRequest.eventStartTime) {
+            continue;
+          }
+
           out.add(appointment);
         }
         return CalendarViewState(

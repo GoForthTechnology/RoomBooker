@@ -89,29 +89,34 @@ class BookingCalendarView extends StatelessWidget {
           ? "${appointment.subject}\n${appointment.notes}"
           : appointment.subject;
 
+      final container = Container(
+        decoration: BoxDecoration(
+          color: appointment.color,
+          borderRadius: BorderRadius.circular(3),
+          border: isActive ? Border.all(color: Colors.black, width: 2) : null,
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 4,
+                    offset: const Offset(2, 2),
+                  ),
+                ]
+              : null,
+        ),
+        padding: const EdgeInsets.all(3),
+        alignment: Alignment.topLeft,
+        child: content,
+      );
+
+      if (isActive) {
+        return container;
+      }
+
       return Tooltip(
         message: tooltipMessage,
         waitDuration: const Duration(milliseconds: 500),
-        child: Container(
-          decoration: BoxDecoration(
-            color: appointment.color,
-            borderRadius: BorderRadius.circular(3),
-            border:
-                isActive ? Border.all(color: Colors.black, width: 2) : null,
-            boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 4,
-                      offset: const Offset(2, 2),
-                    ),
-                  ]
-                : null,
-          ),
-          padding: const EdgeInsets.all(3),
-          alignment: Alignment.topLeft,
-          child: content,
-        ),
+        child: container,
       );
     };
   }

@@ -113,6 +113,8 @@ void main() {
       () => mockCalendarViewModel.registerNewAppointmentStream(any()),
     ).thenReturn(null);
 
+    when(() => mockRequestEditorViewModel.isRescheduling).thenReturn(false);
+
     when(() => mockOrgState.org).thenReturn(mockOrganization);
     when(() => mockOrganization.id).thenReturn('test_org_id');
   });

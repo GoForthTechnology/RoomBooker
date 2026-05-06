@@ -724,6 +724,7 @@ void main() {
             any(),
             any(),
             any(),
+            originalStartTime: any(named: 'originalStartTime'),
           ),
         ).thenAnswer((_) async {});
 
@@ -749,6 +750,7 @@ void main() {
             any(),
             any(),
             any(),
+            originalStartTime: confirmedRequest.eventStartTime,
           ),
         ).called(1);
       });
