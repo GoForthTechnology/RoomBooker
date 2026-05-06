@@ -373,6 +373,7 @@ class RequestEditorViewModel extends ChangeNotifier {
             details,
             initialRequest.status ?? RequestStatus.pending,
             _choiceProvider,
+            originalStartTime: initialRequest.eventStartTime,
           );
           _analyticsService.logEvent(
             name: "Booking Updated",

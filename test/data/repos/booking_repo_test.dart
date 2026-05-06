@@ -1,4 +1,5 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:collection/collection.dart';
 import 'package:room_booker/data/services/analytics_service.dart';
 import 'package:room_booker/data/services/logging_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -681,6 +682,176 @@ void main() {
         newDoc.data()['eventStartTime'],
         updatedRequest.eventStartTime.toIso8601String(),
       );
+    });
+
+    test("REGRESSION: updateBooking (this instance) to a different day",
+        () async {
+      var monday = DateTime(2026, 5, 11, 10, 0); // Monday
+      var originalRequest = Request(
+        id: "req1",
+        eventStartTime: monday,
+        eventEndTime: monday.add(Duration(hours: 1)),
+        roomID: "room1",
+        roomName: "Room 1",
+        status: RequestStatus.confirmed,
+        recurrancePattern: RecurrancePattern(
+          frequency: Frequency.daily,
+          period: 1,
+        ),
+      );
+
+      // We are editing the WEDNESDAY instance (2026-05-13)
+      var wednesday = monday.add(Duration(days: 2));
+      var originalWednesdayInstance = originalRequest.copyWith(
+        eventStartTime: wednesday,
+        eventEndTime: wednesday.add(Duration(hours: 1)),
+      );
+
+      // Move Wednesday to Thursday (2026-05-14) at 2 PM
+      var thursday = monday.add(Duration(days: 3));
+      var updatedWednesdayRequest = originalWednesdayInstance.copyWith(
+        eventStartTime: thursday.add(Duration(hours: 4)), // 2 PM
+        eventEndTime: thursday.add(Duration(hours: 5)), // 3 PM
+        roomName: "Rescheduled Wed",
+      );
+
+      var details = PrivateRequestDetails(
+        name: "Test User",
+        email: "test@example.com",
+        phone: "1234567890",
+        eventName: "Test Event",
+      );
+
+      await fakeFirestore
+          .collection("orgs")
+          .doc("org1")
+          .collection("confirmed-requests")
+          .doc("req1")
+          .set(originalRequest.toJson());
+
+      // FIXED: We now pass the original instance start time.
+      await bookingRepo.updateBooking(
+        "org1",
+        originalWednesdayInstance,
+        updatedWednesdayRequest,
+        details,
+        RequestStatus.confirmed,
+        () async => RecurringBookingEditChoice.thisInstance,
+        originalStartTime: originalWednesdayInstance.eventStartTime,
+      );
+
+      // Verify expansion for the week
+      var weekStart = monday;
+      var weekEnd = monday.add(Duration(days: 7));
+
+      var doc = await fakeFirestore
+          .collection("orgs")
+          .doc("org1")
+          .collection("confirmed-requests")
+          .doc("req1")
+          .get();
+      var series = Request.fromJson(doc.data()!).copyWith(id: "req1");
+
+      var instances = series.expand(weekStart, weekEnd);
+
+      // Expectation:
+      // Mon 11th: OK
+      // Tue 12th: OK
+      // Wed 13th: SHOULD BE REPLACED by Rescheduled Wed (on 14th)
+      // Thu 14th: OK (Original Thu)
+      // ...
+
+      // Find instance for the 13th (Wednesday)
+      var wedInstance = instances.firstWhereOrNull(
+        (i) => i.eventStartTime.day == 13,
+      );
+
+      // This is the CRITICAL failure:
+      // It SHOULD be null or the override if the key matched.
+      // But if key is "14th", expansion at "13th" finds no override.
+      // So it renders the original 13th instance.
+      expect(
+        wedInstance?.roomName,
+        isNot("Room 1"),
+        reason: "Wednesday instance should have been overridden",
+      );
+
+      var rescheduledInstance = instances.firstWhereOrNull(
+        (i) => i.roomName == "Rescheduled Wed",
+      );
+      expect(
+        rescheduledInstance,
+        isNotNull,
+        reason: "Rescheduled instance should be present in the expansion",
+      );
+    });
+
+    test("REGRESSION: deleteBooking (this instance) uses correct day",
+        () async {
+      var monday = DateTime(2026, 5, 11, 10, 0); // Monday
+      var originalRequest = Request(
+        id: "req1",
+        eventStartTime: monday,
+        eventEndTime: monday.add(Duration(hours: 1)),
+        roomID: "room1",
+        roomName: "Room 1",
+        status: RequestStatus.confirmed,
+        recurrancePattern: RecurrancePattern(
+          frequency: Frequency.daily,
+          period: 1,
+        ),
+      );
+
+      await fakeFirestore
+          .collection("orgs")
+          .doc("org1")
+          .collection("confirmed-requests")
+          .doc("req1")
+          .set(originalRequest.toJson());
+
+      // Delete the TUESDAY instance (2026-05-12)
+      var tuesday = monday.add(Duration(days: 1));
+      var tuesdayInstance = originalRequest.copyWith(
+        eventStartTime: tuesday,
+        eventEndTime: tuesday.add(Duration(hours: 1)),
+      );
+
+      await bookingRepo.deleteBooking(
+        "org1",
+        tuesdayInstance,
+        () async => RecurringBookingEditChoice.thisInstance,
+      );
+
+      // Verify expansion
+      var weekStart = monday;
+      var weekEnd = monday.add(Duration(days: 7));
+
+      var doc = await fakeFirestore
+          .collection("orgs")
+          .doc("org1")
+          .collection("confirmed-requests")
+          .doc("req1")
+          .get();
+      var series = Request.fromJson(doc.data()!).copyWith(id: "req1");
+
+      var instances = series.expand(weekStart, weekEnd);
+
+      // Tue 12th SHOULD BE REMOVED (null override)
+      var tueInstance = instances.firstWhereOrNull(
+        (i) => i.eventStartTime.day == 12,
+      );
+
+      expect(
+        tueInstance,
+        isNull,
+        reason: "Tuesday instance should have been deleted",
+      );
+
+      // Mon 11th should still be there
+      var monInstance = instances.firstWhereOrNull(
+        (i) => i.eventStartTime.day == 11,
+      );
+      expect(monInstance, isNotNull);
     });
 
     test("deleteBooking deletes recurring request (this instance)", () async {

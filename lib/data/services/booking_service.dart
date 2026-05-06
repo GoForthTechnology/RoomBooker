@@ -197,8 +197,9 @@ class BookingService {
     Request updatedRequest,
     PrivateRequestDetails privateDetails,
     RequestStatus status,
-    RecurringBookingEditChoiceProvider choiceProvider,
-  ) {
+    RecurringBookingEditChoiceProvider choiceProvider, {
+    DateTime? originalStartTime,
+  }) {
     validateRequest(updatedRequest);
     return _bookingRepo.updateBooking(
       orgID,
@@ -207,6 +208,7 @@ class BookingService {
       privateDetails,
       status,
       choiceProvider,
+      originalStartTime: originalStartTime,
     );
   }
 

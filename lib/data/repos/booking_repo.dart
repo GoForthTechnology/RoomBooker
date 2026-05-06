@@ -87,8 +87,9 @@ class BookingRepo {
     Request updatedRequest,
     PrivateRequestDetails privateDetails,
     RequestStatus status,
-    RecurringBookingEditChoiceProvider choiceProvider,
-  ) async {
+    RecurringBookingEditChoiceProvider choiceProvider, {
+    DateTime? originalStartTime,
+  }) async {
     await _db.runTransaction((t) async {
       try {
         switch (status) {
@@ -99,10 +100,12 @@ class BookingRepo {
           case RequestStatus.confirmed:
             await _updateConfirmedBooking(
               t,
+              originalRequest,
               updatedRequest,
               privateDetails,
               orgID,
               choiceProvider,
+              originalStartTime: originalStartTime,
             );
             break;
           case RequestStatus.unknown:
@@ -234,7 +237,7 @@ class BookingRepo {
           var originalBooking = snapshot.data();
           var udpatedBooking = _deleteRecurrance(
             originalBooking!,
-            request.eventEndTime,
+            request.eventStartTime,
           );
           return originalRequestRef.set(udpatedBooking);
         case null:
@@ -432,11 +435,13 @@ class BookingRepo {
 
   Future<void> _updateConfirmedBooking(
     Transaction t,
+    Request originalRequest,
     Request request,
     PrivateRequestDetails privateDetails,
     String orgID,
-    RecurringBookingEditChoiceProvider choiceProvider,
-  ) async {
+    RecurringBookingEditChoiceProvider choiceProvider, {
+    DateTime? originalStartTime,
+  }) async {
     var recurrenceFrequency =
         request.recurrancePattern?.frequency ?? Frequency.never;
     if (recurrenceFrequency == Frequency.never) {
@@ -456,7 +461,11 @@ class BookingRepo {
     var originalBooking = snapshot.data()!;
     switch (choice) {
       case RecurringBookingEditChoice.thisInstance:
-        var updatedRequest = _overrideRecurrance(originalBooking, request);
+        var updatedRequest = _overrideRecurrance(
+          originalBooking,
+          request,
+          originalStartTime ?? request.eventStartTime,
+        );
         t.set(originalRequestRef, updatedRequest);
         break;
       case RecurringBookingEditChoice.thisAndFuture:
@@ -547,14 +556,18 @@ DateTime _stripTime(DateTime dt) {
 }
 
 Request _deleteRecurrance(Request request, DateTime day) {
-  var overrides = request.recurranceOverrides ?? {};
+  var overrides = Map<DateTime, Request?>.from(request.recurranceOverrides ?? {});
   overrides[_stripTime(day)] = null;
   return request.copyWith(recurranceOverrides: overrides);
 }
 
-Request _overrideRecurrance(Request request, Request override) {
-  var overrides = request.recurranceOverrides ?? {};
-  overrides[_stripTime(override.eventStartTime)] = override;
+Request _overrideRecurrance(
+  Request request,
+  Request override,
+  DateTime originalStartTime,
+) {
+  var overrides = Map<DateTime, Request?>.from(request.recurranceOverrides ?? {});
+  overrides[_stripTime(originalStartTime)] = override;
   return request.copyWith(recurranceOverrides: overrides);
 }
 
