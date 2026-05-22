@@ -229,7 +229,7 @@ class ViewBookingsScreen extends StatelessWidget {
                 : null,
       ),
       floatingActionButton:
-          calendarViewModel.controller.view != CalendarView.day
+          (calendarViewModel.controller.view != CalendarView.day && !viewState.showEditor)
           ? FloatingActionButton(
               onPressed: viewModel.onAddNewBooking,
               child: const Icon(Icons.add),

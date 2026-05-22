@@ -5,9 +5,7 @@ This document defines the user interface design principles and the primary scree
 
 ## [UI-000] Compliance
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
-
 ## Requirements
-
 ### Requirement: Calendar-Centric Navigation
 The home screen SHALL feature a visual calendar that displays room schedules.
 
@@ -99,3 +97,16 @@ The application SHALL distinguish between "Creation" and "Rescheduling" states. 
 - **WHEN** an existing booking is being edited (Rescheduling state)
 - **AND** the user taps an available time slot in a time-aware view
 - **THEN** the active booking SHALL "teleport" to the new time slot instead of opening a new request form.
+
+### Requirement: Conditional FAB Visibility
+The application SHALL hide the primary action button for creating new bookings (FAB) whenever the request editor panel is active on the calendar screen.
+
+#### Scenario: Open request editor
+- **WHEN** the user opens the request editor panel to view or edit a booking
+- **THEN** the Floating Action Button (FAB) for adding new bookings SHALL NOT be visible
+
+#### Scenario: Close request editor
+- **WHEN** the user closes the request editor panel
+- **AND** the calendar is in a view that supports the FAB
+- **THEN** the Floating Action Button (FAB) SHALL become visible again
+
