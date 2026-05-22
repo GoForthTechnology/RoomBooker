@@ -34,7 +34,6 @@ class RequestEditor extends StatelessWidget {
           var state = snapshot.data!;
           var formContents = Column(
             children: [
-              _title(viewModel, context),
               _roomSelector(viewModel, state.readOnly),
               _eventNameSelector(viewModel, state.readOnly),
               _isPublicSelector(viewModel, state.readOnly),
@@ -58,14 +57,26 @@ class RequestEditor extends StatelessWidget {
               if (state.showID) _requestIDField(viewModel)!,
               if (state.showEventLog)
                 _requestLogWidget(viewModel, state.readOnly)!,
-              _getButtons(state, context),
             ],
           );
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Form(key: viewModel.formKey, child: formContents),
-            ),
+          return Column(
+            children: [
+              _title(viewModel, context),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Form(key: viewModel.formKey, child: formContents),
+                  ),
+                ),
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: _getButtons(state, context),
+                ),
+              ),
+            ],
           );
         },
       ),

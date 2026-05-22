@@ -263,7 +263,7 @@ class ViewBookingsScreen extends StatelessWidget {
                   minWidth: panelWidth,
                   maxWidth: panelWidth,
                   alignment: Alignment.centerLeft,
-                  child: SingleChildScrollView(child: RequestEditor()),
+                  child: RequestEditor(),
                 ),
               ),
             ),
