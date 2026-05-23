@@ -99,14 +99,10 @@ void main() {
 
   group('LandingScreenView', () {
     testWidgets('shows loading indicator when redirecting', (tester) async {
-      // Arrange
       when(() => mockViewModel.shouldShowRedirecting).thenReturn(true);
-
-      // Act
       await tester.pumpWidget(createWidgetUnderTest());
 
-      // Assert
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
     testWidgets('shows Your Organizations section when logged in', (

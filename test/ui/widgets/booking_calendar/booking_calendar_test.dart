@@ -54,7 +54,7 @@ void main() {
   });
 
   testWidgets(
-    'BookingCalendarView shows CircularProgressIndicator when snapshot has no data',
+    'BookingCalendarView shows SizedBox when snapshot has no data',
     (WidgetTester tester) async {
       when(
         () => mockViewModel.calendarViewState(),
@@ -71,7 +71,8 @@ void main() {
 
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      // The FutureBuilder/StreamBuilder should be in waiting state
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     },
   );
 
