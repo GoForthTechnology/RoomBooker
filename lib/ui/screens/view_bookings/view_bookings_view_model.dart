@@ -349,6 +349,10 @@ class ViewBookingsViewModel extends ChangeNotifier {
     _showRoomSelectorSubject.add(!current);
   }
 
+  void closeEditor() {
+    _requestEditorViewModel.closeEditor();
+  }
+
   void onAddNewBooking() async {
     final focusDate = _calendarViewModel.controller.displayDate ?? DateTime.now();
     final firstDate = BookingDateHelper.getFirstDate(focusDate);

@@ -215,7 +215,15 @@ class ViewBookingsScreen extends StatelessWidget {
     var panelWidth = MediaQuery.sizeOf(context).width / 4;
     var router = AutoRouter.of(context);
 
-    return Scaffold(
+    return PopScope(
+      canPop: !viewState.showEditor,
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
+        if (didPop) return;
+        if (viewState.showEditor) {
+          viewModel.closeEditor();
+        }
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(orgState.org.name),
         actions: _renderActions(viewModel.getActions(context)),
@@ -269,7 +277,7 @@ class ViewBookingsScreen extends StatelessWidget {
             ),
         ],
       ),
-    );
+    ));
   }
 
   List<Widget> _renderActions(List<Action> actions) {
@@ -355,6 +363,6 @@ class ViewBookingsScreen extends StatelessWidget {
           child: RequestEditor(onClose: () => Navigator.pop(context)),
         ),
       ),
-    );
+    ).then((_) => requestEditorViewModel.closeEditor());
   }
 }

@@ -697,6 +697,30 @@ void main() {
         expect(result, isEmpty);
       });
 
+      test('closeEditor ignores calls after disposal without errors', () async {
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
+
+        viewModel.dispose();
+        // Should not throw a StateError from _closeSubject.add
+        final result = await viewModel.closeEditor();
+        expect(result, isEmpty);
+      });
+
+      test('update methods safely ignore calls after disposal', () async {
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(testRequest, testDetails);
+
+        // Allow initial values to settle
+        await Future.delayed(Duration.zero);
+        
+        viewModel.dispose();
+
+        // Calling an update method should return immediately and not throw exception 
+        // regarding interacting with a disposed TextEditingController
+        viewModel.updateEventName('Ignored Update');
+      });
+
       test('Save action persists updated values to repo', () async {
         final confirmedRequest = Request(
           id: 'confirmed_request',

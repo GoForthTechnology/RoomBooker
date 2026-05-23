@@ -120,6 +120,7 @@ class RequestEditorViewModel extends ChangeNotifier {
   }
 
   void _clearSubjects() {
+    if (_isDisposed) return;
     _currentDataSubject.add((null, null));
     _initialDataSubject.add((null, null));
     _eventStartSubject.add(null);
@@ -455,6 +456,7 @@ class RequestEditorViewModel extends ChangeNotifier {
       return "Unsaved changes will be lost. Are you sure you want to close?";
     }*/
     // All good, no changes.
+    if (_isDisposed) return "";
     _cancelCurrentDataSubscription();
     _closeSubject.add(null);
     _editingEnabledSubject.add(false);
@@ -559,11 +561,15 @@ class RequestEditorViewModel extends ChangeNotifier {
     _eventStartSubject.add(newStart);
   }
 
+  bool _isDisposed = false;
+
   void updateEventEnd(DateTime newEnd) {
+    if (_isDisposed) return;
     _eventEndSubject.add(newEnd);
   }
 
   void moveEventTo(DateTime newStart) {
+    if (_isDisposed) return;
     final currentStart = _eventStartSubject.value;
     final currentEnd = _eventEndSubject.value;
 
@@ -575,40 +581,50 @@ class RequestEditorViewModel extends ChangeNotifier {
   }
 
   void updateRoom(Room newRoom) {
+    if (_isDisposed) return;
     _roomIDSubject.add(newRoom.id!);
     _roomNameSubject.add(newRoom.name);
   }
 
   void updateIsPublic(bool isPublic) {
+    if (_isDisposed) return;
     _isPublicSubject.add(isPublic);
   }
 
   void updateIgnoreOverlaps(bool ignoreOverlaps) {
+    if (_isDisposed) return;
     _ignoreOverlapsSubject.add(ignoreOverlaps);
   }
 
   void updateEventName(String newName) {
+    if (_isDisposed) return;
     eventNameContoller.text = newName;
   }
 
   void updateContactName(String newName) {
+    if (_isDisposed) return;
     contactNameController.text = newName;
   }
 
   void updateContactEmail(String newEmail) {
+    if (_isDisposed) return;
     contactEmailController.text = newEmail;
   }
 
   void updateContactPhone(String newPhone) {
+    if (_isDisposed) return;
     phoneNumberController.text = newPhone;
   }
 
   void updateAdditionalInfo(String newInfo) {
+    if (_isDisposed) return;
     additionalInfoController.text = newInfo;
   }
 
   @override
   void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
     _eventStartSubject.close();
     _eventEndSubject.close();
     _roomIDSubject.close();

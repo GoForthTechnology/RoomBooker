@@ -21,11 +21,18 @@ class OrgState extends ChangeNotifier {
   });
 }
 
-class OrgStateProvider extends StatelessWidget {
+class OrgStateProvider extends StatefulWidget {
   final String orgID;
   final Widget child;
 
   const OrgStateProvider({super.key, required this.orgID, required this.child});
+
+  @override
+  State<OrgStateProvider> createState() => _OrgStateProviderState();
+}
+
+class _OrgStateProviderState extends State<OrgStateProvider> {
+  Future<OrgState?>? _future;
 
   Future<bool> _currentUserIsAdmin(
     AuthService authService,
@@ -39,44 +46,75 @@ class OrgStateProvider extends StatelessWidget {
     if (profile == null) {
       return false; // user doesn't exist
     }
-    return profile.orgIDs.contains(orgID);
+    return profile.orgIDs.contains(widget.orgID);
+  }
+
+  String? _lastUserID;
+
+  void _loadState() {
+    var orgRepo = Provider.of<OrgRepo>(context, listen: false);
+    var userRepo = Provider.of<UserRepo>(context, listen: false);
+    var authService = Provider.of<AuthService>(context, listen: false);
+
+    _future = Future.delayed(Duration.zero, () async {
+      var org = await orgRepo.getOrg(widget.orgID).first;
+      var isAdmin = await _currentUserIsAdmin(authService, userRepo);
+      if (org == null) return null;
+      return OrgState(
+        org: org,
+        currentUserIsAdmin: isAdmin,
+        authService: authService,
+      );
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _lastUserID = Provider.of<AuthService>(context, listen: false).getCurrentUserID();
+    _loadState();
+  }
+
+  @override
+  void didUpdateWidget(OrgStateProvider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.orgID != widget.orgID) {
+      _loadState();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    var authService = Provider.of<AuthService>(context, listen: true);
+    var currentUserID = authService.getCurrentUserID();
+    if (_lastUserID != currentUserID) {
+      _lastUserID = currentUserID;
+      _loadState();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    var orgRepo = Provider.of<OrgRepo>(context, listen: false);
-    var userRepo = Provider.of<UserRepo>(context, listen: false);
-
-    return Consumer<AuthService>(
-      builder: (context, authService, _) => FutureBuilder<OrgState?>(
-        future: Future.delayed(Duration.zero, () async {
-          var org = await orgRepo.getOrg(orgID).first;
-          var isAdmin = await _currentUserIsAdmin(authService, userRepo);
-          if (org == null) return null;
-          return OrgState(
-            org: org,
-            currentUserIsAdmin: isAdmin,
-            authService: authService,
-          );
-        }),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            log('Error loading organization state', error: snapshot.error);
-            return const Center(child: Text('Error loading organization'));
-          }
-          final data = snapshot.data;
-          if (!snapshot.hasData || data == null) {
-            return const Center(child: Text('Organization not found'));
-          }
-          return ChangeNotifierProvider(
-            create: (_) => data,
-            child: child,
-          );
-        },
-      ),
+    return FutureBuilder<OrgState?>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          log('Error loading organization state', error: snapshot.error);
+          return const Center(child: Text('Error loading organization'));
+        }
+        final data = snapshot.data;
+        if (!snapshot.hasData || data == null) {
+          return const Center(child: Text('Organization not found'));
+        }
+        return ChangeNotifierProvider.value(
+          value: data,
+          child: widget.child,
+        );
+      },
     );
   }
 }

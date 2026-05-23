@@ -66,3 +66,12 @@ The linting rules are defined in the `analysis_options.yaml` file.
 - `test/`: Contains the tests for the application.
 - `firebase.json`: Configuration for Firebase services.
 - `pubspec.yaml`: Project dependencies and configuration.
+
+## Development Workflow
+
+When working on tasks, you **MUST** always follow the OpenSpec flow:
+1. **Propose:** Propose the changes (e.g., using `openspec change new "<name>"`) and outline the plan.
+2. **Ask for Review:** Ask the user for review and approval of the proposal.
+3. **Apply:** Apply the code changes.
+4. **Ask for Verification:** Ask the user to verify the changes.
+5. **Archive and Commit:** Run `openspec archive <change>` and commit the changes using `git`.
