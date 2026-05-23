@@ -182,7 +182,7 @@ class ViewBookingsScreen extends StatelessWidget {
             stream: viewModel.viewStateStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Scaffold();
               }
               if (snapshot.hasError) {
                 log("Error loading view state: ${snapshot.error}");

@@ -34,7 +34,7 @@ class BookingCalendarView extends StatelessWidget {
           return Text('Error: ${snapshot.error}');
         }
         if (!snapshot.hasData) {
-          return CircularProgressIndicator();
+          return const SizedBox.shrink();
         }
         var viewState = snapshot.data!;
         return SfCalendar(

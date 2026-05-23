@@ -73,7 +73,7 @@ class LandingScreenViewState extends State<LandingScreenView> {
     final viewModel = context.watch<LandingViewModel>();
 
     if (viewModel.shouldShowRedirecting) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold();
     }
 
     return Scaffold(

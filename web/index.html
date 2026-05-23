@@ -34,7 +34,22 @@
 </head>
 
 <body>
+  <div id="flutter-splash-screen" style="position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #ffffff; z-index: 9999;">
+    <h1 style="font-family: sans-serif; color: #333333; margin-bottom: 24px;">Room Booker</h1>
+    <div class="loader" style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+    <style>
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+  </div>
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    window.addEventListener('flutter-first-frame', function() {
+      var splash = document.getElementById('flutter-splash-screen');
+      if (splash) {
+        splash.remove();
+      }
+    });
+  </script>
 </body>
 
 </html>

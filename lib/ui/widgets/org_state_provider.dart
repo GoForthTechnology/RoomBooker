@@ -100,7 +100,7 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Scaffold();
         }
         if (snapshot.hasError) {
           log('Error loading organization state', error: snapshot.error);
