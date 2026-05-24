@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/ui/utils/traced_stream_builder.dart';
@@ -80,7 +82,7 @@ class BookingCalendarView extends StatelessWidget {
         appointment.subject,
         style: const TextStyle(color: Colors.white, fontSize: 10),
         overflow: TextOverflow.ellipsis,
-        maxLines: (bounds.height / 15).floor(),
+        maxLines: math.max(1, (bounds.height / 15).floor()),
         softWrap: true,
       );
 

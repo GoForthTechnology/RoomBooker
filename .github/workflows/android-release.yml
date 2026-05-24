@@ -33,8 +33,10 @@ jobs:
       - name: Decode Keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
 
-      - name: Build APK
-        run: flutter build apk --release
+      - name: Build APK & AAB
+        run: |
+          flutter build apk --release
+          flutter build appbundle --release
         env:
           ANDROID_KEYSTORE_PATH: upload-keystore.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -50,3 +52,13 @@ jobs:
             --app ${{ secrets.FIREBASE_ANDROID_APP_ID }} \
             --release-notes "${{ github.event.head_commit.message }}"
           rm sa_key.json
+
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonRaw: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}
+          packageName: org.goforthtech.roombooker
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          track: internal
+          status: completed
+          whatsNewDirectory: distribution/whatsnew

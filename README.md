@@ -68,7 +68,7 @@ This project uses **Terraform** to manage its Google Cloud and Firebase resource
 The project uses GitHub Actions for automated releases:
 
 - **Web:** Automatically deployed to Firebase Hosting on merge to `main` with a version tag.
-- **Android:** Automatically builds a signed .aab and distributes it to **Firebase App Distribution** on merge to `main` with a version tag.
+- **Android:** Automatically builds a signed .apk and distributes it to **Firebase App Distribution**, and a signed .aab to **Google Play Store (Internal Track)** on merge to `main` with a version tag.
 
 Both pipelines are triggered by commit messages matching the pattern `Cut v#.#.#+#`. You can use the `scripts/bump_version.sh` script to automate this:
 

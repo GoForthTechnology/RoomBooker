@@ -73,14 +73,22 @@ The project uses GitHub Actions for automated Android builds and distribution.
 
 - **Workflow:** `.github/workflows/android-release.yml`
 - **Trigger:** Pushing a commit with a message matching "Cut v#.#.#+#" (e.g., via `scripts/bump_version.sh`).
-- **Distribution:** Signed Android App Bundles (.aab) are automatically uploaded to Firebase App Distribution.
+- **Distribution:** Signed Android artifacts are automatically distributed:
+  - **Firebase App Distribution:** Signed APK for internal testing.
+  - **Google Play Console:** Signed AAB uploaded to the **Internal Track**.
 - **Secrets Required:**
   - `ANDROID_KEYSTORE_BASE64`: The production keystore file encoded in Base64.
   - `ANDROID_KEYSTORE_PASSWORD`: Password for the keystore.
   - `ANDROID_KEY_ALIAS`: Alias for the signing key.
   - `ANDROID_KEY_PASSWORD`: Password for the signing key.
   - `FIREBASE_ANDROID_APP_ID`: The App ID from Firebase Console.
-  - `FIREBASE_SERVICE_ACCOUNT_KEY`: The JSON key of the `github-actions-deployer` service account.
+  - `FIREBASE_SERVICE_ACCOUNT_KEY`: The JSON key for Firebase distribution.
+  - `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY`: The JSON key for Play Store publishing (managed via Terraform).
+
+## Google Play Setup (One-time)
+
+1.  **Invite Service Account:** In the Play Console, invite `google-play-deployer@roombooker-5e947.iam.gserviceaccount.com` and grant it Admin or Release Manager permissions.
+2.  **Manual Upload:** Perform the first upload of a signed `.aab` manually to the Play Console to establish the package.
 
 ## Project Structure
 
