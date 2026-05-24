@@ -42,9 +42,8 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Upload to Firebase App Distribution
-        uses: FirebaseExtended/action-firebase-distribution@v1.5.0
+        uses: w9jds/firebase-action@v2.2.1
         with:
-          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
-          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
-          file: build/app/outputs/bundle/release/app-release.aab
-          groups: internal-testers
+          args: appdistribution:distribute build/app/outputs/bundle/release/app-release.aab --app ${{ secrets.FIREBASE_ANDROID_APP_ID }} --groups internal-testers
+        env:
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
