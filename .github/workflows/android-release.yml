@@ -33,8 +33,8 @@ jobs:
       - name: Decode Keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
 
-      - name: Build AAB
-        run: flutter build appbundle --release
+      - name: Build APK
+        run: flutter build apk --release
         env:
           ANDROID_KEYSTORE_PATH: upload-keystore.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -46,6 +46,6 @@ jobs:
           curl -sL https://firebase.tools | bash
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > sa_key.json
           export GOOGLE_APPLICATION_CREDENTIALS=sa_key.json
-          firebase appdistribution:distribute build/app/outputs/bundle/release/app-release.aab \
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
             --app ${{ secrets.FIREBASE_ANDROID_APP_ID }} \
             --groups internal-testers
