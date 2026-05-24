@@ -42,7 +42,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Upload to Firebase App Distribution
-        uses: FirebaseExtended/action-firebase-distribution@v1
+        uses: FirebaseExtended/action-firebase-distribution@v1.5.0
         with:
           appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
