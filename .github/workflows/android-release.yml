@@ -48,4 +48,5 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS=sa_key.json
           firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
             --app ${{ secrets.FIREBASE_ANDROID_APP_ID }} \
-            --groups internal-testers
+            --release-notes "${{ github.event.head_commit.message }}"
+          rm sa_key.json
