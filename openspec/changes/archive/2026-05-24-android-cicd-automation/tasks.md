@@ -11,7 +11,7 @@
 - [x] 2.1 Generate production Android keystore locally (to be shared with user).
 - [x] 2.2 Encode keystore to Base64 and prepare secrets for GitHub.
 - [x] 2.3 Update `android/app/build.gradle.kts` to use environment variables for signing.
-- [ ] 2.4 Verify local signed build using the new environment variable setup.
+- [x] 2.4 Verify local signed build using the new environment variable setup.
 
 ## 3. CI/CD Pipeline Automation
 
@@ -22,6 +22,6 @@
 
 ## 4. Verification & Documentation
 
-- [ ] 4.1 Trigger a version bump and verify the end-to-end Android pipeline.
-- [ ] 4.2 Confirm build availability in Firebase App Distribution.
+- [x] 4.1 Trigger a version bump and verify the end-to-end Android pipeline.
+- [x] 4.2 Confirm build availability in Firebase App Distribution.
 - [x] 4.3 Update `README.md` or `GEMINI.md` with CI/CD and IaC documentation.
