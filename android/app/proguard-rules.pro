@@ -1,0 +1,4 @@
+-keep class com.google.firebase.perf.** { *; }
+-dontwarn com.google.firebase.perf.**
+-keep class com.google.android.recaptcha.** { *; }
+-dontwarn com.google.android.recaptcha.**
