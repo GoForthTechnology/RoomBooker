@@ -56,6 +56,32 @@ flutter analyze
 
 The linting rules are defined in the `analysis_options.yaml` file.
 
+## Infrastructure (Terraform)
+
+The project's infrastructure on Google Cloud and Firebase is managed using Terraform.
+
+- **Location:** `terraform/`
+- **State Management:** Remote state is stored in a GCS bucket (`roombooker-5e947-terraform-state`).
+- **Commands:**
+  - `terraform init`: Initialize the working directory.
+  - `terraform plan`: Preview changes.
+  - `terraform apply`: Apply changes to the infrastructure.
+
+## CI/CD (Android)
+
+The project uses GitHub Actions for automated Android builds and distribution.
+
+- **Workflow:** `.github/workflows/android-release.yml`
+- **Trigger:** Pushing a commit with a message matching "Cut v#.#.#+#" (e.g., via `scripts/bump_version.sh`).
+- **Distribution:** Signed Android App Bundles (.aab) are automatically uploaded to Firebase App Distribution.
+- **Secrets Required:**
+  - `ANDROID_KEYSTORE_BASE64`: The production keystore file encoded in Base64.
+  - `ANDROID_KEYSTORE_PASSWORD`: Password for the keystore.
+  - `ANDROID_KEY_ALIAS`: Alias for the signing key.
+  - `ANDROID_KEY_PASSWORD`: Password for the signing key.
+  - `FIREBASE_ANDROID_APP_ID`: The App ID from Firebase Console.
+  - `FIREBASE_SERVICE_ACCOUNT_KEY`: The JSON key of the `github-actions-deployer` service account.
+
 ## Project Structure
 
 - `lib/`: Contains the main source code for the application.

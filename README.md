@@ -57,11 +57,24 @@ Sentry is used for error tracking and performance monitoring. The DSN is configu
 
 For production builds (via GitHub Actions), the project is configured to upload source maps and debug symbols to Sentry. This requires a `SENTRY_AUTH_TOKEN` to be set as a GitHub Secret.
 
-## Deployment & Observability
+## Deployment & Infrastructure
+
+### Infrastructure as Code (IaC)
+
+This project uses **Terraform** to manage its Google Cloud and Firebase resources. The configuration is located in the `terraform/` directory.
 
 ### Continuous Deployment (CD)
 
-The project uses GitHub Actions for automatic deployment to Firebase Hosting when changes are merged into the `main` branch with a specific versioning tag (e.g., `Cut v1.2.3+10`).
+The project uses GitHub Actions for automated releases:
+
+- **Web:** Automatically deployed to Firebase Hosting on merge to `main` with a version tag.
+- **Android:** Automatically builds a signed .aab and distributes it to **Firebase App Distribution** on merge to `main` with a version tag.
+
+Both pipelines are triggered by commit messages matching the pattern `Cut v#.#.#+#`. You can use the `scripts/bump_version.sh` script to automate this:
+
+```bash
+./scripts/bump_version.sh -cp patch # Bumps patch version, commits, and pushes
+```
 
 ### Production Error Reporting
 

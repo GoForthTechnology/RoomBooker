@@ -52,3 +52,15 @@ The success of the Room Booker application will be measured by:
 - **Engagement:** The number of successful room bookings per week.
 - **User Satisfaction:** High ratings in the app stores and positive user feedback.
 - **Reliability:** A low number of reported booking errors or application crashes (monitored via Sentry).
+
+## 6. Operations & Infrastructure
+
+### Infrastructure as Code (IaC)
+- All cloud resources (GCP, Firebase) must be defined and managed using Terraform to ensure repeatability and environment consistency.
+- Terraform state must be stored in a secure, remote GCS bucket.
+
+### Continuous Integration & Deployment (CI/CD)
+- The application must utilize automated pipelines for building, testing, and deploying the Web and Android versions.
+- **Web Deployment:** Automatic deployment to Firebase Hosting on merge to `main`.
+- **Android Deployment:** Automatic builds of signed App Bundles distributed via Firebase App Distribution on merge to `main`.
+- Releases must be version-controlled and triggered by specific git tag/message patterns.
