@@ -25,6 +25,9 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // AppCheck configuration - using debug provider for debug builds
+  // If you want to disable AppCheck entirely for testing, comment this out.
   await FirebaseAppCheck.instance.activate(
     androidProvider:
         kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
@@ -34,6 +37,9 @@ void main() async {
       '6Lej2S0sAAAAAKBEX9lCwb1g4RBlAMb3dXeJHWv-',
     ),
   );
+
+  FirebaseUIAuth.configureProviders(providers);
+
   final loggingService = getLoggingService();
   final prefs = await SharedPreferences.getInstance();
   loggingService.startColdStartTrace(coldStartTime);
@@ -42,15 +48,19 @@ void main() async {
     try {
       FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8081);
       await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
-    } catch (e) {
-      // ignore: avoid_print
-      print(e);
+      loggingService.info('Using Firebase Emulators');
+    } catch (e, stack) {
+      loggingService.error('Error connecting to emulators', e, stack);
     }
   }
-  if (kDebugMode) {
-    // App is running in debug mode
+
+  // Initialize Sentry
+  // We enable it in debug mode too if specifically requested or for debugging auth issues.
+  const bool enableSentryInDebug = true;
+
+  if (kDebugMode && !enableSentryInDebug) {
     loggingService.debug(
-      'App is running in debug mode, not initializing Sentry',
+      'App is running in debug mode, Sentry is disabled',
     );
     runApp(MyApp(prefs: prefs, loggingService: loggingService));
   } else {
@@ -59,18 +69,19 @@ void main() async {
         options.enableLogs = true;
         options.dsn =
             'https://c5ed84ffedec25c193d642e9a8e6ba0f@o4509504243630080.ingest.us.sentry.io/4509504245071872';
-        // Adds request headers and IP for users, for more info visit:
-        // https://docs.sentry.io/platforms/dart/guides/flutter/data-management/data-collected/
         options.sendDefaultPii = true;
-        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-        // We recommend adjusting this value in production.
         options.tracesSampleRate = 1.0;
-        // The sampling rate for profiling is relative to tracesSampleRate
-        // Setting to 1.0 will profile 100% of sampled transactions:
         options.profilesSampleRate = 1.0;
         options.attachScreenshot = true;
         options.replay.sessionSampleRate = 1.0;
         options.replay.onErrorSampleRate = 1.0;
+
+        if (kDebugMode) {
+          options.debug = true;
+          options.environment = 'development';
+        } else {
+          options.environment = 'production';
+        }
       },
       appRunner: () => runZonedGuarded(
         () {
@@ -81,7 +92,7 @@ void main() async {
           );
         },
         (error, stackTrace) {
-          loggingService.error("Error running app: $error", error, stackTrace);
+          loggingService.error("Uncaught top-level error", error, stackTrace);
         },
       ),
     );
@@ -118,7 +129,6 @@ class MyApp extends StatelessWidget {
     });
     try {
       FirebaseAnalytics.instance.logAppOpen();
-      FirebaseUIAuth.configureProviders(providers);
       return AppProviders(
         prefs: prefs,
         loggingService: loggingService,
@@ -133,9 +143,15 @@ class MyApp extends StatelessWidget {
           ),
         ),
       );
-    } catch (e) {
-      loggingService.error("Error initializing MyApp: $e");
-      return Text("Error initializing app");
+    } catch (e, stack) {
+      loggingService.error("Error initializing MyApp", e, stack);
+      return const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Text("Error initializing app. Please check Sentry/Logs."),
+          ),
+        ),
+      );
     }
   }
 }

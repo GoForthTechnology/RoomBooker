@@ -36,12 +36,12 @@ class DebugLoggingService extends ChangeNotifier implements LoggingService {
 
   @override
   void error(String message, [dynamic error, StackTrace? stackTrace]) {
-    _logger.e(message);
+    _logger.e(message, error: error, stackTrace: stackTrace);
   }
 
   @override
   void fatal(String message, [dynamic error, StackTrace? stackTrace]) {
-    _logger.f(message);
+    _logger.f(message, error: error, stackTrace: stackTrace);
   }
 
   @override
@@ -82,27 +82,46 @@ class SentryLoggingService extends ChangeNotifier implements LoggingService {
 
   @override
   void debug(String message) {
-    Sentry.logger.info(message);
+    Sentry.addBreadcrumb(
+      Breadcrumb(message: message, level: SentryLevel.debug),
+    );
   }
 
   @override
   void info(String message) {
-    Sentry.logger.info(message);
+    Sentry.addBreadcrumb(Breadcrumb(message: message, level: SentryLevel.info));
   }
 
   @override
   void warning(String message) {
-    Sentry.logger.warn(message);
+    Sentry.addBreadcrumb(
+      Breadcrumb(message: message, level: SentryLevel.warning),
+    );
+    Sentry.captureMessage(message, level: SentryLevel.warning);
   }
 
   @override
   void error(String message, [dynamic error, StackTrace? stackTrace]) {
-    Sentry.logger.error(message);
+    Sentry.captureException(
+      error ?? message,
+      stackTrace: stackTrace,
+      withScope: (scope) {
+        scope.setTag('log_message', message);
+        scope.level = SentryLevel.error;
+      },
+    );
   }
 
   @override
   void fatal(String message, [dynamic error, StackTrace? stackTrace]) {
-    Sentry.logger.fatal(message);
+    Sentry.captureException(
+      error ?? message,
+      stackTrace: stackTrace,
+      withScope: (scope) {
+        scope.setTag('log_message', message);
+        scope.level = SentryLevel.fatal;
+      },
+    );
   }
 
   @override

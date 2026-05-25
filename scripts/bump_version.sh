@@ -100,6 +100,7 @@ sed "s/^version: .*/version: $NEW_VERSION/" $PUBSPEC > "${PUBSPEC}.tmp" && mv "$
 if [ "$COMMIT" = true ]; then
   git add $PUBSPEC
   git commit -m "Cut v$NEW_VERSION"
+  git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
 fi
 
 if [ "$PUSH" = true ]; then
@@ -108,7 +109,7 @@ if [ "$PUSH" = true ]; then
   # However, typically -p implies pushing existing commits. 
   # If the user wants to push THIS change, they should probably use -c as well or -cp.
   # But following the request strictly:
-  git push origin HEAD
+  git push origin HEAD --follow-tags
 fi
 
 echo "Done."
