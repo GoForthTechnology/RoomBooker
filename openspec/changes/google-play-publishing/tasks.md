@@ -14,7 +14,7 @@
 
 ## 3. Verification & Documentation
 
-- [ ] 3.1 Perform a manual upload of the first `.aab` to the Play Console (User Action).
+- [x] 3.1 Perform a manual upload of the first `.aab` to the Play Console (User Action).
 - [x] 3.2 Configure the `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY` GitHub Secret using the Terraform output.
 - [ ] 3.3 Trigger a version bump and verify both Firebase (APK) and Play Store (AAB) deployments.
 - [x] 3.4 Update `README.md` and `GEMINI.md` with Play Store publishing instructions.
