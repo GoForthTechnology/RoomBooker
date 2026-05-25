@@ -67,6 +67,18 @@ The project's infrastructure on Google Cloud and Firebase is managed using Terra
   - `terraform plan`: Preview changes.
   - `terraform apply`: Apply changes to the infrastructure.
 
+## Security Guidelines
+
+**CRITICAL: Never commit secrets, credentials, or keys to the repository.**
+
+This includes, but is not limited to:
+- Service account JSON files (`*.json`).
+- Base64 encoded versions of keys or secrets (`*.base64`).
+- Keystore files (`*.jks`, `*.keystore`).
+- `.env` files or the `.secrets` file used for local CI testing.
+
+If you are working with tools or scripts that require these files locally, ensure they are listed in `.gitignore`. Any changes involving new types of credentials must also include an update to `.gitignore` to prevent accidental exposure.
+
 ## CI/CD (Android)
 
 The project uses GitHub Actions for automated Android builds and distribution.

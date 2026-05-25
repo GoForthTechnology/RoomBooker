@@ -56,6 +56,7 @@ coverage/
 .secrets
 *.jks
 *.base64
+*.pem
 service-account-key.json
 play_sa_key.json
 sa_key.json
