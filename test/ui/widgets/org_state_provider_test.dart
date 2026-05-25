@@ -14,7 +14,7 @@ class MockOrgRepo extends Mock implements OrgRepo {}
 class MockUserRepo extends Mock implements UserRepo {}
 
 class FakeFirebaseAuthService extends ChangeNotifier
-    implements FirebaseAuthService {
+    implements AuthService {
   String? _userID;
 
   @override
@@ -24,9 +24,18 @@ class FakeFirebaseAuthService extends ChangeNotifier
   String? getCurrentUserEmail() => _userID == null ? null : 'test@example.com';
 
   @override
-  void logout() {
+  Future<void> logout() async {
     _userID = null;
     notifyListeners();
+  }
+
+  @override
+  Future<void> deleteAccount(Future<void> Function(String uid, String email) deleteData) async {
+    if (_userID != null) {
+      await deleteData(_userID!, 'test@example.com');
+      _userID = null;
+      notifyListeners();
+    }
   }
 
   void login(String userID) {

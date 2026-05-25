@@ -9,10 +9,13 @@ import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/screens/landing/landing_viewmodel.dart';
 
-// Mocks
-class MockFirebaseAuth extends Mock implements FirebaseAuth {}
+import 'package:room_booker/data/services/auth_service.dart';
+import 'package:room_booker/data/repos/user_repo.dart';
 
-class MockUser extends Mock implements User {}
+// Mocks
+class MockAuthService extends Mock implements AuthService {}
+
+class MockUserRepo extends Mock implements UserRepo {}
 
 class MockPreferencesRepo extends Mock implements PreferencesRepo {}
 
@@ -22,26 +25,23 @@ class MockAnalyticsService extends Mock implements AnalyticsService {}
 
 void main() {
   group('LandingViewModel', () {
-    late MockFirebaseAuth mockAuth;
+    late MockAuthService mockAuthService;
+    late MockUserRepo mockUserRepo;
     late MockPreferencesRepo mockPrefsRepo;
     late MockOrgRepo mockOrgRepo;
     late MockAnalyticsService mockAnalyticsService;
-    late MockUser mockUser;
-    late StreamController<User?> authController;
 
     setUp(() {
-      mockAuth = MockFirebaseAuth();
+      mockAuthService = MockAuthService();
+      mockUserRepo = MockUserRepo();
       mockPrefsRepo = MockPreferencesRepo();
       mockOrgRepo = MockOrgRepo();
       mockAnalyticsService = MockAnalyticsService();
-      mockUser = MockUser();
-      authController = StreamController<User?>.broadcast();
 
       // Default mock behaviors
-      when(
-        () => mockAuth.authStateChanges(),
-      ).thenAnswer((_) => authController.stream);
-      when(() => mockAuth.currentUser).thenReturn(null);
+      when(() => mockAuthService.getCurrentUserID()).thenReturn(null);
+      when(() => mockAuthService.addListener(any())).thenReturn(null);
+      when(() => mockAuthService.removeListener(any())).thenReturn(null);
       when(() => mockPrefsRepo.lastOpenedOrgId).thenReturn(null);
       when(
         () => mockAnalyticsService.logEvent(
@@ -52,7 +52,8 @@ void main() {
       when(
         () => mockOrgRepo.addOrgForCurrentUser(any(), any()),
       ).thenAnswer((_) async => 'new-org-id');
-      when(() => mockAuth.signOut()).thenAnswer((_) async {});
+      when(() => mockAuthService.logout()).thenAnswer((_) async {});
+      when(() => mockAuthService.deleteAccount(any())).thenAnswer((_) async {});
       when(
         () => mockPrefsRepo.setLastOpenedOrgId(any()),
       ).thenAnswer((_) async {});
@@ -60,21 +61,22 @@ void main() {
 
     LandingViewModel createSut() {
       return LandingViewModel(
-        auth: mockAuth,
+        authService: mockAuthService,
+        userRepo: mockUserRepo,
         prefsRepo: mockPrefsRepo,
         orgRepo: mockOrgRepo,
         analyticsService: mockAnalyticsService,
       );
     }
 
-    test('initial isLoggedIn is false when currentUser is null', () {
+    test('initial isLoggedIn is false when currentUID is null', () {
       final sut = createSut();
       expect(sut.isLoggedIn, isFalse);
       sut.dispose();
     });
 
-    test('initial isLoggedIn is true when currentUser is not null', () {
-      when(() => mockAuth.currentUser).thenReturn(mockUser);
+    test('initial isLoggedIn is true when currentUID is not null', () {
+      when(() => mockAuthService.getCurrentUserID()).thenReturn('test-uid');
       final sut = createSut();
       expect(sut.isLoggedIn, isTrue);
       sut.dispose();
@@ -100,14 +102,19 @@ void main() {
     });
 
     test(
-      'isLoggedIn updates and notifies listeners on auth state change',
+      'isLoggedIn updates and notifies listeners when auth listener is called',
       () async {
+        late void Function() capturedListener;
+        when(() => mockAuthService.addListener(any())).thenAnswer((invocation) {
+          capturedListener = invocation.positionalArguments[0] as void Function();
+        });
+
         final sut = createSut();
         int callCount = 0;
         sut.addListener(() => callCount++);
 
-        authController.add(mockUser);
-        await Future.value();
+        when(() => mockAuthService.getCurrentUserID()).thenReturn('test-uid');
+        capturedListener();
 
         expect(sut.isLoggedIn, isTrue);
         expect(callCount, 1);
@@ -115,10 +122,17 @@ void main() {
       },
     );
 
-    test('signOut calls auth', () async {
+    test('signOut calls auth service', () async {
       final sut = createSut();
       await sut.signOut();
-      verify(() => mockAuth.signOut()).called(1);
+      verify(() => mockAuthService.logout()).called(1);
+      sut.dispose();
+    });
+
+    test('deleteAccount calls auth service with user repo method', () async {
+      final sut = createSut();
+      await sut.deleteAccount();
+      verify(() => mockAuthService.deleteAccount(mockUserRepo.deleteUserData)).called(1);
       sut.dispose();
     });
 
