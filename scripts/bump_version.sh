@@ -47,6 +47,15 @@ if [ ! -f "$PUBSPEC" ]; then
   exit 1
 fi
 
+# Check if working directory is clean (excluding pubspec.yaml if we're about to change it)
+if [ "$COMMIT" = true ]; then
+  if ! git diff --quiet --exit-code -- . ":(exclude)pubspec.yaml"; then
+    echo "Error: You have uncommitted changes in your working directory."
+    echo "Please commit or stash them before running a release."
+    exit 1
+  fi
+fi
+
 # Run Flutter tests
 echo "Running Flutter tests..."
 if ! flutter test; then
