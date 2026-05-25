@@ -61,6 +61,37 @@ class UserRepo extends ChangeNotifier {
     });
   }
 
+  Future<void> deleteUserData(String uID, String email) async {
+    final batch = _db.batch();
+
+    // 1. Delete user profile
+    batch.delete(_db.collection('users').doc(uID));
+
+    // 2. Find and delete all booking requests
+    if (email.isNotEmpty) {
+      final querySnapshot = await _db
+          .collectionGroup('request-details')
+          .where('email', isEqualTo: email)
+          .get();
+
+      for (var doc in querySnapshot.docs) {
+        final requestID = doc.id;
+        final orgRef = doc.reference.parent.parent;
+        if (orgRef == null) continue;
+
+        // Delete the request details
+        batch.delete(doc.reference);
+
+        // Delete the request itself from possible locations
+        batch.delete(orgRef.collection('pending-requests').doc(requestID));
+        batch.delete(orgRef.collection('confirmed-requests').doc(requestID));
+        batch.delete(orgRef.collection('denied-requests').doc(requestID));
+      }
+    }
+
+    await batch.commit();
+  }
+
   DocumentReference<UserProfile> _userRef(String uID) {
     return _db
         .collection('users')

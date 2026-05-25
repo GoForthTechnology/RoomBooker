@@ -4,7 +4,10 @@ import 'package:flutter/cupertino.dart';
 abstract class AuthService extends ChangeNotifier {
   String? getCurrentUserID();
   String? getCurrentUserEmail();
-  void logout();
+  Future<void> logout();
+  Future<void> deleteAccount(
+    Future<void> Function(String uid, String email) deleteData,
+  );
 }
 
 class FirebaseAuthService extends ChangeNotifier implements AuthService {
@@ -25,7 +28,22 @@ class FirebaseAuthService extends ChangeNotifier implements AuthService {
   }
 
   @override
-  void logout() {
-    FirebaseAuth.instance.signOut();
+  Future<void> logout() async {
+    await FirebaseAuth.instance.signOut();
+  }
+
+  @override
+  Future<void> deleteAccount(
+    Future<void> Function(String uid, String email) deleteData,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final uid = user.uid;
+    final email = user.email ?? "";
+
+    await deleteData(uid, email);
+    await user.delete();
+    await FirebaseAuth.instance.signOut();
   }
 }

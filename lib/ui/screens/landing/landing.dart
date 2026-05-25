@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/data/entities/organization.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
+import 'package:room_booker/data/repos/user_repo.dart';
+import 'package:room_booker/data/services/auth_service.dart';
 import 'package:room_booker/router.dart';
 import 'package:room_booker/ui/screens/landing/landing_viewmodel.dart';
 import 'package:room_booker/ui/widgets/create_org_dialog.dart';
@@ -22,7 +24,8 @@ class LandingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => LandingViewModel(
-        auth: FirebaseAuth.instance,
+        authService: context.read<AuthService>(),
+        userRepo: context.read<UserRepo>(),
         prefsRepo: context.read<PreferencesRepo>(),
         orgRepo: context.read(),
         analyticsService: context.read(),
@@ -164,6 +167,7 @@ class SettingsAction extends StatelessWidget {
   }
 
   void _showSettingsDialog(BuildContext context) {
+    final viewModel = context.read<LandingViewModel>();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -197,6 +201,19 @@ class SettingsAction extends StatelessWidget {
                       .toList(),
                 ),
               ),
+              if (viewModel.isLoggedIn) ...[
+                const Divider(),
+                const Text(
+                  'Account:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  onPressed: () => _showDeleteAccountConfirmation(context, viewModel),
+                  child: const Text('Delete My Account'),
+                ),
+              ],
             ],
           ),
         ),
@@ -204,6 +221,57 @@ class SettingsAction extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountConfirmation(BuildContext context, LandingViewModel viewModel) {
+    final TextEditingController controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'This action is PERMANENT. All your personal data and booking requests will be deleted.',
+            ),
+            const SizedBox(height: 16),
+            const Text('Please type "DELETE" to confirm:'),
+            TextField(controller: controller),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () async {
+              if (controller.text == 'DELETE') {
+                try {
+                  await viewModel.deleteAccount();
+                  if (context.mounted) {
+                    Navigator.of(context).pop(); // Close confirmation
+                    Navigator.of(context).pop(); // Close settings
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Account deleted successfully.')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error deleting account: $e. You may need to log out and back in to re-authenticate.')),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('DELETE'),
           ),
         ],
       ),

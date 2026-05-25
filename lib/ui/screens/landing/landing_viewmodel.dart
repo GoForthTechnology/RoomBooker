@@ -9,6 +9,9 @@ import 'package:room_booker/data/repos/org_repo.dart';
 import 'package:room_booker/data/repos/prefs_repo.dart';
 import 'package:room_booker/router.dart';
 
+import 'package:room_booker/data/services/auth_service.dart';
+import 'package:room_booker/data/repos/user_repo.dart';
+
 class NavigationEvent {
   final PageRouteInfo route;
   final bool replace;
@@ -17,28 +20,32 @@ class NavigationEvent {
 }
 
 class LandingViewModel extends ChangeNotifier {
-  final FirebaseAuth _auth;
+  final AuthService _authService;
+  final UserRepo _userRepo;
   final PreferencesRepo _prefsRepo;
   final OrgRepo _orgRepo;
   final AnalyticsService _analyticsService;
 
   LandingViewModel({
-    required FirebaseAuth auth,
+    required AuthService authService,
+    required UserRepo userRepo,
     required PreferencesRepo prefsRepo,
     required OrgRepo orgRepo,
     required AnalyticsService analyticsService,
-  }) : _auth = auth,
+  }) : _authService = authService,
+       _userRepo = userRepo,
        _prefsRepo = prefsRepo,
        _orgRepo = orgRepo,
        _analyticsService = analyticsService {
-    _isLoggedIn = _auth.currentUser != null;
-    _authSubscription = _auth.authStateChanges().listen((user) {
-      _isLoggedIn = user != null;
-      notifyListeners();
-    });
+    _isLoggedIn = _authService.getCurrentUserID() != null;
+    _authService.addListener(_onAuthChanged);
   }
 
-  late final StreamSubscription _authSubscription;
+  void _onAuthChanged() {
+    _isLoggedIn = _authService.getCurrentUserID() != null;
+    notifyListeners();
+  }
+
   bool _isLoggedIn = false;
   bool get isLoggedIn => _isLoggedIn;
 
@@ -77,7 +84,11 @@ class LandingViewModel extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    await _auth.signOut();
+    await _authService.logout();
+  }
+
+  Future<void> deleteAccount() async {
+    await _authService.deleteAccount(_userRepo.deleteUserData);
   }
 
   Future<void> onOrgTapped(String orgId, String viewName) async {
@@ -102,7 +113,7 @@ class LandingViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    _authSubscription.cancel();
+    _authService.removeListener(_onAuthChanged);
     _navigationController.close();
     super.dispose();
   }
