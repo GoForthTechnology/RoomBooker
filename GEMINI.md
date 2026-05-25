@@ -76,6 +76,20 @@ The project uses GitHub Actions for automated Android builds and distribution.
 - **Distribution:** Signed Android artifacts are automatically distributed:
   - **Firebase App Distribution:** Signed APK for internal testing.
   - **Google Play Console:** Signed AAB uploaded to the **Internal Track**.
+
+### Local CI Testing (with `act`)
+
+You can test your GitHub Actions workflows locally using [act](https://github.com/nektos/act).
+
+1. **Install act:** Follow the [installation guide](https://github.com/nektos/act#installation).
+2. **Setup Secrets:** Copy `.secrets.example` to `.secrets` and fill in the required values. **Never commit the `.secrets` file.**
+3. **Run a Workflow:**
+   ```bash
+   # Run the Android release workflow simulating a tag push
+   act push -s GITHUB_TOKEN=$(gh auth token) --secret-file .secrets -g v1.2.20+48
+   ```
+   *Note: Using `-g` allows you to simulate the tag trigger.*
+
 - **Secrets Required:**
   - `ANDROID_KEYSTORE_BASE64`: The production keystore file encoded in Base64.
   - `ANDROID_KEYSTORE_PASSWORD`: Password for the keystore.
