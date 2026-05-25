@@ -54,7 +54,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAny3qKV-m0yHye_OBYph8pR-ULhtJHEoQ',
-    appId: '1:610453083826:android:6e7a6e6de92bd450d21bab',
+    appId: '1:610453083826:android:0ef35aa24f49d96dd21bab',
     messagingSenderId: '610453083826',
     projectId: 'roombooker-5e947',
     storageBucket: 'roombooker-5e947.firebasestorage.app',

@@ -2,15 +2,14 @@ name: Android Release
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
 
 jobs:
   android_release:
-    if: startsWith(github.event.head_commit.message, 'Cut v') && contains(github.event.head_commit.message, '+')
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
@@ -50,13 +49,13 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS=sa_key.json
           firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
             --app ${{ secrets.FIREBASE_ANDROID_APP_ID }} \
-            --release-notes "${{ github.event.head_commit.message }}"
+            --release-notes "Release ${{ github.ref_name }}"
           rm sa_key.json
 
       - name: Upload to Google Play
         uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountJsonRaw: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}
           packageName: org.goforthtech.roombooker
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: internal
