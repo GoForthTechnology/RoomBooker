@@ -98,7 +98,7 @@ class EmailVerifyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return EmailVerificationScreen(
       actionCodeSettings: firebase_auth.ActionCodeSettings(
-        url: 'https://app.bloomcyclecare.com',
+        url: 'https://rooms.goforthtech.org',
         handleCodeInApp: true,
       ),
       actions: [
