@@ -30,9 +30,17 @@ jobs:
         run: flutter pub get
 
       - name: Decode Keys
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
-          echo "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}" | base64 --decode > play_sa_key.json
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          # Check if the secret is already raw JSON or needs base64 decoding
+          if [[ "$GOOGLE_PLAY_SERVICE_ACCOUNT_KEY" == {* ]]; then
+            echo "$GOOGLE_PLAY_SERVICE_ACCOUNT_KEY" > play_sa_key.json
+          else
+            echo "$GOOGLE_PLAY_SERVICE_ACCOUNT_KEY" | base64 -d > play_sa_key.json
+          fi
 
       - name: Build APK & AAB
         run: |
