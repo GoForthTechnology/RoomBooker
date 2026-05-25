@@ -51,3 +51,12 @@ app.*.map.json
 sentry.properties
 
 coverage/
+
+# Secrets and Keys
+.secrets
+*.jks
+*.base64
+service-account-key.json
+play_sa_key.json
+sa_key.json
+google-play-key.json
