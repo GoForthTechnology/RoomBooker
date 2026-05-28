@@ -111,6 +111,15 @@ You can test your GitHub Actions workflows locally using [act](https://github.co
   - `FIREBASE_SERVICE_ACCOUNT_KEY`: The JSON key for Firebase distribution.
   - `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY`: The JSON key for Play Store publishing (managed via Terraform).
 
+### Production Fingerprints (Google Play App Signing)
+- **SHA-1**: `15:80:6B:C9:60:0B:C6:16:3D:AB:D4:1F:2D:5E:3A:74:27:22:24:F3`
+- **SHA-256**: `1B:61:99:A2:6D:EE:E1:BF:EE:F8:2B:57:A5:4B:CF:C6:FA:4E:66:C2:00:FB:91:66:B5:1E:FA:A5:73:08:54:80`
+
+### Troubleshooting Sign-in Issues
+If the Play Store build fails to sign in:
+1. Ensure the **SHA-1** above is registered in the Firebase Console (Project Settings > General > Android app).
+2. Ensure **Play Integrity** is enabled in the Firebase Console (App Check > Play Integrity) with the **SHA-256** above.
+
 ## Google Play Setup (One-time)
 
 1.  **Invite Service Account:** In the Play Console, invite `google-play-deployer@roombooker-5e947.iam.gserviceaccount.com` and grant it Admin or Release Manager permissions.
