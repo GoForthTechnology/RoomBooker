@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:room_booker/data/entities/blackout_window.dart';
 import 'package:room_booker/data/entities/request.dart';
@@ -14,6 +15,7 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CalendarViewModel extends ChangeNotifier {
   final CalendarController controller = CalendarController();
+  final _DataSource _dataSource = _DataSource([]);
 
   final BehaviorSubject<VisibleWindow> _visibleWindowController =
       BehaviorSubject();
@@ -240,11 +242,15 @@ class CalendarViewModel extends ChangeNotifier {
 
           out.add(appointment);
         }
+
+        _dataSource.updateAppointments(out);
+
         return CalendarViewState(
           allowAppointmentResize:
               _allowAppointmentResize && newAppointment == null,
           allowDragAndDrop: _allowDragAndDrop && newAppointment == null,
-          dataSource: _DataSource(out),
+          dataSource: _dataSource,
+          appointments: out,
           specialRegions: blackoutWindows.map((w) => w.toTimeRegion()).toList(),
           currentView: controller.view ?? CalendarView.month,
           currentDate: _safeDisplayDate,
@@ -295,43 +301,25 @@ class CalendarViewModel extends ChangeNotifier {
 
     return Rx.combineLatest3(
       requestsStream,
-      _visibleWindowController.distinct().handleError((e, s) {
-        throw 'Error in _visibleWindowController: $e';
+      _newAppointmentSubject.stream.distinct().handleError((e, s) {
+        throw 'Error in _newAppointmentSubject: $e';
       }),
       _roomStateSubject.handleError((e, s) {
         throw 'Error in _roomStateSubject: $e';
       }),
-      (List<Request> expandedRequests, VisibleWindow window, _) {
-        // BookingService already expanded requests. We just filter for window just in case?
-        // BookingService expands strictly to start/end passed.
-        // But window changes?
-        // _fetchWindowController drives the stream.
-        // If visible window is subset of fetch window, filtering might be needed if Syncfusion needs exact data?
-        // Actually Syncfusion ignores outside appointments usually.
-        // But let's check filtering.
-
-        // Actually, _convertRequests expects enriched requests now.
-        // And _detailStream is no longer needed here if BookingService handles it!
-        // Wait, BookingService handles details.
-
+      (List<Request> expandedRequests, Appointment? newAppointment, _) {
         // So we just need to convert.
         return _convertRequests(
           expandedRequests,
-          window,
           roomState,
-          _newAppointmentSubject.valueOrNull,
+          newAppointment,
         );
       },
-    ).switchMap(
-      (map) => Stream.value(map),
-    ); // Flatten Future/Stream? No, _convertRequests returns Map.
-    // Wait, combineLatest3 returns T. Stream<T> is result.
-    // So distinct() might be useful.
+    );
   }
 
   Map<Appointment, Request> _convertRequests(
     List<Request> requests,
-    VisibleWindow window,
     RoomState roomState,
     Appointment? newAppointment,
   ) {
@@ -380,6 +368,25 @@ class CalendarViewModel extends ChangeNotifier {
     }
   }
 
+  void handleViewChanged(ViewChangedDetails details) {
+    if (controller.view == CalendarView.schedule) {
+      return;
+    }
+
+    if (details.visibleDates.isEmpty) {
+      return;
+    }
+
+    final start = details.visibleDates.first;
+    final end = details.visibleDates.last.add(const Duration(days: 1));
+
+    final newWindow = VisibleWindow(start: start, end: end);
+    if (_visibleWindowController.valueOrNull != newWindow) {
+      _loggingService.debug("CALENDAR: View changed: $newWindow");
+      _visibleWindowController.add(newWindow);
+    }
+  }
+
   void _handlePropertyChange(String property) {
     if (property == "displayDate") {
       if (controller.view == CalendarView.schedule) {
@@ -389,9 +396,10 @@ class CalendarViewModel extends ChangeNotifier {
       _loggingService.debug(
         "CALENDAR: Display date changed: ${controller.displayDate}",
       );
-      _visibleWindowController.add(
-        VisibleWindow(start: startOfView, end: endOfView),
-      );
+      final newWindow = VisibleWindow(start: startOfView, end: endOfView);
+      if (_visibleWindowController.valueOrNull != newWindow) {
+        _visibleWindowController.add(newWindow);
+      }
       return;
     }
     if (property == "calendarView") {
@@ -408,7 +416,7 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   Stream<CalendarViewState> calendarViewState() {
-    return _viewStateStream(_orgState, _roomState);
+    return _viewStateStream(_orgState, _roomState).distinct();
   }
 
   // Bizarre things happen when you shink the screen which makes this
@@ -608,6 +616,11 @@ class _DataSource extends CalendarDataSource {
   _DataSource(List<Appointment> source) {
     appointments = source;
   }
+
+  void updateAppointments(List<Appointment> newAppointments) {
+    appointments = newAppointments;
+    notifyListeners(CalendarDataSourceAction.reset, newAppointments);
+  }
 }
 
 extension on BlackoutWindow {
@@ -680,6 +693,7 @@ class CalendarViewState {
   final bool allowAppointmentResize;
   final bool allowDragAndDrop;
   final CalendarDataSource dataSource;
+  final List<Appointment> appointments;
   final List<TimeRegion> specialRegions;
   final CalendarView currentView;
   final DateTime currentDate;
@@ -690,10 +704,37 @@ class CalendarViewState {
     required this.allowDragAndDrop,
     required this.specialRegions,
     required this.dataSource,
+    required this.appointments,
     required this.currentView,
     required this.currentDate,
     this.activeRequestID,
   });
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! CalendarViewState) return false;
+    return allowAppointmentResize == other.allowAppointmentResize &&
+        allowDragAndDrop == other.allowDragAndDrop &&
+        dataSource == other.dataSource &&
+        listEquals(appointments, other.appointments) &&
+        listEquals(specialRegions, other.specialRegions) &&
+        currentView == other.currentView &&
+        currentDate == other.currentDate &&
+        activeRequestID == other.activeRequestID;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    allowAppointmentResize,
+    allowDragAndDrop,
+    dataSource,
+    Object.hashAll(appointments),
+    Object.hashAll(specialRegions),
+    currentView,
+    currentDate,
+    activeRequestID,
+  );
 }
 
 class VisibleWindow {

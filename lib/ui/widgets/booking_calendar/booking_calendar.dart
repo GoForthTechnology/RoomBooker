@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:room_booker/ui/utils/traced_stream_builder.dart';
@@ -30,7 +31,23 @@ class BookingCalendarView extends StatelessWidget {
     return TracedStreamBuilder(
       "render_booking_calendar",
       context.read(),
-      stream: viewModel.calendarViewState(),
+      stream: viewModel.calendarViewState().distinct((prev, curr) {
+        // We want to avoid rebuilding SfCalendar when the user is just swiping
+        // within the same view, because SfCalendar handles its own scrolling
+        // and we have pre-filled the data source with padded data.
+        
+        // Rebuild ONLY if:
+        return prev.allowAppointmentResize == curr.allowAppointmentResize &&
+            prev.allowDragAndDrop == curr.allowDragAndDrop &&
+            prev.dataSource == curr.dataSource &&
+            // Note: appointments change is handled by DataSource.notifyListeners,
+            // so we don't need to rebuild SfCalendar when only appointments change.
+            // listEquals(prev.appointments, curr.appointments) && 
+            listEquals(prev.specialRegions, curr.specialRegions) &&
+            prev.currentView == curr.currentView &&
+            prev.activeRequestID == curr.activeRequestID;
+            // currentDate change is handled by CalendarController, no need to rebuild.
+      }),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Text('Error: ${snapshot.error}');
@@ -40,6 +57,7 @@ class BookingCalendarView extends StatelessWidget {
         }
         var viewState = snapshot.data!;
         return SfCalendar(
+          onViewChanged: viewModel.handleViewChanged,
           cellEndPadding: 20,
           allowViewNavigation: viewModel.allowViewNavigation,
           controller: viewModel.controller,

@@ -55,6 +55,7 @@ void main() {
       allowDragAndDrop: true,
       allowAppointmentResize: true,
       dataSource: FakeDataSource([appointment]),
+      appointments: [appointment],
       specialRegions: [],
     );
 
@@ -117,6 +118,7 @@ void main() {
       allowDragAndDrop: false,
       allowAppointmentResize: false,
       dataSource: FakeDataSource([appointment]),
+      appointments: [appointment],
       specialRegions: [],
     );
 

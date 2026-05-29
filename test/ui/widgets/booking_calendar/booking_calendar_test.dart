@@ -85,6 +85,7 @@ void main() {
       allowDragAndDrop: true,
       allowAppointmentResize: true,
       dataSource: FakeDataSource(),
+      appointments: [],
       specialRegions: [],
     );
     when(

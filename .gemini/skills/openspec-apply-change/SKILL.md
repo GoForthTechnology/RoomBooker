@@ -79,13 +79,15 @@ Implement tasks from an OpenSpec change.
    - Error or blocker encountered → report and wait for guidance
    - User interrupts
 
-7. **On completion or pause, show status**
+7. **Verify Coverage and Show Status**
 
-   Display:
-   - Tasks completed this session
-   - Overall progress: "N/M tasks complete"
-   - If all done: suggest archive
-   - If paused: explain why and wait for guidance
+   - **Mandatory Verification**: Before concluding the apply phase, you MUST verify that all changes maintain **equal or greater test coverage**. Run relevant test suites and include any new tests created to verify the change.
+   - Display:
+     - Tasks completed this session
+     - Overall progress: "N/M tasks complete"
+     - Test coverage confirmation: "Verified: Equal or greater test coverage ✓"
+     - If all done: suggest archive
+     - If paused: explain why and wait for guidance
 
 **Output During Implementation**
 
@@ -141,6 +143,7 @@ What would you like to do?
 **Guardrails**
 - Keep going through tasks until done or blocked
 - Always read context files before starting (from the apply instructions output)
+- **Test Coverage**: ALL changes MUST be verified for equal or greater test coverage before completion.
 - If task is ambiguous, pause and ask before implementing
 - If implementation reveals issues, pause and suggest artifact updates
 - Keep code changes minimal and scoped to each task

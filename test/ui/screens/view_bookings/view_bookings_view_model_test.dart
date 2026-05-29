@@ -163,6 +163,7 @@ void main() {
       allowAppointmentResize: false,
       allowDragAndDrop: false,
       dataSource: FakeCalendarDataSource(),
+      appointments: [],
       specialRegions: [],
       currentView: view,
       currentDate: currentDate ?? DateTime.now(),
