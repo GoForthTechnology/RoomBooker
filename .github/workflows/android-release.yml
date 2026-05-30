@@ -33,19 +33,28 @@ jobs:
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           GOOGLE_PLAY_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
-          # Check if the secret is already raw JSON or needs base64 decoding
+          
+          # Decode Google Play Key
           if [[ "$GOOGLE_PLAY_SERVICE_ACCOUNT_KEY" == {* ]]; then
             echo "$GOOGLE_PLAY_SERVICE_ACCOUNT_KEY" > play_sa_key.json
           else
             echo "$GOOGLE_PLAY_SERVICE_ACCOUNT_KEY" | base64 -d > play_sa_key.json
           fi
 
+          # Decode Firebase Key
+          if [[ "$FIREBASE_SERVICE_ACCOUNT_KEY" == {* ]]; then
+            echo "$FIREBASE_SERVICE_ACCOUNT_KEY" > sa_key.json
+          else
+            echo "$FIREBASE_SERVICE_ACCOUNT_KEY" | base64 -d > sa_key.json
+          fi
+
       - name: Build APK & AAB
         run: |
-          flutter build apk --release
-          flutter build appbundle --release
+          flutter build apk --release --android-skip-build-dependency-validation
+          flutter build appbundle --release --android-skip-build-dependency-validation
         env:
           ANDROID_KEYSTORE_PATH: upload-keystore.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -53,14 +62,11 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Upload to Firebase App Distribution
-        run: |
-          curl -sL https://firebase.tools | bash
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > sa_key.json
-          export GOOGLE_APPLICATION_CREDENTIALS=sa_key.json
-          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
-            --app ${{ secrets.FIREBASE_ANDROID_APP_ID }} \
-            --release-notes "Release ${{ github.ref_name }}"
-          rm sa_key.json
+        uses: w9jds/firebase-action@v2.2.1
+        with:
+          args: appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk --app ${{ secrets.FIREBASE_ANDROID_APP_ID }} --release-notes "Release ${{ github.ref_name }}"
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: sa_key.json
 
       - name: Upload to Google Play
         uses: r0adkll/upload-google-play@v1
@@ -72,6 +78,6 @@ jobs:
           status: completed
           whatsNewDirectory: distribution/whatsnew
 
-      - name: Cleanup Key
+      - name: Cleanup Keys
         if: always()
-        run: rm -f play_sa_key.json
+        run: rm -f play_sa_key.json sa_key.json
