@@ -54,6 +54,12 @@ resource "google_project_iam_member" "play_sa_user" {
   member  = "serviceAccount:${google_service_account.google_play.email}"
 }
 
+resource "google_project_iam_member" "play_firebase_admin" {
+  project = var.project_id
+  role    = "roles/firebaseappdistro.admin"
+  member  = "serviceAccount:${google_service_account.google_play.email}"
+}
+
 resource "google_service_account_key" "google_play" {
   service_account_id = google_service_account.google_play.name
 }
