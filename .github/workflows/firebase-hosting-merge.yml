@@ -32,6 +32,17 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Decode Keys
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}
+        run: |
+          # The secret might be base64 encoded or raw JSON
+          if [[ "$GOOGLE_PLAY_SERVICE_ACCOUNT_KEY" == {* ]]; then
+            echo "$GOOGLE_PLAY_SERVICE_ACCOUNT_KEY" > sa_key.json
+          else
+            echo "$GOOGLE_PLAY_SERVICE_ACCOUNT_KEY" | base64 -d > sa_key.json
+          fi
+
       - name: Run tests
         run: flutter test
 
@@ -42,15 +53,6 @@ jobs:
         run: dart run sentry_dart_plugin
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-
-      - name: Create sa_key.json
-        run: |
-          # The secret might be base64 encoded or raw JSON
-          if [[ "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}" == {* ]]; then
-            echo '${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}' > sa_key.json
-          else
-            echo '${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}' | base64 -d > sa_key.json
-          fi
 
       - name: Deploy to Firebase Hosting
         run: |
