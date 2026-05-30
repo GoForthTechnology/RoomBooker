@@ -48,6 +48,12 @@ resource "google_project_iam_member" "play_service_usage_consumer" {
   member  = "serviceAccount:${google_service_account.google_play.email}"
 }
 
+resource "google_project_iam_member" "play_sa_user" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountUser"
+  member  = "serviceAccount:${google_service_account.google_play.email}"
+}
+
 resource "google_service_account_key" "google_play" {
   service_account_id = google_service_account.google_play.name
 }

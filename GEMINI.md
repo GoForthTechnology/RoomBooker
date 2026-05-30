@@ -93,6 +93,8 @@ The project uses GitHub Actions for automated Android builds and distribution.
 
 You can test your GitHub Actions workflows locally using [act](https://github.com/nektos/act).
 
+**Note:** You can use the `gh` CLI command within this environment to update GitHub secrets, variables, and other repository settings (e.g., `gh secret set GOOGLE_PLAY_SERVICE_ACCOUNT_KEY -b"$(terraform output -raw google_play_service_account_key)"`).
+
 1. **Install act:** Follow the [installation guide](https://github.com/nektos/act#installation).
 2. **Setup Secrets:** Copy `.secrets.example` to `.secrets` and fill in the required values. **Never commit the `.secrets` file.**
 3. **Run a Workflow:**
