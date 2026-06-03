@@ -22,7 +22,7 @@ jobs:
         id: flutter_version
         uses: bungabear/flutter_version_read@main
         with:
-          file: ./pubspec.yaml
+          file: ./packages/roombooker_portal/pubspec.yaml
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -44,12 +44,16 @@ jobs:
           fi
 
       - name: Run tests
-        run: flutter test
+        run: |
+          (cd packages/roombooker_core && flutter test)
+          (cd packages/roombooker_portal && flutter test)
 
       - name: Build app
+        working-directory: packages/roombooker_portal
         run: flutter build web --pwa-strategy=none --source-maps
 
       - name: Upload symbols to Sentry
+        working-directory: packages/roombooker_portal
         run: dart run sentry_dart_plugin
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}

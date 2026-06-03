@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_admin_description">Enables RoomBooker Kiosk to lock the device and manage meeting automation.</string>
+</resources>

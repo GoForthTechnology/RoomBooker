@@ -1,0 +1,171 @@
+import 'dart:async';
+import 'dart:developer';
+
+import 'package:flutter/material.dart';
+import 'package:roombooker_core/data/entities/log_entry.dart';
+import 'package:roombooker_core/data/entities/request.dart';
+import 'package:roombooker_core/data/services/booking_service.dart';
+import 'package:roombooker_core/data/repos/log_repo.dart';
+import 'package:roombooker_portal/ui/widgets/room_selector.dart';
+import 'package:roombooker_portal/ui/widgets/booking_list/booking_filter_view_model.dart';
+import 'package:rxdart/rxdart.dart';
+
+class RenderedRequest {
+  final Request request;
+  final PrivateRequestDetails details;
+  final List<RequestLogEntry> logEntries;
+
+  RenderedRequest({
+    required this.request,
+    required this.details,
+    required this.logEntries,
+  });
+
+  String searchTerms() {
+    List<String> terms = [
+      details.eventName,
+      details.name,
+      details.email,
+      request.roomName,
+    ];
+    return terms.join(" ");
+  }
+}
+
+class BookingListViewModel extends ChangeNotifier {
+  final BookingService _bookingService;
+  final LogRepo _logRepo;
+  final String _orgID;
+  final List<RequestStatus> _statusList;
+  final bool Function(Request)? _requestFilter;
+  final List<Request>? _overrideRequests;
+  final RoomState _roomState;
+  final BookingFilterViewModel _filterViewModel;
+
+  late Stream<List<RenderedRequest>> renderedRequests;
+
+  BookingListViewModel({
+    required BookingService bookingService,
+    required LogRepo logRepo,
+    required String orgID,
+    required List<RequestStatus> statusList,
+    required RoomState roomState,
+    required BookingFilterViewModel filterViewModel,
+    bool Function(Request)? requestFilter,
+    List<Request>? overrideRequests,
+  }) : _bookingService = bookingService,
+       _logRepo = logRepo,
+       _orgID = orgID,
+       _statusList = statusList,
+       _requestFilter = requestFilter,
+       _overrideRequests = overrideRequests,
+       _roomState = roomState,
+       _filterViewModel = filterViewModel {
+    _initializeStream();
+    _filterViewModel.addListener(_onFilterChanged);
+  }
+
+  void _onFilterChanged() {
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _filterViewModel.removeListener(_onFilterChanged);
+    super.dispose();
+  }
+
+  void _initializeStream() {
+    Stream<List<Request>> requestStream;
+    if (_overrideRequests != null) {
+      requestStream = Stream.value(_overrideRequests);
+    } else {
+      requestStream = _bookingService
+          .listRequests(
+            orgID: _orgID,
+            startTime: DateTime.now(),
+            endTime: DateTime.now().add(const Duration(days: 365)),
+            includeRoomIDs: _roomState
+                .enabledValues()
+                .map((r) => r.id!)
+                .toSet(),
+            includeStatuses: Set.from(_statusList),
+          )
+          .map(
+            (requests) =>
+                requests.where(_requestFilter ?? (r) => true).toList(),
+          );
+    }
+
+    renderedRequests = requestStream
+        .switchMap((requests) {
+          if (requests.isEmpty) {
+            return Stream.value([]);
+          }
+          return _renderedRequests(_bookingService, _logRepo, _orgID, requests);
+        })
+        .map<List<RenderedRequest>>((requests) {
+          var query = _filterViewModel.searchQuery.toLowerCase();
+          var filtered = requests.where(
+            (r) =>
+                query.isEmpty || r.searchTerms().toLowerCase().contains(query),
+          );
+          return List<RenderedRequest>.from(filtered);
+        });
+  }
+
+  Stream<List<RenderedRequest>> _renderedRequests(
+    BookingService bookingService,
+    LogRepo logRepo,
+    String orgID,
+    List<Request> requests,
+  ) {
+    var detailStream = Rx.combineLatest(
+      requests.map(
+        (request) => bookingService.getRequestDetails(orgID, request.id!),
+      ),
+      (l) => l,
+    );
+    var logEntryStream = Rx.combineLatest(
+      requests.map(
+        (request) => logRepo.getLogEntries(orgID, requestIDs: {request.id!}),
+      ),
+      (l) => l,
+    ).map((lofl) => lofl.expand((l) => l).toList());
+    return Rx.combineLatest2(detailStream, logEntryStream, (
+      detailsList,
+      logEntries,
+    ) {
+      Map<String, List<RequestLogEntry>> logEntryIndex = {};
+      for (var logEntry in logEntries) {
+        logEntryIndex.putIfAbsent(logEntry.requestID, () => []);
+        logEntryIndex[logEntry.requestID]!.add(logEntry);
+      }
+      var renderedRequests = List<RenderedRequest>.generate(
+        detailsList.length,
+        (index) {
+          var details = detailsList[index];
+          if (details == null) {
+            log("No details found for request ${requests[index].id}");
+            details = PrivateRequestDetails(
+              id: requests[index].id,
+              name: "Unknown",
+              email: "Unknown",
+              phone: "Unknown",
+              eventName: "Unknown",
+            );
+          }
+          return RenderedRequest(
+            request: requests[index],
+            details: details,
+            logEntries: logEntryIndex[details.id!] ?? [],
+          );
+        },
+      );
+      renderedRequests.sort(
+        (a, b) => a.request.eventStartTime.compareTo(b.request.eventStartTime),
+      );
+      return renderedRequests;
+    });
+  }
+}

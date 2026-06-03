@@ -1,0 +1,459 @@
+import 'dart:async';
+import 'dart:developer';
+
+import 'package:auto_route/auto_route.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:roombooker_core/data/entities/organization.dart';
+import 'package:roombooker_core/data/repos/prefs_repo.dart';
+import 'package:roombooker_core/data/repos/user_repo.dart';
+import 'package:roombooker_core/data/services/auth_service.dart';
+import 'package:roombooker_portal/router.dart';
+import 'package:roombooker_portal/ui/screens/landing/landing_viewmodel.dart';
+import 'package:roombooker_portal/ui/widgets/create_org_dialog.dart';
+import 'package:roombooker_portal/ui/widgets/org_settings/app_info.dart';
+import 'package:roombooker_portal/ui/widgets/org_settings/org_details.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
+
+@RoutePage()
+class LandingScreen extends StatelessWidget {
+  const LandingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => LandingViewModel(
+        authService: context.read<AuthService>(),
+        userRepo: context.read<UserRepo>(),
+        prefsRepo: context.read<PreferencesRepo>(),
+        orgRepo: context.read(),
+        analyticsService: context.read(),
+      )..init(),
+      child: const LandingScreenView(),
+    );
+  }
+}
+
+class LandingScreenView extends StatefulWidget {
+  const LandingScreenView({super.key});
+
+  @override
+  State<LandingScreenView> createState() => LandingScreenViewState();
+}
+
+class LandingScreenViewState extends State<LandingScreenView> {
+  StreamSubscription? _navSubscription;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _listenToNavigationEvents();
+  }
+
+  void _listenToNavigationEvents() {
+    var router = AutoRouter.of(context);
+    if (_navSubscription == null) {
+      final viewModel = context.read<LandingViewModel>();
+      _navSubscription = viewModel.navigationEvents.listen((event) {
+        if (event.replace) {
+          router.replace(event.route);
+        } else {
+          router.push(event.route);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _navSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final viewModel = context.watch<LandingViewModel>();
+
+    if (viewModel.shouldShowRedirecting) {
+      return const Scaffold();
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Room Booker"),
+        actions: [
+          const AppInfoAction(),
+          const SettingsAction(),
+          AuthAction(
+            isSignedIn: viewModel.isLoggedIn,
+            onSignOut: viewModel.signOut,
+            onSignIn: viewModel.navigateToLogin,
+          ),
+        ],
+      ),
+      body: Center(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (viewModel.isLoggedIn) ...[
+              const Heading("Your Organizations"),
+              Expanded(child: OrgList(orgStream: viewModel.ownedOrgsStream)),
+            ],
+            const Heading("All Organizations"),
+            Expanded(child: OrgList(orgStream: viewModel.otherOrgsStream)),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        tooltip: "Add an org",
+        onPressed: () async {
+          if (viewModel.isLoggedIn) {
+            var result = await showDialog<Map<String, String>>(
+              context: context,
+              builder: (context) => const CreateOrgDialog(),
+            );
+            if (result != null) {
+              final orgName = result['orgName'];
+              final roomName = result['roomName'];
+              if (orgName != null && roomName != null) {
+                await viewModel.createOrg(orgName, roomName);
+              }
+            }
+          } else {
+            viewModel.navigateToLogin();
+          }
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class AppInfoAction extends StatelessWidget {
+  const AppInfoAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: "App Info",
+      child: IconButton(
+        onPressed: () => _showDialog(context),
+        icon: Icon(Icons.info),
+      ),
+    );
+  }
+
+  void _showDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(content: AppInfoWidget()),
+    );
+  }
+}
+
+class SettingsAction extends StatelessWidget {
+  const SettingsAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: "Settings",
+      child: IconButton(
+        icon: const Icon(Icons.settings),
+        onPressed: () => _showSettingsDialog(context),
+      ),
+    );
+  }
+
+  void _showSettingsDialog(BuildContext context) {
+    final viewModel = context.read<LandingViewModel>();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Settings'),
+        content: Consumer<PreferencesRepo>(
+          builder: (context, prefsRepo, child) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Default Calendar View:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              RadioGroup<CalendarView>(
+                groupValue: prefsRepo.defaultCalendarView,
+                onChanged: (CalendarView? value) {
+                  if (value != null) {
+                    prefsRepo.setDefaultCalendarView(value);
+                  }
+                },
+                child: Column(
+                  children: CalendarView.values
+                      .where((view) => _isValidCalendarView(view))
+                      .map(
+                        (view) => RadioListTile<CalendarView>(
+                          title: Text(_getCalendarViewDisplayName(view)),
+                          value: view,
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+              if (viewModel.isLoggedIn) ...[
+                const Divider(),
+                const Text(
+                  'Account:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  onPressed: () => _showDeleteAccountConfirmation(context, viewModel),
+                  child: const Text('Delete My Account'),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountConfirmation(BuildContext context, LandingViewModel viewModel) {
+    final TextEditingController controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'This action is PERMANENT. All your personal data and booking requests will be deleted.',
+            ),
+            const SizedBox(height: 16),
+            const Text('Please type "DELETE" to confirm:'),
+            TextField(controller: controller),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () async {
+              if (controller.text == 'DELETE') {
+                try {
+                  await viewModel.deleteAccount();
+                  if (context.mounted) {
+                    Navigator.of(context).pop(); // Close confirmation
+                    Navigator.of(context).pop(); // Close settings
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Account deleted successfully.')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error deleting account: $e. You may need to log out and back in to re-authenticate.')),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('DELETE'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isValidCalendarView(CalendarView view) {
+    // Filter to only show commonly used calendar views
+    return [
+      CalendarView.month,
+      CalendarView.week,
+      CalendarView.day,
+      CalendarView.schedule,
+    ].contains(view);
+  }
+
+  String _getCalendarViewDisplayName(CalendarView view) {
+    switch (view) {
+      case CalendarView.month:
+        return 'Month';
+      case CalendarView.week:
+        return 'Week';
+      case CalendarView.day:
+        return 'Day';
+      case CalendarView.schedule:
+        return 'Schedule';
+      default:
+        return view.name;
+    }
+  }
+}
+
+class YourOrgs extends StatelessWidget {
+  final Stream<List<Organization>> orgStream;
+  final bool isLoggedIn;
+
+  const YourOrgs({
+    super.key,
+    required this.orgStream,
+    required this.isLoggedIn,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isLoggedIn) {
+      return Container();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Heading("Your Organizations"),
+        OrgList(orgStream: orgStream),
+      ],
+    );
+  }
+}
+
+class Heading extends StatelessWidget {
+  final String text;
+
+  const Heading(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, left: 16, bottom: 4),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+}
+
+class AuthAction extends StatelessWidget {
+  final bool isSignedIn;
+  final VoidCallback onSignOut;
+  final VoidCallback onSignIn;
+
+  const AuthAction({
+    super.key,
+    required this.isSignedIn,
+    required this.onSignOut,
+    required this.onSignIn,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isSignedIn) {
+      return Tooltip(
+        message: "Sign out",
+        child: IconButton(icon: const Icon(Icons.logout), onPressed: onSignOut),
+      );
+    } else {
+      return Tooltip(
+        message: "Sign in",
+        child: IconButton(icon: const Icon(Icons.login), onPressed: onSignIn),
+      );
+    }
+  }
+}
+
+class OrgList extends StatelessWidget {
+  final Stream<List<Organization>> orgStream;
+  const OrgList({super.key, required this.orgStream});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<PreferencesRepo>(
+      builder: (context, prefs, child) => StreamBuilder(
+        stream: orgStream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            log(snapshot.error.toString(), error: snapshot.error);
+            return const Text('Error loading organizations');
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          var orgs = snapshot.data!;
+          if (orgs.isEmpty) {
+            return const Text(
+              'No organizations found. Please sign in or sign up to add one.',
+            );
+          }
+          return ListView.builder(
+            shrinkWrap: true,
+            itemCount: orgs.length,
+            itemBuilder: (context, index) {
+              return OrgTile(
+                org: orgs[index],
+                defaultCalendarView: prefs.defaultCalendarView,
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class OrgTile extends StatelessWidget {
+  final Organization org;
+  final CalendarView defaultCalendarView;
+
+  const OrgTile({
+    super.key,
+    required this.org,
+    required this.defaultCalendarView,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final viewModel = context.read<LandingViewModel>();
+    return OrgDetailsProvider(
+      orgID: org.id!,
+      builder: (context, details) {
+        String? subtitle;
+        if (details != null) {
+          subtitle = "${details.numPendingRequests} pending bookings";
+          if (details.numAdminRequests > 0) {
+            subtitle += ", ${details.numAdminRequests} admin requests";
+          }
+        }
+        return Card(
+          elevation: 1,
+          child: ListTile(
+            leading: const Icon(Icons.business),
+            title: Text(org.name),
+            subtitle: subtitle != null ? Text(subtitle) : null,
+            trailing: IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                AutoRouter.of(context).push(OrgSettingsRoute(orgID: org.id!));
+              },
+            ),
+            onTap: () {
+              viewModel.onOrgTapped(org.id!, defaultCalendarView.name);
+            },
+          ),
+        );
+      },
+    );
+  }
+}

@@ -34,7 +34,7 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           GOOGLE_PLAY_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}
         run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > packages/roombooker_portal/android/app/upload-keystore.jks
           
           # Decode Google Play Key
           if [[ "$GOOGLE_PLAY_SERVICE_ACCOUNT_KEY" == {* ]]; then
@@ -44,6 +44,7 @@ jobs:
           fi
 
       - name: Build APK & AAB
+        working-directory: packages/roombooker_portal
         run: |
           flutter build apk --release --android-skip-build-dependency-validation
           flutter build appbundle --release --android-skip-build-dependency-validation
@@ -58,7 +59,7 @@ jobs:
         with:
           serviceAccountJson: play_sa_key.json
           packageName: org.goforthtech.roombooker
-          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          releaseFiles: packages/roombooker_portal/build/app/outputs/bundle/release/app-release.aab
           track: internal
           status: completed
           whatsNewDirectory: distribution/whatsnew
@@ -66,7 +67,7 @@ jobs:
       - name: Upload to Firebase App Distribution
         run: |
           npm install -g firebase-tools
-          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+          firebase appdistribution:distribute packages/roombooker_portal/build/app/outputs/flutter-apk/app-release.apk \
             --app ${{ secrets.FIREBASE_ANDROID_APP_ID }} \
             --release-notes "Release ${{ github.ref_name }}" \
             --token "" # Ensure we don't use a token if not present

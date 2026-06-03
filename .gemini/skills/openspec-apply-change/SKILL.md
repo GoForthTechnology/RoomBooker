@@ -79,17 +79,20 @@ Implement tasks from an OpenSpec change.
    - Error or blocker encountered → report and wait for guidance
    - User interrupts
 
-7. **Verify Coverage and Show Status**
+7. Verify Coverage, Smoke Test, and Show Status
 
    - **Mandatory Verification**: Before concluding the apply phase, you MUST verify that all changes maintain **equal or greater test coverage**. Run relevant test suites and include any new tests created to verify the change.
+   - **Mandatory Smoke Test (Flutter Projects)**: You MUST run the `flutter-smoke-test` skill (or manual equivalent) to ensure the application still boots to the landing page without crashing.
    - Display:
      - Tasks completed this session
      - Overall progress: "N/M tasks complete"
      - Test coverage confirmation: "Verified: Equal or greater test coverage ✓"
+     - Smoke test confirmation: "Verified: Application boots successfully ✓"
      - If all done: suggest archive
      - If paused: explain why and wait for guidance
 
 **Output During Implementation**
+
 
 ```
 ## Implementing: <change-name> (schema: <schema-name>)
@@ -144,6 +147,7 @@ What would you like to do?
 - Keep going through tasks until done or blocked
 - Always read context files before starting (from the apply instructions output)
 - **Test Coverage**: ALL changes MUST be verified for equal or greater test coverage before completion.
+- **Smoke Test**: Flutter projects MUST be verified with a boot-to-landing-page smoke test.
 - If task is ambiguous, pause and ask before implementing
 - If implementation reveals issues, pause and suggest artifact updates
 - Keep code changes minimal and scoped to each task

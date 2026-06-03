@@ -16,10 +16,10 @@ context: |
     - Use camelCase for variables/functions, PascalCase for classes, snake_case for files.
     - Max line length: 80 characters.
   Architecture:
-    - Presentation: lib/ui/
-    - Domain: lib/data/entities/, lib/logic/
-    - Data: lib/data/repos/, lib/data/services/
-    - Router: lib/router.dart
+    - Presentation: packages/roombooker_portal/lib/ui/
+    - Domain: packages/roombooker_core/lib/data/entities/, packages/roombooker_core/lib/logic/
+    - Data: packages/roombooker_core/lib/data/
+    - Router: packages/roombooker_portal/lib/router.dart
 
 # Per-artifact rules
 rules:

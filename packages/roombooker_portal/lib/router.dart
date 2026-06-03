@@ -1,0 +1,42 @@
+import 'package:auto_route/auto_route.dart';
+import 'package:flutter/material.dart';
+import 'package:roombooker_portal/auth.dart';
+import 'package:roombooker_portal/ui/screens/embed/embed_screen.dart';
+import 'package:roombooker_portal/ui/screens/embed_widget/embed_widget.dart';
+import 'package:roombooker_portal/ui/screens/view_bookings/view_bookings_screen.dart';
+import 'package:roombooker_portal/ui/screens/review_bookings/review_bookings_screen.dart';
+import 'package:roombooker_portal/ui/screens/landing/landing.dart';
+import 'package:roombooker_portal/ui/screens/org_settings/org_settings_screen.dart';
+import 'package:roombooker_portal/ui/screens/join_org/join_org_screen.dart';
+import 'package:roombooker_portal/ui/screens/view_bookings/view_bookings_view_model.dart';
+import 'package:roombooker_portal/ui/widgets/booking_calendar/view_model.dart';
+import 'package:roombooker_portal/ui/widgets/request_editor/request_editor_view_model.dart';
+
+part 'router.gr.dart';
+
+@AutoRouterConfig()
+class AppRouter extends RootStackRouter {
+  @override
+  List<AutoRoute> get routes => [
+    AutoRoute(path: "/view/:orgID", page: ViewBookingsRoute.page),
+    AutoRoute(page: LandingRoute.page, initial: true),
+    AutoRoute(path: "/embed/:orgID", page: EmbedRoute.page),
+    AutoRoute(path: "/embed_widget/:orgID", page: EmbedWidgetRoute.page),
+    AutoRoute(
+      path: "/join/:orgID",
+      page: JoinOrgRoute.page,
+      guards: [AuthGuard()],
+    ),
+    AutoRoute(
+      path: "/org/:orgID",
+      page: OrgSettingsRoute.page,
+      guards: [AuthGuard()],
+    ),
+    AutoRoute(
+      path: "/review/:orgID",
+      page: ReviewBookingsRoute.page,
+      guards: [AuthGuard()],
+    ),
+    ...authRoutes,
+  ];
+}

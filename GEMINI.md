@@ -4,7 +4,10 @@ This document provides instructions for interacting with the Room Booker Flutter
 
 ## Project Overview
 
-This is a Flutter application for managing room reservations. It uses Firebase for backend services, including authentication, Firestore, and Analytics.
+This is a Flutter monorepo workspace for managing room reservations. It consists of multiple packages:
+- **roombooker_core**: Shared domain logic, data entities, and Firestore services.
+- **roombooker_portal**: The primary user-facing mobile and web application.
+- **roombooker_kiosk**: (Coming Soon) Specialized hardware terminal for meeting rooms.
 
 ## Tech Stack
 
@@ -17,25 +20,38 @@ This is a Flutter application for managing room reservations. It uses Firebase f
 
 ## Architecture
 
-- **Booking Logic:** All booking-related logic and data access must go through `BookingService`.
-- **BookingRepo:** The `BookingRepo` is an internal data access layer for `BookingService` and **must not** be accessed directly by UI components or ViewModels. It is not a `ChangeNotifier` to enforce this rule.
+- **Shared Core:** All booking-related logic and data access lives in `packages/roombooker_core`. UI components MUST NOT implement business logic or direct repository access.
+- **Portal App:** The primary interface for users and admins lives in `packages/roombooker_portal`.
 
 ## Getting Started
 
-### Running the Application
+### Workspace Setup
 
-To run the application, use the following command:
+This project uses Flutter Workspaces. Initialize all packages from the root:
 
 ```bash
+flutter pub get
+```
+
+### Running the Application (Portal)
+
+To run the primary Portal application:
+
+```bash
+cd packages/roombooker_portal
 flutter run
 ```
 
 ### Running Tests
 
-To run the unit and widget tests, use the following command:
+Run tests for all packages from the root:
 
 ```bash
-flutter test
+# Core tests
+(cd packages/roombooker_core && flutter test)
+
+# Portal tests
+(cd packages/roombooker_portal && flutter test)
 ```
 
 ## Code Generation
@@ -129,14 +145,10 @@ If the Play Store build fails to sign in:
 
 ## Project Structure
 
-- `lib/`: Contains the main source code for the application.
-  - `lib/data/`: Data models, repositories, and services.
-  - `lib/logic/`: Business logic.
-  - `lib/ui/`: UI components and screens.
-  - `lib/router.dart`: Route definitions for `auto_route`.
-- `test/`: Contains the tests for the application.
+- `packages/roombooker_core/`: Core business logic and data.
+- `packages/roombooker_portal/`: Primary application (Portal).
 - `firebase.json`: Configuration for Firebase services.
-- `pubspec.yaml`: Project dependencies and configuration.
+- `pubspec.yaml`: Workspace root configuration.
 
 ## Development Workflow
 
@@ -144,5 +156,8 @@ When working on tasks, you **MUST** always follow the OpenSpec flow:
 1. **Propose:** Propose the changes (e.g., using `openspec change new "<name>"`) and outline the plan.
 2. **Ask for Review:** Ask the user for review and approval of the proposal.
 3. **Apply:** Apply the code changes.
-4. **Ask for Verification:** Ask the user to verify the changes.
-5. **Archive and Commit:** Run `openspec archive <change>` and commit the changes using `git`.
+4. **Mandatory Verification:** You MUST verify the changes using two methods:
+   - **Test Coverage:** Ensure equal or greater test coverage by running `flutter test`.
+   - **Smoke Test:** Run the `flutter-smoke-test` skill to verify the app boots to the landing page.
+5. **Ask for Verification:** Ask the user to verify the changes.
+6. **Archive and Commit:** Run `openspec archive <change>` and commit the changes using `git`.

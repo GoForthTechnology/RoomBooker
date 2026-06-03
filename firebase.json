@@ -1,37 +1,37 @@
-{
-  "flutter": {
-    "platforms": {
-      "dart": {
-        "lib/firebase_options.dart": {
-          "projectId": "roombooker-5e947",
-          "configurations": {
-            "android": "1:610453083826:android:6e7a6e6de92bd450d21bab",
-            "ios": "1:610453083826:ios:44cdd5026f0a5ad8d21bab",
-            "web": "1:610453083826:web:a8f19c0f8e570eb2d21bab"
-          }
-        }
-      },
-      "android": {
-        "default": {
-          "projectId": "roombooker-5e947",
-          "appId": "1:610453083826:android:6e7a6e6de92bd450d21bab",
-          "fileOutput": "android/app/google-services.json"
-        }
-      },
-      "ios": {
-        "default": {
-          "projectId": "roombooker-5e947",
-          "appId": "1:610453083826:ios:44cdd5026f0a5ad8d21bab",
-          "uploadDebugSymbols": false,
-          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+"flutter": {
+  "platforms": {
+    "dart": {
+      "packages/roombooker_portal/lib/firebase_options.dart": {
+        "projectId": "roombooker-5e947",
+        "configurations": {
+          "android": "1:610453083826:android:6e7a6e6de92bd450d21bab",
+          "ios": "1:610453083826:ios:44cdd5026f0a5ad8d21bab",
+          "web": "1:610453083826:web:a8f19c0f8e570eb2d21bab"
         }
       }
+    },
+    "android": {
+      "default": {
+        "projectId": "roombooker-5e947",
+        "appId": "1:610453083826:android:6e7a6e6de92bd450d21bab",
+        "fileOutput": "packages/roombooker_portal/android/app/google-services.json"
+      }
+    },
+    "ios": {
+      "default": {
+        "projectId": "roombooker-5e947",
+        "appId": "1:610453083826:ios:44cdd5026f0a5ad8d21bab",
+        "uploadDebugSymbols": false,
+        "fileOutput": "packages/roombooker_portal/ios/Runner/GoogleService-Info.plist"
+      }
     }
-  },
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
+  }
+},
+...
+"hosting": {
+  "public": "packages/roombooker_portal/build/web",
+  "ignore": [
+...
       "ignore": [
         "node_modules",
         ".git",

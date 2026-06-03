@@ -1,0 +1,765 @@
+import 'dart:async';
+import 'package:roombooker_core/utils/calendar_utils.dart';
+import 'dart:developer';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:roombooker_core/data/entities/blackout_window.dart';
+import 'package:roombooker_core/data/entities/request.dart';
+import 'package:roombooker_core/data/services/logging_service.dart';
+import 'package:roombooker_portal/ui/widgets/org_state_provider.dart';
+import 'package:roombooker_portal/ui/widgets/room_selector.dart';
+import 'package:rxdart/rxdart.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:roombooker_core/data/services/booking_service.dart';
+import 'package:syncfusion_flutter_calendar/calendar.dart';
+
+class CalendarViewModel extends ChangeNotifier {
+  final CalendarController controller = CalendarController();
+  final _DataSource _dataSource = _DataSource([]);
+
+  final BehaviorSubject<VisibleWindow> _visibleWindowController =
+      BehaviorSubject();
+  final BehaviorSubject<VisibleWindow> _fetchWindowController =
+      BehaviorSubject();
+  final BehaviorSubject<Map<String, Request>> _requestIndex = BehaviorSubject();
+
+  final BehaviorSubject<Appointment?> _newAppointmentSubject =
+      BehaviorSubject.seeded(null);
+  final BehaviorSubject<Request?> _initialRequestSubject =
+      BehaviorSubject.seeded(null);
+
+  final PublishSubject<DateTapDetails> _dateTapSubject = PublishSubject();
+  Stream<DateTapDetails> get dateTapStream => _dateTapSubject.stream;
+
+  final PublishSubject<Request> _requestTapSubject = PublishSubject();
+  Stream<Request> get requestTapStream => _requestTapSubject.stream;
+
+  final Function(DragDetails)? onDragEnd;
+  final Function(ResizeDetails)? onResizeEnd;
+
+  final bool appendRoomName;
+  final bool includePrivateBookings;
+  final bool _allowAppointmentResize;
+  final bool _allowDragAndDrop;
+  final bool showNavigationArrow;
+  final bool showTodayButton;
+  final bool showDatePickerButton;
+  final bool showIgnoringOverlaps;
+  final bool allowViewNavigation;
+  final List<CalendarView> allowedViews;
+
+  bool initialized = false;
+
+  final OrgState _orgState;
+  final RoomState _roomState;
+  final LoggingService _loggingService;
+  final BookingService _bookingService;
+
+  final BehaviorSubject<void> _roomStateSubject = BehaviorSubject.seeded(null);
+
+  CalendarViewModel({
+    required OrgState orgState,
+    // required BookingRepo bookingRepo, // Removed
+    required RoomState roomState,
+    required LoggingService loggingService,
+    required BookingService bookingService,
+    CalendarView defaultView = CalendarView.week,
+    bool allowAppointmentResize = false,
+    bool allowDragAndDrop = false,
+    DateTime? targetDate,
+    this.includePrivateBookings = false,
+    this.showNavigationArrow = false,
+    this.showTodayButton = false,
+    this.showDatePickerButton = false,
+    this.appendRoomName = false,
+    this.showIgnoringOverlaps = false,
+    this.allowViewNavigation = false,
+    this.onDragEnd,
+    this.onResizeEnd,
+    this.allowedViews = const [
+      CalendarView.day,
+      CalendarView.week,
+      CalendarView.month,
+      CalendarView.schedule,
+    ],
+  }) : _allowAppointmentResize = allowAppointmentResize,
+       _allowDragAndDrop = allowDragAndDrop,
+
+       _orgState = orgState,
+       _roomState = roomState,
+       _bookingService = bookingService,
+       _loggingService = loggingService {
+    controller.view = defaultView;
+    controller.displayDate = targetDate ?? DateTime.now();
+    var currentWindow = VisibleWindow(start: startOfView, end: endOfView);
+    _visibleWindowController.add(currentWindow);
+
+    final paddedWindow = VisibleWindow(
+      start: currentWindow.start.subtract(const Duration(days: 30)),
+      end: currentWindow.end.add(const Duration(days: 30)),
+    );
+    _fetchWindowController.add(paddedWindow);
+
+    var sub = _visibleWindowController.listen((visibleWindow) {
+      var fetchedWindow = _fetchWindowController.valueOrNull;
+      if (fetchedWindow == null || !fetchedWindow.contains(visibleWindow)) {
+        _loggingService.debug("CALENDAR: Fetching new window: $visibleWindow");
+        final newPaddedWindow = VisibleWindow(
+          start: visibleWindow.start.subtract(const Duration(days: 30)),
+          end: visibleWindow.end.add(const Duration(days: 30)),
+        );
+        _fetchWindowController.add(newPaddedWindow);
+      }
+    });
+    _subscriptions.add(sub);
+
+    _roomState.addListener(_onRoomStateChanged);
+
+    controller.addPropertyChangedListener(_handlePropertyChange);
+    var indexSub = _buildAppointmentStream(orgState, roomState)
+        .map((appointmentsToRequests) {
+          Map<String, Request> index = {};
+          for (var e in appointmentsToRequests.entries) {
+            var appointment = e.key;
+            var request = e.value;
+            index[_appointmentID(appointment)] = request;
+          }
+          return index;
+        })
+        .listen((index) {
+          _requestIndex.add(index);
+        });
+    _subscriptions.add(indexSub);
+  }
+
+  void _onRoomStateChanged() {
+    _roomStateSubject.add(null);
+  }
+
+  @override
+  void dispose() {
+    _roomState.removeListener(_onRoomStateChanged);
+    for (var sub in _subscriptions) {
+      sub.cancel();
+    }
+    _newAppointmentSubscription?.cancel();
+    _initialRequestSubscription?.cancel();
+    _visibleWindowController.close();
+    _fetchWindowController.close();
+    _requestIndex.close();
+    _newAppointmentSubject.close();
+    _initialRequestSubject.close();
+    _dateTapSubject.close();
+    _requestTapSubject.close();
+    _roomStateSubject.close();
+    super.dispose();
+  }
+
+  final List<StreamSubscription> _subscriptions = [];
+
+  StreamSubscription? _newAppointmentSubscription;
+  StreamSubscription? _initialRequestSubscription;
+
+  void registerNewAppointmentStream(
+    Stream<(Request?, PrivateRequestDetails?)> stream,
+  ) {
+    if (_newAppointmentSubscription != null) {
+      _newAppointmentSubscription!.cancel();
+    }
+    _newAppointmentSubscription = stream.listen((data) {
+      var request = data.$1;
+      var details = data.$2;
+      var subject = details?.eventName ?? "";
+      if (subject.isEmpty) {
+        subject = "New Booking";
+      }
+      var appointment = request?.toAppointment(
+        subject: subject,
+        _roomState,
+        diminish: false,
+        appendRoomName: appendRoomName,
+        showIngnoringOverlaps: showIgnoringOverlaps,
+      );
+      _newAppointmentSubject.add(appointment);
+    });
+  }
+
+  void registerInitialRequestStream(Stream<Request?> stream) {
+    _initialRequestSubscription?.cancel();
+    _initialRequestSubscription = stream.listen((request) {
+      _initialRequestSubject.add(request);
+    });
+  }
+
+  Stream<CalendarViewState> _viewStateStream(
+    OrgState orgState,
+    RoomState roomState,
+  ) {
+    return Rx.combineLatest4(
+      _newAppointmentSubject.stream.distinct().handleError((e, s) {
+        throw 'Error in _newAppointmentSubject: $e';
+      }),
+      _initialRequestSubject.stream.distinct().handleError((e, s) {
+        throw 'Error in _initialRequestSubject: $e';
+      }),
+      _buildAppointmentStream(
+        orgState,
+        roomState,
+      ).startWith(const {}).handleError((e, s) {
+        throw 'Error in _buildAppointmentStream: $e';
+      }),
+      _fetchWindowController
+          .distinct()
+          .switchMap(
+            (window) => _bookingService.listBlackoutWindows(
+              orgState.org,
+              window.start,
+              window.end,
+            ),
+          )
+          .startWith(const [])
+          .handleError((e, s) {
+            throw 'Error in listBlackoutWindows: $e';
+          }),
+      (newAppointment, initialRequest, appointments, blackoutWindows) {
+        List<Appointment> out = [];
+        if (newAppointment != null) {
+          out.add(newAppointment);
+        }
+        for (var appointment in appointments.keys) {
+          if (newAppointment != null &&
+              _isSameAs(appointment, newAppointment)) {
+            // Skip the new appointment to avoid duplication
+            continue;
+          }
+
+          // Skip the original appointment being edited
+          if (initialRequest != null &&
+              _id(appointment) == initialRequest.id &&
+              appointment.startTime == initialRequest.eventStartTime) {
+            continue;
+          }
+
+          out.add(appointment);
+        }
+
+        _dataSource.updateAppointments(out);
+
+        return CalendarViewState(
+          allowAppointmentResize:
+              _allowAppointmentResize && newAppointment == null,
+          allowDragAndDrop: _allowDragAndDrop && newAppointment == null,
+          dataSource: _dataSource,
+          appointments: out,
+          specialRegions: blackoutWindows.map((w) => w.toTimeRegion()).toList(),
+          currentView: controller.view ?? CalendarView.month,
+          currentDate: _safeDisplayDate,
+          activeRequestID: newAppointment != null ? _id(newAppointment) : null,
+        );
+      },
+    );
+  }
+
+  Stream<Map<Appointment, Request>> _buildAppointmentStream(
+    OrgState orgState,
+    RoomState roomState,
+  ) {
+    var requestsStream = _fetchWindowController
+        .distinct()
+        .switchMap((window) async* {
+          final span = Sentry.getSpan()?.startChild(
+            'fetch_requests',
+            description: 'Fetching requests for window $window',
+          );
+          try {
+            // Use BookingService to fetch, expand, and enrich
+            yield* _bookingService
+                .getRequestsStream(
+                  orgID: orgState.org.id!,
+                  isAdmin: orgState.currentUserIsAdmin,
+                  start: window.start,
+                  end: window.end,
+                )
+                .handleError((e, s) {
+                  span?.status = const SpanStatus.internalError();
+                  span?.finish();
+                  throw 'Error in getRequestsStream: $e';
+                })
+                .doOnData((_) {
+                  span?.status = const SpanStatus.ok();
+                  span?.finish();
+                });
+          } catch (e) {
+            span?.status = const SpanStatus.internalError();
+            span?.finish();
+            rethrow;
+          }
+        })
+        .handleError((e, s) {
+          throw 'Error in requestsStream: $e';
+        });
+
+    return Rx.combineLatest3(
+      requestsStream,
+      _newAppointmentSubject.stream.distinct().handleError((e, s) {
+        throw 'Error in _newAppointmentSubject: $e';
+      }),
+      _roomStateSubject.handleError((e, s) {
+        throw 'Error in _roomStateSubject: $e';
+      }),
+      (List<Request> expandedRequests, Appointment? newAppointment, _) {
+        // So we just need to convert.
+        return _convertRequests(
+          expandedRequests,
+          roomState,
+          newAppointment,
+        );
+      },
+    );
+  }
+
+  Map<Appointment, Request> _convertRequests(
+    List<Request> requests,
+    RoomState roomState,
+    Appointment? newAppointment,
+  ) {
+    final span = Sentry.getSpan()?.startChild(
+      'convert_requests',
+      description: 'Converting ${requests.length} requests',
+    );
+
+    try {
+      Map<Appointment, Request> appointments = {};
+      for (var request in requests) {
+        if (!roomState.isEnabled(request.roomID)) {
+          continue;
+        }
+
+        // Requests are already expanded and enriched by BookingService
+
+        // Filter out if not in window?
+        // Service should return requests overlapping window.
+        // But let's check to be safe if Syncfusion behaves odd.
+        // Actually expands() logic in service handles trimming/window?
+        // request.expand() usually generates instances.
+
+        var subject = request.publicName;
+        var isPrivateBooking = (subject ?? "") == "";
+        if (isPrivateBooking && !includePrivateBookings) {
+          continue;
+        }
+
+        var appointment = request.toAppointment(
+          roomState,
+          subject: subject,
+          diminish: newAppointment != null,
+          appendRoomName: appendRoomName,
+          showIngnoringOverlaps: showIgnoringOverlaps,
+        );
+        appointments[appointment] = request;
+      }
+      span?.status = const SpanStatus.ok();
+      return appointments;
+    } catch (e) {
+      span?.status = const SpanStatus.internalError();
+      rethrow;
+    } finally {
+      span?.finish();
+    }
+  }
+
+  void handleViewChanged(ViewChangedDetails details) {
+    if (controller.view == CalendarView.schedule) {
+      return;
+    }
+
+    if (details.visibleDates.isEmpty) {
+      return;
+    }
+
+    final start = details.visibleDates.first;
+    final end = details.visibleDates.last.add(const Duration(days: 1));
+
+    final newWindow = VisibleWindow(start: start, end: end);
+    if (_visibleWindowController.valueOrNull != newWindow) {
+      _loggingService.debug("CALENDAR: View changed: $newWindow");
+      _visibleWindowController.add(newWindow);
+    }
+  }
+
+  void _handlePropertyChange(String property) {
+    if (property == "displayDate") {
+      if (controller.view == CalendarView.schedule) {
+        // This prevents the schedule view from glitching out.
+        return;
+      }
+      _loggingService.debug(
+        "CALENDAR: Display date changed: ${controller.displayDate}",
+      );
+      final newWindow = VisibleWindow(start: startOfView, end: endOfView);
+      if (_visibleWindowController.valueOrNull != newWindow) {
+        _visibleWindowController.add(newWindow);
+      }
+      return;
+    }
+    if (property == "calendarView") {
+      _loggingService.debug(
+        "CALENDAR: Calendar view changed: ${controller.view}",
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _visibleWindowController.add(
+          VisibleWindow(start: startOfView, end: endOfView),
+        );
+      });
+      return;
+    }
+  }
+
+  Stream<CalendarViewState> calendarViewState() {
+    return _viewStateStream(_orgState, _roomState).distinct();
+  }
+
+  // Bizarre things happen when you shink the screen which makes this
+  // necessary...
+  DateTime? get minDate =>
+      controller.view == CalendarView.schedule ? DateTime.now() : null;
+
+  DateTime get _safeDisplayDate {
+    final displayDate = controller.displayDate ?? DateTime.now();
+    return DateTime(
+      displayDate.year,
+      displayDate.month,
+      displayDate.day,
+    );
+  }
+
+  DateTime get startOfView {
+    var displayDate = _safeDisplayDate;
+    final view = controller.view ?? CalendarView.month;
+    switch (view) {
+      case CalendarView.schedule:
+      case CalendarView.day:
+        return displayDate;
+      case CalendarView.week:
+        var date = displayDate;
+        while (getWeekday(date) != Weekday.sunday) {
+          date = date.subtract(Duration(days: 1));
+        }
+        return date;
+      case CalendarView.month:
+        var startOfMonth = DateTime(displayDate.year, displayDate.month, 1);
+        while (getWeekday(startOfMonth) != Weekday.sunday) {
+          startOfMonth = startOfMonth.subtract(Duration(days: 1));
+        }
+        return startOfMonth;
+      case CalendarView.timelineDay:
+      case CalendarView.timelineWeek:
+      case CalendarView.timelineWorkWeek:
+      case CalendarView.timelineMonth:
+      case CalendarView.workWeek:
+        throw UnimplementedError();
+    }
+  }
+
+  DateTime get endOfView {
+    var start = _safeDisplayDate;
+    final view = controller.view ?? CalendarView.month;
+    switch (view) {
+      case CalendarView.day:
+        return start.add(Duration(days: 1));
+      case CalendarView.week:
+        return startOfView.add(Duration(days: 7));
+      case CalendarView.month:
+        var date = DateTime(
+          start.year,
+          start.month + 1,
+          1,
+        ).subtract(Duration(days: 1));
+        while (getWeekday(date) != Weekday.saturday) {
+          date = date.add(Duration(days: 1));
+        }
+        return date;
+      case CalendarView.schedule:
+        return start.add(Duration(days: 90));
+      case CalendarView.timelineDay:
+      case CalendarView.timelineWeek:
+      case CalendarView.timelineWorkWeek:
+      case CalendarView.timelineMonth:
+      case CalendarView.workWeek:
+        throw UnimplementedError();
+    }
+  }
+
+  void handleDragEnd(AppointmentDragEndDetails details) {
+    if (details.appointment == null || details.droppingTime == null) {
+      return;
+    }
+    var appointment = details.appointment as Appointment?;
+    if (appointment == null) {
+      return;
+    }
+    Request? request = _requestIndex.valueOrNull?[_appointmentID(appointment)];
+    if (request == null) {
+      log("Appointment not found in state, cannot call onAppointmentDragEnd");
+      return;
+    }
+    if (onDragEnd != null) {
+      onDragEnd!(
+        DragDetails(request: request, dropTime: details.droppingTime!),
+      );
+    }
+  }
+
+  void handleResizeEnd(AppointmentResizeEndDetails details) {
+    if (onResizeEnd != null) {
+      onResizeEnd!(
+        ResizeDetails(
+          appointment: details.appointment,
+          startTime: details.startTime!,
+          endTime: details.endTime!,
+        ),
+      );
+    }
+  }
+
+  void handleTap(CalendarTapDetails details) {
+    switch (details.targetElement) {
+      case CalendarElement.appointment:
+        _handleRequestTap(details);
+        break;
+      case CalendarElement.calendarCell:
+        _handleDateTap(details.date);
+        break;
+      case CalendarElement.viewHeader:
+        if (controller.view == CalendarView.week) {
+          // Allow changing to day view by tapping on the header
+          focusDate(details.date!);
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  void focusDate(DateTime date) {
+    controller.displayDate = date;
+    controller.view = CalendarView.day;
+  }
+
+  void scrollToTime(DateTime time) {
+    controller.displayDate = time;
+  }
+
+  static String _appointmentID(Appointment appointment) {
+    if (appointment.resourceIds == null || appointment.resourceIds!.isEmpty) {
+      throw ArgumentError("Appointment has no resource ID");
+    }
+    return (appointment.resourceIds!.first as Object?)?.toString() ?? "";
+  }
+
+  void _handleRequestTap(CalendarTapDetails details) {
+    for (var appointment in details.appointments ?? []) {
+      var request = _requestIndex.valueOrNull?[_appointmentID(appointment)];
+      if (request == null) {
+        log("Appointment not found in state");
+        continue;
+      }
+      _requestTapSubject.add(
+        // This could be a repeated request, so we create a new copy with
+        // the correct start and end time.
+        request.copyWith(
+          eventStartTime: appointment.startTime,
+          eventEndTime: appointment.endTime,
+        ),
+      );
+    }
+  }
+
+  void _handleDateTap(DateTime? date) {
+    if (date == null) {
+      return;
+    }
+    _dateTapSubject.add(DateTapDetails(
+      date: date,
+      view: controller.view ?? CalendarView.month,
+    ));
+  }
+}
+
+class DateTapDetails {
+  final DateTime date;
+  final CalendarView view;
+
+  DateTapDetails({required this.date, required this.view});
+}
+
+class DragDetails {
+  final Request request;
+  final DateTime dropTime;
+
+  DragDetails({required this.request, required this.dropTime});
+}
+
+class ResizeDetails {
+  final Appointment appointment;
+  final DateTime startTime;
+  final DateTime endTime;
+
+  ResizeDetails({
+    required this.appointment,
+    required this.startTime,
+    required this.endTime,
+  });
+}
+
+class _DataSource extends CalendarDataSource {
+  _DataSource(List<Appointment> source) {
+    appointments = source;
+  }
+
+  void updateAppointments(List<Appointment> newAppointments) {
+    appointments = newAppointments;
+    notifyListeners(CalendarDataSourceAction.reset, newAppointments);
+  }
+}
+
+extension on BlackoutWindow {
+  TimeRegion toTimeRegion() {
+    return TimeRegion(
+      startTime: start,
+      endTime: end,
+      enablePointerInteraction: false,
+      text: reason,
+      recurrenceRule: recurrenceRule,
+      color: Colors.grey.withValues(alpha: 0.2),
+    );
+  }
+}
+
+bool _isSameAs(Appointment a, Appointment b) {
+  return _id(a) == _id(b) &&
+      a.startTime == b.startTime &&
+      a.endTime == b.endTime;
+}
+
+String? _id(Appointment appointment) {
+  var ids = appointment.resourceIds;
+  if (ids == null) {
+    return null;
+  }
+  if (ids.isEmpty) {
+    return null;
+  }
+  return ids.first.toString();
+}
+
+extension on Appointment {}
+
+
+extension on Request {
+  Appointment toAppointment(
+    RoomState roomState, {
+    String? subject,
+    bool diminish = false,
+    bool appendRoomName = false,
+    bool showIngnoringOverlaps = false,
+  }) {
+    var alphaLevel = diminish || status == RequestStatus.pending ? 128 : 255;
+    var color = roomState.color(roomID).withAlpha(alphaLevel);
+    var s =
+        subject ?? (status == RequestStatus.confirmed ? "Booked" : "Requested");
+    if (appendRoomName) {
+      var roomName = roomState.getRoom(roomID)?.name ?? "Unknown Room";
+      s += " ($roomName)";
+    }
+    if (ignoreOverlaps && showIngnoringOverlaps) {
+      s += "\n(Ignoring Overlaps!)";
+    }
+    return Appointment(
+      subject: s,
+      color: color,
+      startTime: eventStartTime,
+      endTime: eventEndTime,
+      resourceIds: [id ?? ""],
+      notes: roomState.getRoom(roomID)?.name,
+    );
+  }
+}
+
+class CalendarViewState {
+  final bool allowAppointmentResize;
+  final bool allowDragAndDrop;
+  final CalendarDataSource dataSource;
+  final List<Appointment> appointments;
+  final List<TimeRegion> specialRegions;
+  final CalendarView currentView;
+  final DateTime currentDate;
+  final String? activeRequestID;
+
+  CalendarViewState({
+    required this.allowAppointmentResize,
+    required this.allowDragAndDrop,
+    required this.specialRegions,
+    required this.dataSource,
+    required this.appointments,
+    required this.currentView,
+    required this.currentDate,
+    this.activeRequestID,
+  });
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! CalendarViewState) return false;
+    return allowAppointmentResize == other.allowAppointmentResize &&
+        allowDragAndDrop == other.allowDragAndDrop &&
+        dataSource == other.dataSource &&
+        listEquals(appointments, other.appointments) &&
+        listEquals(specialRegions, other.specialRegions) &&
+        currentView == other.currentView &&
+        currentDate == other.currentDate &&
+        activeRequestID == other.activeRequestID;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    allowAppointmentResize,
+    allowDragAndDrop,
+    dataSource,
+    Object.hashAll(appointments),
+    Object.hashAll(specialRegions),
+    currentView,
+    currentDate,
+    activeRequestID,
+  );
+}
+
+class VisibleWindow {
+  final DateTime start;
+  final DateTime end;
+
+  VisibleWindow({required this.start, required this.end});
+
+  @override
+  String toString() {
+    return "VisibleWindow(start: $start, end: $end)";
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! VisibleWindow) {
+      return false;
+    }
+    return start == other.start && end == other.end;
+  }
+
+  @override
+  int get hashCode => Object.hash(start, end);
+
+  bool contains(VisibleWindow other) {
+    return (start.isBefore(other.start) ||
+            start.isAtSameMomentAs(other.start)) &&
+        (end.isAfter(other.end) || end.isAtSameMomentAs(other.end));
+  }
+}

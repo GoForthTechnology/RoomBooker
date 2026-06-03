@@ -37,18 +37,18 @@ Error reporting MUST cover all subsequent initialization steps, including databa
 - **THEN** Sentry SHALL capture the error because the initialization happened within the Sentry-monitored execution flow.
 
 ### Requirement: Presentation Layer
-The presentation layer SHALL be located in `lib/ui/` and SHALL follow a widget-based composition.
+The presentation layer SHALL be located in the primary application package (e.g., `packages/roombooker_portal/lib/ui/`) and SHALL follow a widget-based composition.
 
 #### Scenario: Verify UI Structure
-- **WHEN** adding a new screen
-- **THEN** it is placed in `lib/ui/screens/`
+- **WHEN** adding a new screen to the Portal
+- **THEN** it is placed in `packages/roombooker_portal/lib/ui/screens/`
 
 ### Requirement: Domain Layer
-The domain layer SHALL contain entities and business logic, independent of external services.
+The domain layer SHALL contain entities and business logic, independent of external services, and SHALL be located in the `roombooker_core` package.
 
 #### Scenario: Verify Entity Location
 - **WHEN** defining a data model
-- **THEN** it is placed in `lib/data/entities/`
+- **THEN** it is placed in `packages/roombooker_core/lib/data/entities/`
 
 ### Requirement: Service-First Logic
 All booking-related logic SHALL go through the `BookingService` class.
