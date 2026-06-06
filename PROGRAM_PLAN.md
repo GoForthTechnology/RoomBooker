@@ -29,6 +29,16 @@ The Kiosk system SHALL provide an automated, zero-friction "One-Touch Join" expe
 *   **Rationale:** Removing the requirement for physical LEDs allows the use of generic, cheaper enterprise tablets (e.g., Samsung Galaxy Tab Active, StarBoard) provided they support Android 11+ and Power over Ethernet (PoE).
 *   **Alternative Considered:** *Mimo Adapt-IQV tablets with side LEDs.* Rejected due to vendor lock-in, higher cost ($550+), and the unnecessary engineering complexity of managing hardware-level platform channels for devices mounted *inside* the room.
 
+### 2.5 Dual-Display Architecture
+*   **Decision:** The system SHALL support a Dual-Display configuration using a USB-C Hub with HDMI output.
+*   **Rationale:** Enterprise conference rooms require a dedicated "Controller" (the tablet) and a "Stage" (the TV). The tablet must remain functional for room management (extending/ending meetings) even while a video call is active. The system will attempt to route native conferencing apps to the secondary display, with a "Desktop-Spoofed WebView" as a fallback for apps that do not support display routing.
+*   **Alternative Considered:** *Single-screen mirroring.* Rejected because it obscures room management controls during active meetings.
+
+### 2.6 Device Provisioning
+*   **Decision:** The Kiosk SHALL use a 6-digit "Activation Code" handshake for provisioning.
+*   **Rationale:** To avoid entering administrative credentials on wall-mounted hardware, the Portal app will generate short-lived, one-time-use codes that link a physical device to a specific `roomID` and `orgID` via Firestore.
+*   **Alternative Considered:** *Direct Admin Login on Kiosk.* Rejected due to security risks and poor user experience (typing long passwords on tablets).
+
 ## 3. Strict Requirements
 
 ### 3.1 Kiosk Functionality
@@ -36,6 +46,9 @@ The Kiosk system SHALL provide an automated, zero-friction "One-Touch Join" expe
 *   **REQ-02:** The Kiosk SHALL automatically bypass "Preview," "Lobby," or "Green Room" screens upon launching a meeting intent.
 *   **REQ-03:** The Kiosk SHALL restrict user navigation to the RoomBooker application using Android's `LockTaskMode` (Kiosk Mode).
 *   **REQ-04:** The Kiosk UI SHALL prioritize high-contrast, at-a-glance visibility suitable for wall mounting.
+*   **REQ-08:** The Kiosk SHALL support a Dual-Display configuration via USB-C HDMI output.
+*   **REQ-09:** The Kiosk application SHALL remain visible on the tablet (Primary Display) as a controller while the video conference session is displayed on the TV (Secondary Display) via an integrated WebView or Presentation.
+*   **REQ-11:** The Kiosk SHALL provide a 6-digit activation interface for room-to-device provisioning.
 
 ### 3.2 System Architecture
 *   **REQ-05:** Shared domain logic (Firestore, Models, Auth) SHALL reside in a `roombooker_core` package.
