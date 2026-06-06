@@ -153,11 +153,24 @@ If the Play Store build fails to sign in:
 ## Development Workflow
 
 When working on tasks, you **MUST** always follow the OpenSpec flow:
-1. **Propose:** Propose the changes (e.g., using `openspec change new "<name>"`) and outline the plan.
-2. **Ask for Review:** Ask the user for review and approval of the proposal.
-3. **Apply:** Apply the code changes.
-4. **Mandatory Verification:** You MUST verify the changes using two methods:
-   - **Test Coverage:** Ensure equal or greater test coverage by running `flutter test`.
-   - **Smoke Test:** Run the `flutter-smoke-test` skill to verify the app boots to the landing page.
-5. **Ask for Verification:** Ask the user to verify the changes.
+...
 6. **Archive and Commit:** Run `openspec archive <change>` and commit the changes using `git`.
+
+### Kiosk Development Iteration (APK Server)
+
+For rapid iteration on the hardware-bound `roombooker_kiosk` application:
+
+1.  **Build the Spike APK**:
+    ```bash
+    cd packages/roombooker_kiosk/android && ./gradlew assembleDebug --no-daemon
+    ```
+2.  **Serve for LAN Download**:
+    Start a temporary server from the APK output directory:
+    ```bash
+    cd packages/roombooker_kiosk/build/app/outputs/flutter-apk/
+    python3 -m http.server 8000 --bind 0.0.0.0
+    ```
+3.  **Install on Hardware**:
+    Access `http://<server-lan-ip>:8000` from the device's browser to download and install.
+
+This loop allows for testing native features (Accessibility Services, Kiosk Mode) that cannot be verified in a headless environment.

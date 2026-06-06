@@ -5,5 +5,5 @@
     android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
     android:description="@string/device_admin_description"
-    android:packageNames="com.google.android.apps.meetings,com.microsoft.teams,us.zoom.videomeetings"
+    android:packageNames="com.google.android.apps.meetings,com.google.android.apps.tachyon,com.google.android.gms,com.google.android.gsf"
     android:notificationTimeout="100" />
