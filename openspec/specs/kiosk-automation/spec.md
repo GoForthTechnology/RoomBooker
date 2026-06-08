@@ -43,12 +43,27 @@ The Kiosk application MUST request and be granted `CALL_PHONE` and `INTERNET` pe
 - **WHEN** launching a meeting for the first time
 - **THEN** the system SHALL prompt the user to "Allow phone calls" (required by Google Meet telephony stack).
 
+### Requirement: Dual-Display Stage Management
+The system MUST support displaying the video conference on a secondary screen (TV) while keeping the controller (Tablet) on the Kiosk Dashboard.
+
+#### Scenario: Launch to Secondary Display
+- **WHEN** a meeting is launched via USB-C HDMI
+- **THEN** the system SHALL attempt to route the session to the HDMI output, and the Tablet SHALL NOT be obscured by the meeting session.
+
 ### Requirement: Service Lifecycle Management
 The `MeetAutomatorService` SHALL remain active in the background as long as the device is in Kiosk mode.
 
 #### Scenario: Verify Service Persistence
 - **WHEN** the device is rebooted
 - **THEN** the `MeetAutomatorService` MUST automatically restart (if allowed by system settings) or be prompted for activation.
+
+### Requirement: Intent Integration
+The Kiosk application MUST provide a mechanism to launch conferencing URLs via standard Android Intent filters.
+
+#### Scenario: Trigger Intent from Flutter
+- **WHEN** a user taps the "Launch Spike" button in Flutter
+- **THEN** the application SHALL invoke a platform channel call to launch the provided URL in the respective conferencing app.
+or be prompted for activation.
 
 ### Requirement: Intent Integration
 The Kiosk application MUST provide a mechanism to launch conferencing URLs via standard Android Intent filters.

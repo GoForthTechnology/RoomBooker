@@ -23,10 +23,41 @@ resource "google_firebase_android_app" "default" {
   depends_on = [google_firebase_project.default]
 }
 
+resource "google_firebase_android_app" "kiosk" {
+  provider     = google-beta
+  project      = var.project_id
+  display_name = "Room Booker Kiosk"
+  package_name = "org.goforthtech.roombooker_kiosk"
+  
+  # TODO: Add Kiosk signing hashes when available
+  sha1_hashes = []
+  sha256_hashes = []
+
+  depends_on = [google_firebase_project.default]
+}
+
 resource "google_firebase_web_app" "default" {
   provider     = google-beta
   project      = var.project_id
   display_name = "Room Booker Web"
   
   depends_on = [google_firebase_project.default]
+}
+
+resource "google_firebaserules_ruleset" "firestore" {
+  provider = google-beta
+  project  = var.project_id
+  source {
+    files {
+      name    = "firestore.rules"
+      content = file("../firestore.rules")
+    }
+  }
+}
+
+resource "google_firebaserules_release" "firestore" {
+  provider     = google-beta
+  name         = "cloud.firestore"
+  ruleset_name = google_firebaserules_ruleset.firestore.name
+  project      = var.project_id
 }

@@ -1,6 +1,6 @@
 name: roombooker_core
 description: "Shared domain logic and data entities for RoomBooker."
-version: 1.0.0
+version: 1.3.0+50
 publish_to: 'none'
 
 resolution: workspace

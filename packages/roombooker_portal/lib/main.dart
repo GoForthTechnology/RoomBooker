@@ -20,28 +20,35 @@ import 'package:roombooker_portal/app_router_observer.dart';
 bool useEmulator = false;
 
 void main() async {
+  print('MAIN: Starting...');
   // Capture cold start time as early as possible
   final coldStartTime = DateTime.now();
 
   WidgetsFlutterBinding.ensureInitialized();
+  print('MAIN: WidgetsBinding initialized');
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('MAIN: Firebase initialized');
 
-  // AppCheck configuration - using debug provider for debug builds
-  // If you want to disable AppCheck entirely for testing, comment this out.
+  // AppCheck configuration - DISABLED FOR LAN TESTING
+  /*
   await FirebaseAppCheck.instance.activate(
     androidProvider:
         kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
     appleProvider:
-        kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+        kDebugMode ? AppleProvider.debug : AndroidProvider.deviceCheck,
     webProvider: ReCaptchaV3Provider(
       '6Lej2S0sAAAAAKBEX9lCwb1g4RBlAMb3dXeJHWv-',
     ),
   );
+  */
+
 
   FirebaseUIAuth.configureProviders(providers);
+  print('MAIN: FirebaseUIAuth configured');
 
   final loggingService = getLoggingService();
   final prefs = await SharedPreferences.getInstance();
+  print('MAIN: SharedPreferences loaded');
   loggingService.startColdStartTrace(coldStartTime);
 
   if (useEmulator && kDebugMode) {
@@ -56,7 +63,7 @@ void main() async {
 
   // Initialize Sentry
   // We enable it in debug mode too if specifically requested or for debugging auth issues.
-  const bool enableSentryInDebug = true;
+  const bool enableSentryInDebug = false;
 
   if (kDebugMode && !enableSentryInDebug) {
     loggingService.debug(

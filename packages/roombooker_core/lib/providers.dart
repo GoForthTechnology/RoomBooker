@@ -4,6 +4,7 @@ import 'package:roombooker_core/data/services/analytics_service.dart';
 import 'package:roombooker_core/data/services/booking_service.dart';
 import 'package:roombooker_core/data/services/auth_service.dart';
 import 'package:roombooker_core/data/services/logging_service.dart';
+import 'package:roombooker_core/data/services/provisioning_service.dart';
 import 'package:roombooker_core/data/repos/booking_repo.dart';
 import 'package:roombooker_core/data/repos/log_repo.dart';
 import 'package:roombooker_core/data/repos/org_repo.dart';
@@ -43,9 +44,11 @@ class AppProviders extends StatelessWidget {
     );
     var authService = FirebaseAuthService();
     var bookingService = BookingService(bookingRepo: bookingRepo);
+    var provisioningService = ProvisioningService();
     return MultiProvider(
       providers: [
         Provider(create: (_) => bookingRepo),
+        Provider(create: (_) => provisioningService),
         ChangeNotifierProvider(create: (_) => userRepo),
         ChangeNotifierProvider(create: (_) => orgRepo),
         ChangeNotifierProvider(create: (_) => roomRepo),

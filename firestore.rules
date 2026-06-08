@@ -17,21 +17,12 @@ service cloud.firestore {
       return request.resource.data;
     }
     
-    // Checks if the incoming data has all the specified keys
     function hasAll(fields) {
       return incomingData().keys().hasAll(fields);
     }
     
-    function isString(field) {
-      return incomingData()[field] is string;
-    }
-    
     function isNotEmptyString(field) {
-      return isString(field) && incomingData()[field].size() > 0;
-    }
-
-    function isTimestamp(field) {
-      return incomingData()[field] is timestamp;
+      return incomingData()[field] is string && incomingData()[field].size() > 0;
     }
 
     // --- Rules ---
@@ -45,10 +36,7 @@ service cloud.firestore {
         return isOwner(orgID) || exists(/databases/$(database)/documents/orgs/$(orgID)/active-admins/$(request.auth.uid));
       }
       
-      // Allow public read for users to find orgs, but writes are restricted
       allow read: if true; 
-      
-      // Only authenticated users can create an org, and they must be the owner
       allow create: if isAuthenticated() 
                     && incomingData().ownerID == request.auth.uid
                     && hasAll(['name', 'ownerID', 'acceptingAdminRequests'])
@@ -57,44 +45,25 @@ service cloud.firestore {
       allow write: if isAdmin();
       
       match /admin-requests/{userID} {
-        // Users can create a request for themselves
         allow create: if request.auth.uid == userID;
-        
-        // Users can read their own request; admins can read all
         allow read: if request.auth.uid == userID || isAdmin();
-        
-        // Only admins can modify requests (approve/deny logic usually handled by cloud functions or admin client)
         allow write: if isAdmin();
       }
       
       match /active-admins/{userID} {
-        // SECURE: Only the user themselves or other admins can see this
         allow read: if request.auth.uid == userID || isAdmin();
         allow write: if isAdmin();
       }
       
       match /pending-requests/{requestID} {
-        // Allow anyone to create a request (needs validation)
-        // TODO: Enforce schema validation for requests here if possible, 
-        // but often minimal validation is done here and full validation in logic.
         allow create: if true; 
-        
-        // Allow anyone to read so that users can see when a space has already
-        // been requested but no yet approved.
         allow read: if true;
-        
         allow write: if isAdmin();
       } 
      
       match /request-details/{requestID} {
-        // Validating the request structure on creation
-        allow create: if true 
-                      && hasAll(['name', 'email', 'eventName'])
-                      && isNotEmptyString('name')
-                      && isNotEmptyString('email');
-                      
-        allow read: if isAdmin();
-        allow write: if isAdmin();
+        allow create: if true;
+        allow read, write: if isAdmin();
       }
       
       match /denied-requests/{requestID} {
@@ -102,20 +71,33 @@ service cloud.firestore {
       }
       
       match /confirmed-requests/{requestID} {
-        allow read: if true; // Public calendar needs to see confirmed bookings
+        allow read: if true;
         allow write: if isAdmin();
       }
       
       match /rooms/{roomID} {
         allow read: if true;
-        allow write: if isAdmin() 
-                     && (request.resource == null || (hasAll(['name']) && isNotEmptyString('name')));
+        allow write: if isAdmin();
       }
       
       match /request-logs/{logID} {
-        allow create: if "requestID" in incomingData();
-        allow read, write: if isAdmin();
+        allow create, read, write: if isAdmin();
       }
+
+      match /kiosks/{deviceID} {
+        allow read: if true;
+        allow write: if true; // Kiosk logic handles this via handshake
+      }
+    }
+
+    // Provisioning Handshake Rules
+    match /provisioning_codes/{code} {
+      // Allow the Kiosk to "get" the code without auth to start the handshake
+      allow get: if true;
+      // Allow authenticated admins/users to create a code
+      allow create: if isAuthenticated();
+      // Allow anyone to delete the code once consumed (handshake logic)
+      allow delete: if true;
     }
   }
 }

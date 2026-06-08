@@ -53,6 +53,7 @@ class RequestEditor extends StatelessWidget {
               if (orgState.currentUserIsAdmin)
                 _adminContactInfoButton(viewModel, orgState, state.readOnly)!,
               const Divider(),
+              _meetingUrlSelector(viewModel, state.readOnly),
               _additionalInfoSelector(viewModel, state.readOnly),
               if (state.showID) _requestIDField(viewModel)!,
               if (state.showEventLog)
@@ -330,6 +331,17 @@ class RequestEditor extends StatelessWidget {
       readOnly: readOnly,
       controller: viewModel.additionalInfoController,
       labelText: "Additional Info",
+    );
+  }
+
+  Widget _meetingUrlSelector(
+    RequestEditorViewModel viewModel,
+    bool readOnly,
+  ) {
+    return SimpleTextFormField(
+      readOnly: readOnly,
+      controller: viewModel.meetingUrlController,
+      labelText: "Meeting URL (e.g. Google Meet)",
     );
   }
 

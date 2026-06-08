@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
@@ -56,23 +57,39 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
     var userRepo = Provider.of<UserRepo>(context, listen: false);
     var authService = Provider.of<AuthService>(context, listen: false);
 
-    _future = Future.delayed(Duration.zero, () async {
+    _future = () async {
+      _statusController.add("Fetching organization details...");
       var org = await orgRepo.getOrg(widget.orgID).first;
+      if (org == null) {
+        _statusController.add("Organization not found.");
+        return null;
+      }
+      
+      _statusController.add("Checking admin permissions...");
       var isAdmin = await _currentUserIsAdmin(authService, userRepo);
-      if (org == null) return null;
+      
+      _statusController.add("Ready.");
       return OrgState(
         org: org,
         currentUserIsAdmin: isAdmin,
         authService: authService,
       );
-    });
+    }();
   }
+
+  final StreamController<String> _statusController = StreamController<String>.broadcast();
 
   @override
   void initState() {
     super.initState();
     _lastUserID = Provider.of<AuthService>(context, listen: false).getCurrentUserID();
     _loadState();
+  }
+
+  @override
+  void dispose() {
+    _statusController.close();
+    super.dispose();
   }
 
   @override
@@ -100,11 +117,31 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold();
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 24),
+                  StreamBuilder<String>(
+                    stream: _statusController.stream,
+                    initialData: "Initializing...",
+                    builder: (context, statusSnapshot) {
+                      return Text(
+                        statusSnapshot.data ?? "",
+                        style: const TextStyle(color: Colors.grey),
+                      );
+                    }
+                  ),
+                ],
+              ),
+            ),
+          );
         }
         if (snapshot.hasError) {
           log('Error loading organization state', error: snapshot.error);
-          return const Center(child: Text('Error loading organization'));
+          return Center(child: Text('Error loading organization: ${snapshot.error}'));
         }
         final data = snapshot.data;
         if (!snapshot.hasData || data == null) {

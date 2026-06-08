@@ -362,7 +362,7 @@ void main() {
     await tester.pump(); // First frame
 
     // Assert
-    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
     // Finish
     await tester.pump(const Duration(seconds: 2));

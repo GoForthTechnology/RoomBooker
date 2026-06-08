@@ -62,6 +62,9 @@ void main() {
     when(
       () => mockViewModel.additionalInfoController,
     ).thenReturn(TextEditingController());
+    when(
+      () => mockViewModel.meetingUrlController,
+    ).thenReturn(TextEditingController());
     when(() => mockViewModel.idController).thenReturn(TextEditingController());
 
     // Streams

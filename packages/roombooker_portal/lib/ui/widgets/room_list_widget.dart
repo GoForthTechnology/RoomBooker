@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roombooker_core/data/entities/organization.dart';
 import 'package:roombooker_core/data/repos/room_repo.dart';
+import 'package:roombooker_core/roombooker_core.dart';
 import 'package:roombooker_portal/ui/widgets/heading.dart';
 import 'package:roombooker_core/utils/room_colors.dart';
 import 'action_button.dart';
@@ -62,7 +63,7 @@ class RoomListWidget extends StatelessWidget {
                 ),
                 Expanded(
                   child: RoomTile(
-                    orgID: org.id!,
+                    org: org,
                     room: room,
                     onDeleted: () async {
                       var confirmed = await confirmRoomDeletion(context);
@@ -121,14 +122,14 @@ Future<bool?> confirmRoomDeletion(BuildContext context) {
 }
 
 class RoomTile extends StatelessWidget {
-  final String orgID;
+  final Organization org;
   final Room room;
   final VoidCallback onDeleted;
   final VoidCallback? onUpdated;
 
   const RoomTile({
     super.key,
-    required this.orgID,
+    required this.org,
     required this.room,
     required this.onDeleted,
     this.onUpdated,
@@ -148,6 +149,66 @@ class RoomTile extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
+              icon: const Icon(Icons.screenshot_monitor),
+              tooltip: 'Provision Kiosk',
+              onPressed: () async {
+                try {
+                  final provisioningService =
+                      Provider.of<ProvisioningService>(context, listen: false);
+                  final code = await provisioningService.createActivationCode(
+                    orgID: org.id!,
+                    orgName: org.name,
+                    roomID: room.id!,
+                    roomName: room.name,
+                  );
+
+                  if (!context.mounted) return;
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Provision Kiosk'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Enter this 6-digit code on the Kiosk terminal to link it to this room:',
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            code,
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 8,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Valid for 10 minutes',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    ),
+                  );
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to generate code: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+            ),
+            IconButton(
               icon: const Icon(Icons.edit),
               tooltip: 'Edit Room',
               onPressed: () async {
@@ -157,7 +218,7 @@ class RoomTile extends StatelessWidget {
                 );
                 // If the user updated the room, we should save it.
                 if (updatedRoom != null) {
-                  await orgRepo.updateRoom(orgID, updatedRoom);
+                  await orgRepo.updateRoom(org.id!, updatedRoom);
                   if (onUpdated != null) onUpdated!();
                 }
               },

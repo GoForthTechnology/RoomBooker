@@ -15,6 +15,10 @@ class RoomRepo extends ChangeNotifier {
     });
   }
 
+  Stream<Room?> getRoom(String orgID, String roomID) {
+    return _roomRef(orgID, roomID).snapshots().map((s) => s.data());
+  }
+
   Future<String> addRoom(String orgID, Room room) {
     return _roomsRef(orgID).add(room).then((ref) => ref.id);
   }

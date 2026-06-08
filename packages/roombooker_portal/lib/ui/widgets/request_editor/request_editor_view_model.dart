@@ -66,6 +66,7 @@ class RequestEditorViewModel extends ChangeNotifier {
   final contactNameController = TextEditingController(text: "");
   final contactEmailController = TextEditingController(text: "");
   final additionalInfoController = TextEditingController(text: "");
+  final meetingUrlController = TextEditingController(text: "");
   final idController = TextEditingController(text: "");
   final _eventStartSubject = BehaviorSubject<DateTime?>();
   final _eventEndSubject = BehaviorSubject<DateTime?>();
@@ -135,6 +136,7 @@ class RequestEditorViewModel extends ChangeNotifier {
     contactEmailController.text = "";
     phoneNumberController.text = "";
     additionalInfoController.text = "";
+    meetingUrlController.text = "";
 
     // Reset VM to clean state
     repeatBookingsViewModel.dispose();
@@ -160,6 +162,7 @@ class RequestEditorViewModel extends ChangeNotifier {
     contactEmailController.text = details?.email ?? "";
     phoneNumberController.text = details?.phone ?? "";
     additionalInfoController.text = details?.message ?? "";
+    meetingUrlController.text = request?.meetingUrl ?? "";
 
     // Re-initialize repeat view model with request data
     // Dispose old one if needed? Actually, better to just update it or create new one and replace.
@@ -488,27 +491,31 @@ class RequestEditorViewModel extends ChangeNotifier {
       _initialDataSubject.stream.map((data) => data.$1);
 
   Stream<Request?> _requestStream() {
-    return Rx.combineLatest9(
-      _initialDataSubject.stream.map((data) => data.$1),
-      eventStartStream,
-      eventEndStream,
-      roomIDStream,
-      roomNameStream,
-      isPublicStream,
-      ignoreOverlapsStream,
-      eventNameContoller.textStream,
-      repeatBookingsViewModel.patternStream,
-      (
-        Request? initialRequest,
-        DateTime? start,
-        DateTime? end,
-        roomID,
-        roomName,
-        isPublic,
-        ignoreOverlaps,
-        eventName,
-        pattern,
-      ) {
+    return Rx.combineLatest(
+      [
+        _initialDataSubject.stream.map((data) => data.$1),
+        eventStartStream,
+        eventEndStream,
+        roomIDStream,
+        roomNameStream,
+        isPublicStream,
+        ignoreOverlapsStream,
+        eventNameContoller.textStream,
+        repeatBookingsViewModel.patternStream,
+        meetingUrlController.textStream,
+      ],
+      (List<dynamic> values) {
+        Request? initialRequest = values[0];
+        DateTime? start = values[1];
+        DateTime? end = values[2];
+        String roomID = values[3];
+        String roomName = values[4];
+        bool isPublic = values[5];
+        bool ignoreOverlaps = values[6];
+        String eventName = values[7];
+        RecurrancePattern? pattern = values[8];
+        String meetingUrl = values[9];
+
         if (initialRequest == null) {
           return null;
         }
@@ -525,6 +532,7 @@ class RequestEditorViewModel extends ChangeNotifier {
           roomID: roomID,
           roomName: roomName,
           publicName: isPublic ? eventName : null,
+          meetingUrl: meetingUrl.isNotEmpty ? meetingUrl : null,
           ignoreOverlaps: ignoreOverlaps,
         );
       },

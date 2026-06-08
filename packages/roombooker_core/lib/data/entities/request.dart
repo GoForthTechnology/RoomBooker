@@ -78,6 +78,7 @@ class Request {
   @JsonKey(includeFromJson: false, includeToJson: false)
   final String? id;
   final String? publicName;
+  final String? meetingUrl;
   final DateTime eventStartTime;
   final DateTime eventEndTime;
   final String roomID;
@@ -95,6 +96,7 @@ class Request {
     required this.roomID,
     required this.roomName,
     this.publicName,
+    this.meetingUrl,
     this.status,
     this.id,
     this.recurranceOverrides,
@@ -125,6 +127,7 @@ class Request {
     String? roomID,
     String? roomName,
     String? publicName,
+    String? meetingUrl,
     RequestStatus? status,
     RecurrancePattern? recurrancePattern,
     Map<DateTime, Request?>? recurranceOverrides,
@@ -136,6 +139,7 @@ class Request {
       roomID: roomID ?? this.roomID,
       roomName: roomName ?? this.roomName,
       publicName: publicName ?? this.publicName,
+      meetingUrl: meetingUrl ?? this.meetingUrl,
       status: status ?? this.status,
       id: id ?? this.id,
       recurrancePattern: recurrancePattern ?? this.recurrancePattern,
@@ -148,12 +152,14 @@ class Request {
   String toString() {
     return """Request{
       id: $id,
+      publicName: $publicName,
+      meetingUrl: $meetingUrl,
       eventStartTime: $eventStartTime,
       eventEndTime: $eventEndTime,
       roomID: $roomID,
       roomName: $roomName,
       status: $status,
-      recurrencePattern: $recurrancePattern
+      recurrencePattern: $recurrancePattern,
       ignoreOverlaps: $ignoreOverlaps
     }""";
   }
@@ -173,6 +179,7 @@ class Request {
         other.roomID == roomID &&
         other.roomName == roomName &&
         other.publicName == publicName &&
+        other.meetingUrl == meetingUrl &&
         other.recurrancePattern == recurrancePattern &&
         other.ignoreOverlaps == ignoreOverlaps &&
         other.recurranceOverrides == recurranceOverrides &&
@@ -190,6 +197,7 @@ class Request {
         ignoreOverlaps.hashCode ^
         recurranceOverrides.hashCode ^
         publicName.hashCode ^
+        meetingUrl.hashCode ^
         status.hashCode;
   }
 

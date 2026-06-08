@@ -21,3 +21,10 @@ The application MUST be registered as a `DeviceAdmin` to enable seamless `LockTa
 #### Scenario: Verify Admin Status
 - **WHEN** checking app settings in Android
 - **THEN** the RoomBooker Kiosk MUST appear in the "Device Admin Apps" list.
+
+### Requirement: Manual Kiosk Lockdown Control
+The application SHALL provide a user-accessible control to programmatically trigger application pinning (LockTaskMode) without requiring Android system settings navigation.
+
+#### Scenario: Manual Lockdown Trigger
+- **WHEN** an administrator taps the "Lock" icon in the dashboard AppBar
+- **THEN** the application SHALL invoke `startKioskMode()` to restrict device navigation.

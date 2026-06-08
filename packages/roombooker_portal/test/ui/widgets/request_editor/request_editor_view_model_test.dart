@@ -729,6 +729,7 @@ void main() {
           roomID: 'room1',
           roomName: 'Test Room',
           status: RequestStatus.confirmed,
+          recurrancePattern: RecurrancePattern.never(),
         );
 
         viewModel = createViewModel();

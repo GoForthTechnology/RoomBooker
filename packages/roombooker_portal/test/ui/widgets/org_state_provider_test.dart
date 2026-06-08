@@ -112,9 +112,9 @@ void main() {
     await tester.pumpWidget(buildTestWidget());
 
     // Initial pump starts the FutureBuilder, which is in waiting state
-    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-    // Pump to allow Future.delayed to complete
+    // Pump to allow Future to complete
     await tester.pump(Duration.zero);
     // Pump again to allow the FutureBuilder to rebuild with data
     await tester.pump();

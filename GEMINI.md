@@ -1,17 +1,43 @@
 # Gemini Project Guide: Room Booker
 
 This document provides instructions for interacting with the Room Booker Flutter project using Gemini.
-
 ## Project Overview
 
 This is a Flutter monorepo workspace for managing room reservations. It consists of multiple packages:
 - **roombooker_core**: Shared domain logic, data entities, and Firestore services.
 - **roombooker_portal**: The primary user-facing mobile and web application.
-- **roombooker_kiosk**: (Coming Soon) Specialized hardware terminal for meeting rooms.
+- **roombooker_kiosk**: Specialized hardware terminal for meeting rooms. Supports Dual-Display (Tablet + TV) and "One-Touch Join" automation.
 
-## Tech Stack
+## Kiosk Production Workflow
 
-- **Framework:** Flutter (SDK version >=3.4.3 <4.0.0)
+### Provisioning a New Device
+
+1.  **Generate Code**: In the **Portal App**, navigate to "Organization Settings" -> "Rooms".
+2.  **Link Kiosk**: Tap the **Monitor Icon** (Provision Kiosk) next to the desired room.
+3.  **Activate**: Enter the 6-digit code on the fresh Kiosk terminal.
+4.  **Auto-Lock**: Once linked, the Kiosk will automatically enter **LockTaskMode** (Kiosk Mode).
+
+### Dual-Display Setup
+
+The Kiosk is designed for a **USB-C Hub** connection:
+- **Tablet (Primary)**: Acts as the **Controller**. Shows meeting status, "Join" buttons, and administrative controls.
+- **TV (Secondary)**: Acts as the **Stage**. Renders the video conference session via HDMI.
+
+### Automation (Autopilot)
+
+- **MeetAutomatorService**: A native Android Accessibility Service that automatically clicks "Join" buttons.
+- **One-Shot Auth**: Automation is only authorized for a single click per meeting launch to prevent loops.
+- **WebView Fallback**: If a native app cannot be routed to the TV, the system uses a Desktop-spoofed WebView on the secondary display.
+
+### Production Controls
+
+- **One-Touch Join**: When a meeting is active and contains a URL (Google Meet/Teams/Zoom), a large "JOIN MEETING" button appears on the dashboard.
+- **Programmatic Lockdown**: The "Lock" icon in the AppBar triggers `LockTaskMode` to pin the application and disable system navigation.
+- **Safe De-provisioning**: To prevent accidental resets, the "De-provision" action is hidden inside the "Device Info" dialog under a confirmation flow.
+
+## Getting Started
+...
+
 - **Backend:** Firebase (Authentication, Firestore, Analytics, Performance Monitoring)
 - **Routing:** `auto_route`
 - **State Management:** `provider`
