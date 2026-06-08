@@ -80,6 +80,13 @@ Run tests for all packages from the root:
 (cd packages/roombooker_portal && flutter test)
 ```
 
+## Testing Standards
+
+### Test Maintenance
+- **Always update existing tests** to match new implementation logic or UI changes. 
+- **NEVER remove a test file** or test case without explicit permission from the user. If you believe a test is truly obsolete, you MUST ask for permission before deleting it.
+- **Coverage**: All new functionality, data entities, and business logic MUST be covered by appropriate unit or widget tests.
+
 ## Code Generation
 
 This project uses `build_runner` for code generation, primarily for `auto_route` and `json_serializable`. If you make changes that require code generation (e.g., adding new routes or serializable classes), run the following command:
