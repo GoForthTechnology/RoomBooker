@@ -98,14 +98,23 @@ requests whose recurrence frequency is not "never", invoke the supplied
 - **WHEN** `deleteBooking` is called for a recurring request with edit choice
   `thisAndFuture`
 - **THEN** `endBooking` SHALL be invoked, setting
-  `recurrancePattern.end` to the (stripped-to-day) event start time of the
-  request being deleted, ending the series before that occurrence.
+  `recurrancePattern.end` to the (stripped-to-day) `eventStartTime` of the
+  request being deleted.
 
-#### Scenario: No recurring edit choice provided
-- **WHEN** `updateBooking` or `deleteBooking` is called for a recurring
-  request and the `RecurringBookingEditChoiceProvider` resolves to `null`
-- **THEN** no Firestore writes SHALL be made (the operation SHALL be a
-  no-op), except that `deleteBooking` SHALL still throw before logging.
+#### Scenario: No recurring edit choice provided for an update
+- **WHEN** `updateBooking` is called for a recurring confirmed request and the
+  `RecurringBookingEditChoiceProvider` resolves to `null`
+- **THEN** the confirmed-request document itself SHALL NOT be modified, but
+  the transaction SHALL still write `privateDetails` to
+  `orgs/{orgID}/request-details/{requestID}`, and an `UpdateBooking` audit log
+  entry and analytics event SHALL still be recorded.
+
+#### Scenario: No recurring edit choice provided for a delete
+- **WHEN** `deleteBooking` is called for a recurring request and the
+  `RecurringBookingEditChoiceProvider` resolves to `null`
+- **THEN** the operation SHALL throw `UnimplementedError`, but a
+  `DeleteBooking` audit log entry SHALL still be written (in a `finally`
+  block) before the exception propagates to the caller.
 
 ### Requirement: Booking Query and Streaming
 `BookingRepo.listRequests` SHALL return a real-time stream of all `Request`
@@ -156,13 +165,13 @@ delete, confirm, deny, revisit).
 
 ### Requirement: Request Details Caching
 `BookingRepo.getRequestDetails` SHALL return a cached, shared stream of
-`PrivateRequestDetails` per `(orgID, requestID)` pair, backed by a single
-Firestore listener on `orgs/{orgID}/request-details/{requestID}`, so that
-multiple subscribers do not each open a separate Firestore listener.
+`PrivateRequestDetails` keyed by `requestID`, backed by a single Firestore
+listener on `orgs/{orgID}/request-details/{requestID}`, so that multiple
+subscribers do not each open a separate Firestore listener.
 
 #### Scenario: Multiple subscribers share one Firestore listener
 - **WHEN** `getRequestDetails(orgID, requestID)` is called more than once
-  for the same `(orgID, requestID)`
+  for the same `requestID`
 - **THEN** all returned streams SHALL be backed by the same underlying
   Firestore document listener and SHALL receive the same emitted values.
 
@@ -190,9 +199,10 @@ updates, and removal (including removing the org from the owning user's
 #### Scenario: Removing an organization
 - **WHEN** `removeOrg(orgID)` is called by an authenticated user for an org
   that exists
-- **THEN** the `orgs/{orgID}` document SHALL be deleted and the calling
-  user's `orgIDs` SHALL no longer contain `orgID`, both within a single
-  transaction.
+- **THEN** the `orgs/{orgID}` document SHALL be deleted via a direct
+  (non-transactional) delete call, and the calling user's `orgIDs` SHALL be
+  updated via a transactional `FieldValue.arrayRemove` of `orgID`, both
+  issued from within the same `runTransaction` callback.
 
 #### Scenario: Listing public organizations excludes owned orgs on request
 - **WHEN** `getOrgs(excludeOwned: true)` is called for an authenticated user
@@ -210,8 +220,9 @@ admin access, storing pending requests in
 - **WHEN** `addAdminRequestForCurrentUser(orgID)` is called by an
   authenticated user with an email address
 - **THEN** an `AdminEntry` document SHALL be created at
-  `orgs/{orgID}/admin-requests/{userID}` and the user's `orgIDs` SHALL
-  include `orgID`, written within a single transaction.
+  `orgs/{orgID}/admin-requests/{userID}` via a transactional write, and the
+  user's `orgIDs` SHALL be updated (via a separate, non-transactional
+  read-then-write) to include `orgID`.
 
 #### Scenario: Approving an admin request
 - **WHEN** `approveAdminRequest(orgID, userID)` is called for a user with an
