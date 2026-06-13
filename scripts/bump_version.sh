@@ -39,7 +39,7 @@ if [ -z "$PART" ]; then
   exit 1
 fi
 
-PUBSPEC="pubspec.yaml"
+PUBSPEC="packages/roombooker_portal/pubspec.yaml"
 
 # Check if pubspec.yaml exists
 if [ ! -f "$PUBSPEC" ]; then
