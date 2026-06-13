@@ -8,7 +8,7 @@ class MeetingStageWidget extends StatefulWidget {
 }
 
 class _MeetingStageWidgetState extends State<MeetingStageWidget> {
-  String _roomName = 'LOADING...';
+  final String _roomName = 'LOADING...';
 
   @override
   Widget build(BuildContext context) {

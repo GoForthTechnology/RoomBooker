@@ -30,18 +30,18 @@ void main() async {
         ChangeNotifierProvider<LoggingService>(create: (_) => DebugLoggingService()),
         ChangeNotifierProxyProvider<LoggingService, AnalyticsService>(
           create: (context) => FirebaseAnalyticsService(context.read<LoggingService>()),
-          update: (_, logging, __) => FirebaseAnalyticsService(logging),
+          update: (_, logging, _) => FirebaseAnalyticsService(logging),
         ),
         ChangeNotifierProvider<LogRepo>(create: (_) => LogRepo()),
         ProxyProvider3<LogRepo, AnalyticsService, LoggingService, BookingRepo>(
-          update: (_, logRepo, analytics, logging, __) => BookingRepo(
+          update: (_, logRepo, analytics, logging, _) => BookingRepo(
             logRepo: logRepo,
             analytics: analytics,
             logging: logging,
           ),
         ),
         ProxyProvider<BookingRepo, BookingService>(
-          update: (_, repo, __) => BookingService(bookingRepo: repo),
+          update: (_, repo, _) => BookingService(bookingRepo: repo),
         ),
         ChangeNotifierProvider<DisplayOrchestrator>(
           create: (_) => DisplayOrchestrator(
@@ -55,10 +55,6 @@ void main() async {
       child: const KioskApp(),
     ),
   );
-}
-
-Future<void> _initServices() async {
-  // This is no longer used but kept for reference if needed
 }
 
 @pragma('vm:entry-point')
@@ -180,12 +176,11 @@ class _ProvisioningScreenState extends State<ProvisioningScreen> {
     try {
       debugPrint('Kiosk: Consuming code $code...');
       final provisioningService = Provider.of<ProvisioningService>(context, listen: false);
+      final storage = Provider.of<FlutterSecureStorage>(context, listen: false);
       final handshake = await provisioningService.consumeActivationCode(code);
-      
+
       if (handshake != null) {
         debugPrint('Kiosk: Handshake successful for Room ID: ${handshake.roomID}');
-        final storage = Provider.of<FlutterSecureStorage>(context, listen: false);
-        
         // Only persist the IDs (The device identity)
         await storage.write(key: 'roomID', value: handshake.roomID);
         await storage.write(key: 'orgID', value: handshake.orgID);
@@ -382,9 +377,10 @@ class _KioskDashboardState extends State<KioskDashboard> {
                     );
 
                     if (confirmed == true) {
+                      if (!context.mounted) return;
                       final storage = Provider.of<FlutterSecureStorage>(context, listen: false);
                       await storage.deleteAll();
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(builder: (_) => const ProvisioningGuard()),
                         (route) => false,
@@ -455,7 +451,7 @@ class _KioskDashboardState extends State<KioskDashboard> {
                             await stopKioskMode();
                           } else {
                             final success = await startKioskMode();
-                            if (!success && mounted) {
+                            if (!success && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Failed to lock. Ensure Device Admin is enabled.'))
                               );
@@ -478,13 +474,13 @@ class _KioskDashboardState extends State<KioskDashboard> {
                       await orchestrator.refresh();
                       if (orchestrator.secondaryDisplay != null) {
                         await orchestrator.showOnStage('presentation');
-                        if (mounted) {
+                        if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Projecting to Secondary Display...'))
                           );
                         }
                       } else {
-                        if (mounted) {
+                        if (context.mounted) {
                           showDialog(
                             context: context,
                             builder: (context) => const Dialog.fullscreen(child: MeetingStageWidget()),

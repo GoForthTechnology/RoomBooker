@@ -35,44 +35,44 @@
 
 ## 4. roombooker_kiosk: lib fixes
 
-- [ ] 4.1 Fix `unnecessary_underscores` (3) in
+- [x] 4.1 Fix `unnecessary_underscores` (3) in
       `packages/roombooker_kiosk/lib/main.dart` (lines 33, 37, 44) —
       rename to single `_`.
-- [ ] 4.2 Fix `unused_element` (1) in
+- [x] 4.2 Fix `unused_element` (1) in
       `packages/roombooker_kiosk/lib/main.dart:60` — investigate intent;
       remove if dead, wire up only if removal drops intended
       functionality (flag if ambiguous).
-- [ ] 4.3 Fix `use_build_context_synchronously` (7) in
+- [x] 4.3 Fix `use_build_context_synchronously` (7) in
       `packages/roombooker_kiosk/lib/main.dart` (lines 187, 385, 388, 459,
       482, 489, 492) — add `mounted` checks after `await`s before using
       `BuildContext`.
-- [ ] 4.4 Fix `unused_field` (1) in
+- [x] 4.4 Fix `unused_field` (1) in
       `packages/roombooker_kiosk/lib/webview_stage.dart:13`
       (`_webViewController`) — remove if dead, wire up only if removal
       drops intended functionality (flag if ambiguous).
-- [ ] 4.5 Fix `unnecessary_nullable_for_final_variable_declarations` (1) in
+- [x] 4.5 Fix `unnecessary_nullable_for_final_variable_declarations` (1) in
       `packages/roombooker_kiosk/lib/display_orchestrator.dart:35` — drop
       the `?`.
-- [ ] 4.6 Fix `prefer_final_fields` (1) in
+- [x] 4.6 Fix `prefer_final_fields` (1) in
       `packages/roombooker_kiosk/lib/stage_ui.dart:11` (`_roomName`) — make
       final.
 
 ## 5. roombooker_kiosk: test fixes
 
-- [ ] 5.1 Fix `depend_on_referenced_packages` (3) for
+- [x] 5.1 Fix `depend_on_referenced_packages` (3) for
       `packages/roombooker_kiosk/test/app_boot_test.dart` (lines 4, 11, 12)
       and (1) for `packages/roombooker_kiosk/test/widget_test.dart:3` —
       add missing packages to `dev_dependencies` in
       `packages/roombooker_kiosk/pubspec.yaml`.
-- [ ] 5.2 Fix `unused_import` (2) in
+- [x] 5.2 Fix `unused_import` (2) in
       `packages/roombooker_kiosk/test/app_boot_test.dart:10` and
       `packages/roombooker_kiosk/test/widget_test.dart:1` — remove.
 
 ## 6. Validation and CI
 
-- [ ] 6.1 Run `flutter analyze` across the workspace and confirm it exits 0
+- [x] 6.1 Run `flutter analyze` across the workspace and confirm it exits 0
       (0 issues).
-- [ ] 6.2 Run `flutter test` for `roombooker_core`, `roombooker_portal`, and
+- [x] 6.2 Run `flutter test` for `roombooker_core`, `roombooker_portal`, and
       `roombooker_kiosk` and confirm all pass (no behavior changes).
-- [ ] 6.3 Remove `continue-on-error: true` and its TODO comment from the
+- [x] 6.3 Remove `continue-on-error: true` and its TODO comment from the
       Analyze step in `.github/workflows/pr-checks.yml`.

@@ -10,8 +10,6 @@ class IntegratedWebViewStage extends StatefulWidget {
 }
 
 class _IntegratedWebViewStageState extends State<IntegratedWebViewStage> {
-  InAppWebViewController? _webViewController;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,9 +23,6 @@ class _IntegratedWebViewStageState extends State<IntegratedWebViewStage> {
           allowsInlineMediaPlayback: true,
           useShouldOverrideUrlLoading: true,
         ),
-        onWebViewCreated: (controller) {
-          _webViewController = controller;
-        },
         onLoadStop: (controller, url) async {
           // Inject automation script
           await controller.evaluateJavascript(source: """

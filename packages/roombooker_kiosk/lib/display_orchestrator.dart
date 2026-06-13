@@ -32,11 +32,9 @@ class DisplayOrchestrator extends ChangeNotifier {
 
   Future<void> refresh() async {
     try {
-      final List? result = await _wrapper.getDisplays();
-      if (result != null) {
-        _displays = result.map((m) => DisplayInfo.fromMap(m as Map)).toList();
-        notifyListeners();
-      }
+      final List result = await _wrapper.getDisplays();
+      _displays = result.map((m) => DisplayInfo.fromMap(m as Map)).toList();
+      notifyListeners();
     } catch (e) {
       debugPrint('Error getting displays: $e');
     }
