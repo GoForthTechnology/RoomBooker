@@ -700,6 +700,11 @@ void main() {
       phone: '1234567890',
     );
 
+    setUp(() {
+      when(() => mockBookingService.getRequest('test_org_id', 'req_123'))
+          .thenAnswer((_) => Stream.value(request));
+    });
+
     test('dragEndStream event triggers booking update successfully', () async {
       when(() => mockBookingService.getRequestDetails('test_org_id', 'req_123'))
           .thenAnswer((_) => Stream.value(privateDetails));

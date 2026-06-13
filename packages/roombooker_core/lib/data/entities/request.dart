@@ -88,6 +88,8 @@ class Request {
   final RecurrancePattern? recurrancePattern;
   final Map<DateTime, Request?>? recurranceOverrides;
   final bool ignoreOverlaps;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final DateTime? recurrenceInstanceStartDate;
 
   Request({
     this.recurrancePattern,
@@ -101,6 +103,7 @@ class Request {
     this.id,
     this.recurranceOverrides,
     this.ignoreOverlaps = false,
+    this.recurrenceInstanceStartDate,
   }) {
     if (!eventStartTime.isBefore(eventEndTime)) {
       log(
@@ -132,6 +135,7 @@ class Request {
     RecurrancePattern? recurrancePattern,
     Map<DateTime, Request?>? recurranceOverrides,
     bool? ignoreOverlaps,
+    DateTime? recurrenceInstanceStartDate,
   }) {
     return Request(
       eventStartTime: eventStartTime ?? this.eventStartTime,
@@ -145,6 +149,7 @@ class Request {
       recurrancePattern: recurrancePattern ?? this.recurrancePattern,
       recurranceOverrides: recurranceOverrides ?? this.recurranceOverrides,
       ignoreOverlaps: ignoreOverlaps ?? this.ignoreOverlaps,
+      recurrenceInstanceStartDate: recurrenceInstanceStartDate ?? this.recurrenceInstanceStartDate,
     );
   }
 
@@ -215,22 +220,27 @@ class Request {
     return dates
         .where((d) => includeRequestDate || d != eventDate)
         .map((date) {
+          final originalSlotStartTime = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            eventStartTime.hour,
+            eventStartTime.minute,
+          );
           if (recurranceOverrides != null &&
               recurranceOverrides!.containsKey(date)) {
             var override = recurranceOverrides![date];
             if (override == null) {
               return null;
             }
-            return override.copyWith(id: id, status: status);
+            return override.copyWith(
+              id: id,
+              status: status,
+              recurrenceInstanceStartDate: originalSlotStartTime,
+            );
           }
           return copyWith(
-            eventStartTime: DateTime(
-              date.year,
-              date.month,
-              date.day,
-              eventStartTime.hour,
-              eventStartTime.minute,
-            ),
+            eventStartTime: originalSlotStartTime,
             eventEndTime: DateTime(
               date.year,
               date.month,
@@ -238,6 +248,7 @@ class Request {
               eventEndTime.hour,
               eventEndTime.minute,
             ),
+            recurrenceInstanceStartDate: originalSlotStartTime,
           );
         })
         .where((d) => d != null)

@@ -200,6 +200,13 @@ class ViewBookingsViewModel extends ChangeNotifier {
     required DateTime originalStartTime,
   }) async {
     try {
+      final masterRequest = await _bookingService
+          .getRequest(orgID, originalRequest.id!)
+          .first;
+      if (masterRequest == null) {
+        throw Exception("Request with ID ${originalRequest.id} not found");
+      }
+
       final details = await _bookingService
           .getRequestDetails(orgID, originalRequest.id!)
           .first;
@@ -207,17 +214,17 @@ class ViewBookingsViewModel extends ChangeNotifier {
         throw Exception("Request details with ID ${originalRequest.id} not found");
       }
 
-      final updatedRequest = originalRequest.copyWith(
+      final updatedRequest = masterRequest.copyWith(
         eventStartTime: newStart,
         eventEndTime: newEnd,
       );
 
       await _bookingService.updateBooking(
         orgID,
-        originalRequest,
+        masterRequest,
         updatedRequest,
         details,
-        originalRequest.status ?? RequestStatus.pending,
+        masterRequest.status ?? RequestStatus.pending,
         _requestEditorViewModel.choiceProvider,
         originalStartTime: originalStartTime,
       );

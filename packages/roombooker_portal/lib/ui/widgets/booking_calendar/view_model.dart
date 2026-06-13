@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'package:collection/collection.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -45,6 +46,7 @@ class CalendarViewModel extends ChangeNotifier {
 
   DateTime? _draggedAppointmentOriginalStartTime;
   DateTime? _resizedAppointmentOriginalStartTime;
+  Map<Appointment, Request> _currentAppointmentsMap = {};
 
   final bool appendRoomName;
   final bool includePrivateBookings;
@@ -233,6 +235,7 @@ class CalendarViewModel extends ChangeNotifier {
             throw 'Error in listBlackoutWindows: $e';
           }),
       (newAppointment, initialRequest, appointments, blackoutWindows) {
+        _currentAppointmentsMap = appointments;
         List<Appointment> out = [];
         if (newAppointment != null) {
           out.add(newAppointment);
@@ -503,12 +506,14 @@ class CalendarViewModel extends ChangeNotifier {
 
   void handleDragStart(AppointmentDragStartDetails details) {
     var appointment = details.appointment as Appointment?;
-    _draggedAppointmentOriginalStartTime = appointment?.startTime;
+    var apptId = appointment?.id;
+    _draggedAppointmentOriginalStartTime = apptId is DateTime ? apptId : appointment?.startTime;
   }
 
   void handleResizeStart(AppointmentResizeStartDetails details) {
     var appointment = details.appointment as Appointment?;
-    _resizedAppointmentOriginalStartTime = appointment?.startTime;
+    var apptId = appointment?.id;
+    _resizedAppointmentOriginalStartTime = apptId is DateTime ? apptId : appointment?.startTime;
   }
 
   void handleDragEnd(AppointmentDragEndDetails details) {
@@ -519,7 +524,7 @@ class CalendarViewModel extends ChangeNotifier {
     if (appointment == null) {
       return;
     }
-    Request? request = _requestIndex.valueOrNull?[_appointmentID(appointment)];
+    Request? request = _findRequest(appointment, _draggedAppointmentOriginalStartTime);
     if (request == null) {
       log("Appointment not found in state, cannot call onAppointmentDragEnd");
       return;
@@ -545,7 +550,7 @@ class CalendarViewModel extends ChangeNotifier {
     if (appointment == null) {
       return;
     }
-    Request? request = _requestIndex.valueOrNull?[_appointmentID(appointment)];
+    Request? request = _findRequest(appointment, _resizedAppointmentOriginalStartTime);
     if (request == null) {
       log("Appointment not found in state, cannot call onAppointmentResizeEnd");
       return;
@@ -597,9 +602,28 @@ class CalendarViewModel extends ChangeNotifier {
     return (appointment.resourceIds!.first as Object?)?.toString() ?? "";
   }
 
+  Request? _findRequest(Appointment appointment, DateTime? originalStartTime) {
+    var req = _currentAppointmentsMap[appointment];
+    if (req != null) return req;
+
+    try {
+      final targetId = _appointmentID(appointment);
+      if (targetId.isEmpty) return null;
+
+      return _currentAppointmentsMap.values.firstWhereOrNull((r) {
+        if (r.id != targetId) return false;
+        if (originalStartTime == null) return true;
+        final occurrenceTime = r.recurrenceInstanceStartDate ?? r.eventStartTime;
+        return occurrenceTime == originalStartTime;
+      });
+    } catch (_) {
+      return null;
+    }
+  }
+
   void _handleRequestTap(CalendarTapDetails details) {
     for (var appointment in details.appointments ?? []) {
-      var request = _requestIndex.valueOrNull?[_appointmentID(appointment)];
+      var request = _findRequest(appointment, appointment.startTime);
       if (request == null) {
         log("Appointment not found in state");
         continue;
@@ -723,6 +747,7 @@ extension on Request {
       s += "\n(Ignoring Overlaps!)";
     }
     return Appointment(
+      id: recurrenceInstanceStartDate,
       subject: s,
       color: color,
       startTime: eventStartTime,
