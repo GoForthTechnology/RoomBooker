@@ -130,13 +130,14 @@ If you are working with tools or scripts that require these files locally, ensur
 
 ## CI/CD (Android)
 
-The project uses GitHub Actions for automated Android builds and distribution.
+The project uses GitHub Actions for automated Android builds and distribution. The pipeline uses a **Version-Driven Deployment Strategy** based on the semantic version tag (`vMajor.Minor.Patch`):
 
 - **Workflow:** `.github/workflows/android-release.yml`
-- **Trigger:** Pushing a commit with a message matching "Cut v#.#.#+#" (e.g., via `scripts/bump_version.sh`).
-- **Distribution:** Signed Android artifacts are automatically distributed:
-  - **Firebase App Distribution:** Signed APK for internal testing.
-  - **Google Play Console:** Signed AAB uploaded to the **Internal Track**.
+- **Trigger:** Pushing a commit with a version tag (e.g., `v1.4.0` via `scripts/bump_version.sh`).
+- **Distribution Rules:**
+  - **Patch Versions** (e.g., `v1.3.1`): Deployed EXCLUSIVELY to the **Internal Track** on Google Play. Used for safe testing of fixes or exploratory builds.
+  - **Minor/Major Versions** (e.g., `v1.4.0`): Deployed to BOTH the **Internal Track** and automatically promoted to the **Production Track** (100% rollout). Used for shipping verified features without manual intervention.
+  - **Firebase App Distribution:** All builds (Patch, Minor, Major) also generate an APK that is uploaded to Firebase App Distribution for immediate QA access.
 
 ### Local CI Testing (with `act`)
 

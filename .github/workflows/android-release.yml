@@ -54,13 +54,31 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-      - name: Upload to Google Play
+      - name: Extract Version Parts
+        id: version
+        run: |
+          # Example: refs/tags/v1.4.0+50 -> PATCH_NUM=0
+          PATCH_NUM=$(echo ${{ github.ref_name }} | cut -d'.' -f3 | cut -d'+' -f1)
+          echo "patch=$PATCH_NUM" >> $GITHUB_OUTPUT
+
+      - name: Upload to Google Play (Internal)
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: play_sa_key.json
           packageName: org.goforthtech.roombooker
           releaseFiles: packages/roombooker_portal/build/app/outputs/bundle/release/app-release.aab
           track: internal
+          status: completed
+          whatsNewDirectory: distribution/whatsnew
+
+      - name: Upload to Google Play (Production)
+        if: steps.version.outputs.patch == '0'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: play_sa_key.json
+          packageName: org.goforthtech.roombooker
+          releaseFiles: packages/roombooker_portal/build/app/outputs/bundle/release/app-release.aab
+          track: production
           status: completed
           whatsNewDirectory: distribution/whatsnew
 
