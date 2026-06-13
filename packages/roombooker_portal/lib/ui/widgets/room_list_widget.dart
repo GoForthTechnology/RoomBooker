@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:roombooker_core/data/entities/organization.dart';
 import 'package:roombooker_core/data/repos/room_repo.dart';
 import 'package:roombooker_core/roombooker_core.dart';
 import 'package:roombooker_portal/ui/widgets/heading.dart';
-import 'package:roombooker_core/utils/room_colors.dart';
 import 'action_button.dart';
 
 class RoomListWidget extends StatelessWidget {
@@ -41,8 +39,7 @@ class RoomListWidget extends StatelessWidget {
           // Prevent scrolling to avoid conflicts with the parent scroll view
           physics: const NeverScrollableScrollPhysics(),
           buildDefaultDragHandles: false,
-          onReorder: (oldIndex, newIndex) async {
-            if (newIndex > oldIndex) newIndex -= 1;
+          onReorderItem: (oldIndex, newIndex) async {
             final updatedRooms = List<Room>.from(rooms);
             final room = updatedRooms.removeAt(oldIndex);
             updatedRooms.insert(newIndex, room);

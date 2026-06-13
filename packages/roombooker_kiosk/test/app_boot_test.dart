@@ -7,7 +7,6 @@ import 'package:roombooker_kiosk/main.dart';
 import 'package:roombooker_kiosk/display_orchestrator.dart';
 import 'package:roombooker_kiosk/kiosk_state_notifier.dart';
 import 'package:roombooker_core/roombooker_core.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_core_platform_interface/firebase_core_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
