@@ -9,6 +9,7 @@ import 'package:roombooker_core/data/entities/organization.dart';
 import 'package:roombooker_core/data/entities/request.dart';
 import 'package:roombooker_core/data/repos/org_repo.dart';
 import 'package:roombooker_core/data/services/booking_service.dart';
+import 'package:roombooker_core/data/repos/booking_repo.dart';
 import 'package:roombooker_portal/router.dart';
 import 'package:roombooker_portal/ui/screens/view_bookings/view_bookings_view_model.dart';
 import 'package:roombooker_portal/ui/widgets/booking_calendar/view_model.dart';
@@ -892,6 +893,106 @@ void main() {
             any(),
             originalStartTime: occurrenceStartTime,
           )).called(1);
+    });
+
+    test('dragEndStream event forwards correct choiceProvider with different edit choices', () async {
+      final choices = [
+        RecurringBookingEditChoice.thisInstance,
+        RecurringBookingEditChoice.all,
+        RecurringBookingEditChoice.thisAndFuture,
+      ];
+
+      for (var expectedChoice in choices) {
+        when(() => mockRequestEditorViewModel.choiceProvider)
+            .thenReturn(() async => expectedChoice);
+        when(() => mockBookingService.getRequestDetails('test_org_id', 'req_123'))
+            .thenAnswer((_) => Stream.value(privateDetails));
+        when(() => mockBookingService.updateBooking(
+              any(),
+              any(),
+              any(),
+              any(),
+              any(),
+              any(),
+              originalStartTime: any(named: 'originalStartTime'),
+            )).thenAnswer((_) async {});
+
+        createViewModel();
+
+        final occurrenceStartTime = now.add(const Duration(days: 2));
+        final dropTime = occurrenceStartTime.add(const Duration(hours: 2));
+        dragEndController.add(DragDetails(
+          request: request,
+          originalStartTime: occurrenceStartTime,
+          dropTime: dropTime,
+        ));
+
+        await Future.delayed(Duration.zero);
+
+        final capturedChoiceProvider = verify(() => mockBookingService.updateBooking(
+              'test_org_id',
+              request,
+              any(that: isA<Request>()),
+              privateDetails,
+              RequestStatus.confirmed,
+              captureAny(),
+              originalStartTime: occurrenceStartTime,
+            )).captured.first as RecurringBookingEditChoiceProvider;
+
+        final choice = await capturedChoiceProvider();
+        expect(choice, expectedChoice);
+      }
+    });
+
+    test('resizeEndStream event forwards correct choiceProvider with different edit choices', () async {
+      final choices = [
+        RecurringBookingEditChoice.thisInstance,
+        RecurringBookingEditChoice.all,
+        RecurringBookingEditChoice.thisAndFuture,
+      ];
+
+      for (var expectedChoice in choices) {
+        when(() => mockRequestEditorViewModel.choiceProvider)
+            .thenReturn(() async => expectedChoice);
+        when(() => mockBookingService.getRequestDetails('test_org_id', 'req_123'))
+            .thenAnswer((_) => Stream.value(privateDetails));
+        when(() => mockBookingService.updateBooking(
+              any(),
+              any(),
+              any(),
+              any(),
+              any(),
+              any(),
+              originalStartTime: any(named: 'originalStartTime'),
+            )).thenAnswer((_) async {});
+
+        createViewModel();
+
+        final occurrenceStartTime = now.add(const Duration(days: 2));
+        final newStartTime = occurrenceStartTime;
+        final newEndTime = occurrenceStartTime.add(const Duration(hours: 2));
+        resizeEndController.add(ResizeDetails(
+          request: request,
+          originalStartTime: occurrenceStartTime,
+          startTime: newStartTime,
+          endTime: newEndTime,
+        ));
+
+        await Future.delayed(Duration.zero);
+
+        final capturedChoiceProvider = verify(() => mockBookingService.updateBooking(
+              'test_org_id',
+              request,
+              any(that: isA<Request>()),
+              privateDetails,
+              RequestStatus.confirmed,
+              captureAny(),
+              originalStartTime: occurrenceStartTime,
+            )).captured.first as RecurringBookingEditChoiceProvider;
+
+        final choice = await capturedChoiceProvider();
+        expect(choice, expectedChoice);
+      }
     });
   });
 }

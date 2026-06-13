@@ -623,7 +623,8 @@ class CalendarViewModel extends ChangeNotifier {
 
   void _handleRequestTap(CalendarTapDetails details) {
     for (var appointment in details.appointments ?? []) {
-      var request = _findRequest(appointment, appointment.startTime);
+      var originalStartTime = appointment.id is DateTime ? appointment.id as DateTime : appointment.startTime;
+      var request = _findRequest(appointment, originalStartTime);
       if (request == null) {
         log("Appointment not found in state");
         continue;
