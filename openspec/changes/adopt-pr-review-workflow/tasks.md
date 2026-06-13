@@ -54,5 +54,5 @@
       branch `openspec/adopt-pr-review-workflow`, commit this change's
       artifacts plus the workflow/skill/doc edits, push, and open the PR for
       this change itself.
-- [ ] 6.2 Run `/code-review` against the PR diff and address any findings.
-- [ ] 6.3 Mark the PR ready for review and notify the user.
+- [x] 6.2 Run `/code-review` against the PR diff and address any findings.
+- [x] 6.3 Mark the PR ready for review and notify the user.
