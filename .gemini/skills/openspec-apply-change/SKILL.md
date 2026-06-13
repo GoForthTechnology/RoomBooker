@@ -90,12 +90,16 @@ Implement tasks from an OpenSpec change.
    - Run `/code-review` against the change's branch diff (against `main`)
      and apply any high-confidence fixes it finds, committing and pushing
      them.
-   - If a PR exists for this branch and is still a draft, mark it ready:
+   - Check whether a PR exists for this branch and is still a draft:
+     ```bash
+     gh pr view --json isDraft
+     ```
+     If `isDraft` is `true`, mark it ready:
      ```bash
      gh pr ready
      ```
-   - If `gh` is unavailable or no PR exists, skip this step and note it in
-     the summary.
+   - If `gh` is unavailable, no PR exists, or the PR is already ready, skip
+     this step and note it in the summary.
 
 8. **On completion or pause, show status**
 

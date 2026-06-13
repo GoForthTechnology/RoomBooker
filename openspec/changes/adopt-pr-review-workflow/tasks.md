@@ -4,6 +4,10 @@
       `pull_request` (opened, synchronize, reopened) targeting `main`,
       running `flutter test` for `roombooker_core` and
       `roombooker_portal`, and `flutter analyze` for the workspace.
+- [ ] 1.2 (Follow-up, separate change) `main` currently has 35 pre-existing
+      `flutter analyze` issues, so the Analyze step in `pr-checks.yml` was
+      added with `continue-on-error: true`. Clean up the existing issues and
+      remove `continue-on-error` so Analyze becomes a blocking check.
 
 ## 2. Update `openspec-propose` Skill
 
@@ -46,7 +50,7 @@
 
 ## 6. Bootstrap This Change Through the New Workflow
 
-- [ ] 6.1 Once tasks 2-4 are complete, use the updated skills to create the
+- [x] 6.1 Once tasks 2-4 are complete, use the updated skills to create the
       branch `openspec/adopt-pr-review-workflow`, commit this change's
       artifacts plus the workflow/skill/doc edits, push, and open the PR for
       this change itself.

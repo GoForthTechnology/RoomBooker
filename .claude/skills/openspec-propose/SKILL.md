@@ -85,6 +85,7 @@ When ready to implement, run /opsx:apply
    branch and draft PR so the user can follow progress on GitHub:
 
    ```bash
+   git checkout main && git pull
    git checkout -b openspec/<name>
    git add openspec/changes/<name>
    git commit -m "docs: propose <name>"
