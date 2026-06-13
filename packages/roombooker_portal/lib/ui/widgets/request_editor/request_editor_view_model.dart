@@ -566,7 +566,15 @@ class RequestEditorViewModel extends ChangeNotifier {
   }
 
   void updateEventStart(DateTime newStart) {
+    if (_isDisposed) return;
+    final currentStart = _eventStartSubject.value;
+    final currentEnd = _eventEndSubject.value;
     _eventStartSubject.add(newStart);
+
+    if (currentStart != null && currentEnd != null) {
+      final duration = currentEnd.difference(currentStart);
+      _eventEndSubject.add(newStart.add(duration));
+    }
   }
 
   bool _isDisposed = false;

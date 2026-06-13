@@ -221,7 +221,7 @@ void main() {
         expect(viewModel.additionalInfoController.text, '');
       });
 
-      test('updateEventStart updates the stream', () async {
+      test('updateEventStart updates the stream and preserves event duration', () async {
         viewModel = createViewModel();
         viewModel.initializeFromExistingRequest(testRequest, testDetails);
 
@@ -230,6 +230,9 @@ void main() {
 
         final start = await viewModel.eventStartStream.first;
         expect(start, newStart);
+
+        final end = await viewModel.eventEndStream.first;
+        expect(end, DateTime(2024, 2, 1, 15, 0));
       });
 
       test('updateEventEnd updates the stream', () async {

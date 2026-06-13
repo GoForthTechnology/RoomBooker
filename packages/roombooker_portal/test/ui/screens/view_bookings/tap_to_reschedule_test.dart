@@ -174,8 +174,6 @@ void main() {
       );
 
       editorViewModel.initializeFromExistingRequest(initialRequest, PrivateRequestDetails(name: "U", eventName: "E", email: "e@e.com", phone: "123"));
-      editorViewModel.updateEventStart(start);
-      editorViewModel.updateEventEnd(end);
 
       final target1 = DateTime(2026, 5, 16, 14, 0);
       editorViewModel.moveEventTo(target1);
