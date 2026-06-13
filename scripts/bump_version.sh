@@ -58,7 +58,7 @@ fi
 
 # Run Flutter tests
 echo "Running Flutter tests..."
-if ! flutter test; then
+if ! (cd packages/roombooker_core && flutter test) || ! (cd packages/roombooker_portal && flutter test); then
   echo "Tests failed. Aborting version bump."
   exit 1
 fi
