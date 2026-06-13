@@ -1,0 +1,36 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  analyze_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test roombooker_core
+        working-directory: packages/roombooker_core
+        run: flutter test
+
+      - name: Test roombooker_portal
+        working-directory: packages/roombooker_portal
+        run: flutter test

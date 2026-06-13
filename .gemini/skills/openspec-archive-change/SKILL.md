@@ -82,14 +82,31 @@ Archive a completed change in the experimental workflow.
    mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
    ```
 
-6. **Display summary**
+6. **Commit and push the archive as the final pre-merge commit**
+
+   If the change has a branch (`openspec/<name>`) checked out, commit the
+   spec sync and archive move there and push it:
+   ```bash
+   git add openspec/
+   git commit -m "chore: archive <name>"
+   git push
+   ```
+   This is intended to be the last commit on the branch before the PR is
+   merged. If no such branch exists (e.g. archiving directly on `main`),
+   commit locally as before and let the user push/commit per their normal
+   flow.
+
+7. **Display summary**
 
    Show archive completion summary including:
    - Change name
    - Schema that was used
    - Archive location
    - Whether specs were synced (if applicable)
+   - Whether the archive commit was pushed to the change's branch
    - Note about any warnings (incomplete artifacts/tasks)
+   - Reminder: once the user approves the PR, they can squash-merge it
+     (`gh pr merge <pr-number> --squash --delete-branch`)
 
 **Output On Success**
 

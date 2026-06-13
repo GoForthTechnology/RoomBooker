@@ -208,13 +208,16 @@ If the Play Store build fails to sign in:
 
 ## Development Workflow
 
-This project follows the **OpenSpec** spec-driven workflow (see `openspec/`). You **MUST** follow it for any non-trivial change:
+This project follows the **OpenSpec** spec-driven workflow (see `openspec/`), with each change developed on its own branch and reviewed via a GitHub Pull Request. You **MUST** follow it for any non-trivial change:
 
 1. **Explore** (`/opsx:explore`): Think through the problem, investigate the codebase, and clarify requirements before formalizing anything.
-2. **Propose** (`/opsx:propose`): Create a new change under `openspec/changes/<change>/` with a proposal, design, specs, and task list.
-3. **Apply** (`/opsx:apply`): Implement the tasks from the change's `tasks.md`, updating code and tests to match the approved spec.
-4. **Validate**: Run the relevant test suites (see Running Tests) and `flutter analyze` before considering work done.
-5. **Archive and Commit** (`/opsx:archive`): Run `openspec archive <change>` to merge the change into the main specs, then commit the changes using `git`.
+2. **Propose** (`/opsx:propose`): Create a new change under `openspec/changes/<change>/` with a proposal, design, specs, and task list. Once the artifacts are complete, create branch `openspec/<change>`, push it, and open a **draft PR** whose description is derived from `proposal.md`.
+3. **Apply** (`/opsx:apply`): Implement the tasks from the change's `tasks.md`, updating code and tests to match the approved spec. Commit and push progress to the change's branch as tasks complete, so the draft PR's diff updates live.
+4. **Validate**: Run the relevant test suites (see Running Tests) and `flutter analyze` before considering work done. Once all tasks are complete, run `/code-review` against the branch diff, fix high-confidence findings, and mark the PR "Ready for review" (`gh pr ready`).
+5. **Review**: The user reviews the PR on GitHub. When asked to address feedback, read the PR's review comments (`gh pr view <pr> --json reviews,comments`, `gh api repos/:owner/:repo/pulls/<pr>/comments`), make the requested changes, and push follow-up commits to the same branch (no rebasing/force-push).
+6. **Archive and Merge** (`/opsx:archive`): Once the user approves, run `openspec archive <change>` to merge the change's spec deltas into the main specs, commit and push that as the **final commit** on the branch. The user then squash-merges the PR (`gh pr merge <pr> --squash --delete-branch`), keeping the spec delta reviewable for the life of the PR and `main`'s history at roughly one commit per change.
+
+If a change is abandoned, close its PR and delete its branch (`gh pr close <pr> --delete-branch`). All branch/PR steps require an authenticated `gh` CLI; if `gh` is unavailable, skip those steps and note it so the user can run them manually. Per standard git safety rules, Claude does not push to `main` or merge PRs without being explicitly asked.
 
 ### Kiosk Development Iteration (APK Server)
 
