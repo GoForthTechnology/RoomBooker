@@ -99,7 +99,7 @@ void main() {
       showEditorAsDialog: () {},
       showSnackBar: (_) {},
       updateUri: (_) {},
-      pickDate: (_, __, ___) async => null,
+      pickDate: (_, _, _) async => null,
       pickTime: (_) async => null,
     );
   }

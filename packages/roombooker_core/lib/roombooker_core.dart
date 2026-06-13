@@ -1,5 +1,3 @@
-library roombooker_core;
-
 export 'data/entities/blackout_window.dart';
 export 'data/entities/kiosk_identity.dart';
 export 'data/entities/log_entry.dart';

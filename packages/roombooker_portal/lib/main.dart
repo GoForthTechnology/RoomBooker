@@ -19,14 +19,14 @@ import 'package:roombooker_portal/app_router_observer.dart';
 bool useEmulator = false;
 
 void main() async {
-  print('MAIN: Starting...');
+  debugPrint('MAIN: Starting...');
   // Capture cold start time as early as possible
   final coldStartTime = DateTime.now();
 
   WidgetsFlutterBinding.ensureInitialized();
-  print('MAIN: WidgetsBinding initialized');
+  debugPrint('MAIN: WidgetsBinding initialized');
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  print('MAIN: Firebase initialized');
+  debugPrint('MAIN: Firebase initialized');
 
   // AppCheck configuration - DISABLED FOR LAN TESTING
   /*
@@ -43,11 +43,11 @@ void main() async {
 
 
   FirebaseUIAuth.configureProviders(providers);
-  print('MAIN: FirebaseUIAuth configured');
+  debugPrint('MAIN: FirebaseUIAuth configured');
 
   final loggingService = getLoggingService();
   final prefs = await SharedPreferences.getInstance();
-  print('MAIN: SharedPreferences loaded');
+  debugPrint('MAIN: SharedPreferences loaded');
   loggingService.startColdStartTrace(coldStartTime);
 
   if (useEmulator && kDebugMode) {
@@ -77,6 +77,7 @@ void main() async {
             'https://c5ed84ffedec25c193d642e9a8e6ba0f@o4509504243630080.ingest.us.sentry.io/4509504245071872';
         options.sendDefaultPii = true;
         options.tracesSampleRate = 1.0;
+        // ignore: experimental_member_use
         options.profilesSampleRate = 1.0;
         options.attachScreenshot = true;
         options.replay.sessionSampleRate = 1.0;

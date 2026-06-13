@@ -71,7 +71,7 @@ class CustomLogPrinter extends PrettyPrinter {
     super.lineLength,
     super.colors,
     super.printEmojis,
-    bool super.printTime = false,
+    super.dateTimeFormat = DateTimeFormat.none,
   }) : super(
          stackTraceBeginIndex: 1, // This ignores the first frame
        );
