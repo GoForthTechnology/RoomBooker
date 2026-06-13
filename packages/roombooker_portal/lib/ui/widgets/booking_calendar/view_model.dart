@@ -43,6 +43,9 @@ class CalendarViewModel extends ChangeNotifier {
   final Function(DragDetails)? onDragEnd;
   final Function(ResizeDetails)? onResizeEnd;
 
+  DateTime? _draggedAppointmentOriginalStartTime;
+  DateTime? _resizedAppointmentOriginalStartTime;
+
   final bool appendRoomName;
   final bool includePrivateBookings;
   final bool _allowAppointmentResize;
@@ -498,6 +501,16 @@ class CalendarViewModel extends ChangeNotifier {
     }
   }
 
+  void handleDragStart(AppointmentDragStartDetails details) {
+    var appointment = details.appointment as Appointment?;
+    _draggedAppointmentOriginalStartTime = appointment?.startTime;
+  }
+
+  void handleResizeStart(AppointmentResizeStartDetails details) {
+    var appointment = details.appointment as Appointment?;
+    _resizedAppointmentOriginalStartTime = appointment?.startTime;
+  }
+
   void handleDragEnd(AppointmentDragEndDetails details) {
     if (details.appointment == null || details.droppingTime == null) {
       return;
@@ -513,6 +526,7 @@ class CalendarViewModel extends ChangeNotifier {
     }
     final dragDetails = DragDetails(
       request: request,
+      originalStartTime: _draggedAppointmentOriginalStartTime ?? request.eventStartTime,
       dropTime: details.droppingTime!,
     );
     _dragEndSubject.add(dragDetails);
@@ -538,6 +552,7 @@ class CalendarViewModel extends ChangeNotifier {
     }
     final resizeDetails = ResizeDetails(
       request: request,
+      originalStartTime: _resizedAppointmentOriginalStartTime ?? request.eventStartTime,
       startTime: details.startTime!,
       endTime: details.endTime!,
     );
@@ -620,18 +635,25 @@ class DateTapDetails {
 
 class DragDetails {
   final Request request;
+  final DateTime originalStartTime;
   final DateTime dropTime;
 
-  DragDetails({required this.request, required this.dropTime});
+  DragDetails({
+    required this.request,
+    required this.originalStartTime,
+    required this.dropTime,
+  });
 }
 
 class ResizeDetails {
   final Request request;
+  final DateTime originalStartTime;
   final DateTime startTime;
   final DateTime endTime;
 
   ResizeDetails({
     required this.request,
+    required this.originalStartTime,
     required this.startTime,
     required this.endTime,
   });

@@ -286,6 +286,9 @@ void main() {
           .first;
       final appointment = state.dataSource.appointments!.first as Appointment;
 
+      final startDetails = AppointmentDragStartDetails(appointment, null);
+      viewModel.handleDragStart(startDetails);
+
       final details = AppointmentDragEndDetails(
         appointment,
         null,
@@ -300,6 +303,7 @@ void main() {
         gotDetails,
         isA<DragDetails>()
             .having((d) => d.request, 'request', request)
+            .having((d) => d.originalStartTime, 'originalStartTime', request.eventStartTime)
             .having((d) => d.dropTime, 'dropTime', dropTime),
       );
     });
@@ -348,6 +352,9 @@ void main() {
           .first;
       final appointment = state.dataSource.appointments!.first as Appointment;
 
+      final startDetails = AppointmentResizeStartDetails(appointment, null);
+      viewModel.handleResizeStart(startDetails);
+
       final details = AppointmentResizeEndDetails(
         appointment,
         null,
@@ -362,6 +369,7 @@ void main() {
         gotDetails,
         isA<ResizeDetails>()
             .having((d) => d.request, 'request', request)
+            .having((d) => d.originalStartTime, 'originalStartTime', request.eventStartTime)
             .having((d) => d.startTime, 'startTime', startTime)
             .having((d) => d.endTime, 'endTime', endTime),
       );

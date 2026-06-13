@@ -718,6 +718,7 @@ void main() {
       final dropTime = DateTime(2026, 6, 13, 12, 0);
       dragEndController.add(DragDetails(
         request: request,
+        originalStartTime: request.eventStartTime,
         dropTime: dropTime,
       ));
 
@@ -759,6 +760,7 @@ void main() {
       final newEndTime = DateTime(2026, 6, 13, 11, 30);
       resizeEndController.add(ResizeDetails(
         request: request,
+        originalStartTime: request.eventStartTime,
         startTime: newStartTime,
         endTime: newEndTime,
       ));
@@ -805,11 +807,86 @@ void main() {
       final dropTime = DateTime(2026, 6, 13, 12, 0);
       dragEndController.add(DragDetails(
         request: request,
+        originalStartTime: request.eventStartTime,
         dropTime: dropTime,
       ));
 
       final errorMsg = await snackbarCompleter.future;
       expect(errorMsg, contains('Failed to reschedule: Exception: Overlap conflict'));
+    });
+
+    test('dragEndStream event on recurring instance passes correct originalStartTime', () async {
+      when(() => mockBookingService.getRequestDetails('test_org_id', 'req_123'))
+          .thenAnswer((_) => Stream.value(privateDetails));
+      when(() => mockBookingService.updateBooking(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            originalStartTime: any(named: 'originalStartTime'),
+          )).thenAnswer((_) async {});
+
+      createViewModel();
+      
+      final occurrenceStartTime = now.add(const Duration(days: 2));
+      final dropTime = occurrenceStartTime.add(const Duration(hours: 2));
+      dragEndController.add(DragDetails(
+        request: request,
+        originalStartTime: occurrenceStartTime,
+        dropTime: dropTime,
+      ));
+
+      await Future.delayed(Duration.zero);
+
+      verify(() => mockBookingService.updateBooking(
+            'test_org_id',
+            request,
+            any(that: isA<Request>()),
+            privateDetails,
+            RequestStatus.confirmed,
+            any(),
+            originalStartTime: occurrenceStartTime,
+          )).called(1);
+    });
+
+    test('resizeEndStream event on recurring instance passes correct originalStartTime', () async {
+      when(() => mockBookingService.getRequestDetails('test_org_id', 'req_123'))
+          .thenAnswer((_) => Stream.value(privateDetails));
+      when(() => mockBookingService.updateBooking(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            originalStartTime: any(named: 'originalStartTime'),
+          )).thenAnswer((_) async {});
+
+      createViewModel();
+      
+      final occurrenceStartTime = now.add(const Duration(days: 2));
+      final newStartTime = occurrenceStartTime;
+      final newEndTime = occurrenceStartTime.add(const Duration(hours: 2));
+      resizeEndController.add(ResizeDetails(
+        request: request,
+        originalStartTime: occurrenceStartTime,
+        startTime: newStartTime,
+        endTime: newEndTime,
+      ));
+
+      await Future.delayed(Duration.zero);
+
+      verify(() => mockBookingService.updateBooking(
+            'test_org_id',
+            request,
+            any(that: isA<Request>()),
+            privateDetails,
+            RequestStatus.confirmed,
+            any(),
+            originalStartTime: occurrenceStartTime,
+          )).called(1);
     });
   });
 }

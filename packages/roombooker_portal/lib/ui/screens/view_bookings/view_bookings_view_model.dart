@@ -185,19 +185,20 @@ class ViewBookingsViewModel extends ChangeNotifier {
     final duration = request.eventEndTime.difference(request.eventStartTime);
     final newStart = details.dropTime;
     final newEnd = newStart.add(duration);
-    _rescheduleRequest(request, newStart, newEnd);
+    _rescheduleRequest(request, newStart, newEnd, originalStartTime: details.originalStartTime);
   }
 
   void _onResizeEnd(ResizeDetails details) {
     log("Event resized: ${details.request.id} to ${details.startTime} - ${details.endTime}");
-    _rescheduleRequest(details.request, details.startTime, details.endTime);
+    _rescheduleRequest(details.request, details.startTime, details.endTime, originalStartTime: details.originalStartTime);
   }
 
   Future<void> _rescheduleRequest(
     Request originalRequest,
     DateTime newStart,
-    DateTime newEnd,
-  ) async {
+    DateTime newEnd, {
+    required DateTime originalStartTime,
+  }) async {
     try {
       final details = await _bookingService
           .getRequestDetails(orgID, originalRequest.id!)
@@ -218,7 +219,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
         details,
         originalRequest.status ?? RequestStatus.pending,
         _requestEditorViewModel.choiceProvider,
-        originalStartTime: originalRequest.eventStartTime,
+        originalStartTime: originalStartTime,
       );
     } catch (e) {
       log("Error rescheduling booking: $e");
