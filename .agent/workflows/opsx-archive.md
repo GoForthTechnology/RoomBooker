@@ -1,17 +1,10 @@
 ---
-name: openspec-archive-change
-description: Archive a completed change in the experimental workflow. Use when the user wants to finalize and archive a change after implementation is complete.
-license: MIT
-compatibility: Requires openspec CLI.
-metadata:
-  author: openspec
-  version: "1.0"
-  generatedBy: "1.3.1"
+description: Archive a completed change in the experimental workflow
 ---
 
 Archive a completed change in the experimental workflow.
 
-**Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
+**Input**: Optionally specify a change name after `/opsx:archive` (e.g., `/opsx:archive add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
 **Steps**
 
@@ -34,7 +27,7 @@ Archive a completed change in the experimental workflow.
 
    **If any artifacts are not `done`:**
    - Display warning listing incomplete artifacts
-   - Use **AskUserQuestion tool** to confirm user wants to proceed
+   - Prompt user for confirmation to continue
    - Proceed if user confirms
 
 3. **Check task completion status**
@@ -45,7 +38,7 @@ Archive a completed change in the experimental workflow.
 
    **If incomplete tasks found:**
    - Display warning showing count of incomplete tasks
-   - Use **AskUserQuestion tool** to confirm user wants to proceed
+   - Prompt user for confirmation to continue
    - Proceed if user confirms
 
    **If no tasks file exists:** Proceed without task-related warning.
@@ -82,31 +75,14 @@ Archive a completed change in the experimental workflow.
    mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
    ```
 
-6. **Commit and push the archive as the final pre-merge commit**
-
-   If the change has a branch (`openspec/<name>`) checked out, commit the
-   spec sync and archive move there and push it:
-   ```bash
-   git add openspec/
-   git commit -m "chore: archive <name>"
-   git push
-   ```
-   This is intended to be the last commit on the branch before the PR is
-   merged. If no such branch exists (e.g. archiving directly on `main`),
-   commit locally as before and let the user push/commit per their normal
-   flow.
-
-7. **Display summary**
+6. **Display summary**
 
    Show archive completion summary including:
    - Change name
    - Schema that was used
    - Archive location
-   - Whether specs were synced (if applicable)
-   - Whether the archive commit was pushed to the change's branch
+   - Spec sync status (synced / sync skipped / no delta specs)
    - Note about any warnings (incomplete artifacts/tasks)
-   - Reminder: once the user approves the PR, they can squash-merge it
-     (`gh pr merge <pr-number> --squash --delete-branch`)
 
 **Output On Success**
 
@@ -116,9 +92,56 @@ Archive a completed change in the experimental workflow.
 **Change:** <change-name>
 **Schema:** <schema-name>
 **Archived to:** openspec/changes/archive/YYYY-MM-DD-<name>/
-**Specs:** ✓ Synced to main specs (or "No delta specs" or "Sync skipped")
+**Specs:** ✓ Synced to main specs
 
 All artifacts complete. All tasks complete.
+```
+
+**Output On Success (No Delta Specs)**
+
+```
+## Archive Complete
+
+**Change:** <change-name>
+**Schema:** <schema-name>
+**Archived to:** openspec/changes/archive/YYYY-MM-DD-<name>/
+**Specs:** No delta specs
+
+All artifacts complete. All tasks complete.
+```
+
+**Output On Success With Warnings**
+
+```
+## Archive Complete (with warnings)
+
+**Change:** <change-name>
+**Schema:** <schema-name>
+**Archived to:** openspec/changes/archive/YYYY-MM-DD-<name>/
+**Specs:** Sync skipped (user chose to skip)
+
+**Warnings:**
+- Archived with 2 incomplete artifacts
+- Archived with 3 incomplete tasks
+- Delta spec sync was skipped (user chose to skip)
+
+Review the archive if this was not intentional.
+```
+
+**Output On Error (Archive Exists)**
+
+```
+## Archive Failed
+
+**Change:** <change-name>
+**Target:** openspec/changes/archive/YYYY-MM-DD-<name>/
+
+Target archive directory already exists.
+
+**Options:**
+1. Rename the existing archive
+2. Delete the existing archive if it's a duplicate
+3. Wait until a different date to archive
 ```
 
 **Guardrails**
@@ -127,5 +150,5 @@ All artifacts complete. All tasks complete.
 - Don't block archive on warnings - just inform and confirm
 - Preserve .openspec.yaml when moving to archive (it moves with the directory)
 - Show clear summary of what happened
-- If sync is requested, use openspec-sync-specs approach (agent-driven)
+- If sync is requested, use the Skill tool to invoke `openspec-sync-specs` (agent-driven)
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting

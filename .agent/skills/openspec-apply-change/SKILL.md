@@ -71,12 +71,6 @@ Implement tasks from an OpenSpec change.
    - Make the code changes required
    - Keep changes minimal and focused
    - Mark task complete in the tasks file: `- [ ]` → `- [x]`
-   - Commit the change (code, tests, and the updated tasks file) and push to
-     the change's branch (`openspec/<name>`), if it exists. One commit per
-     task or per small group of related tasks is fine - this keeps the
-     change's draft PR diff updating as work progresses. If the branch
-     doesn't exist yet (e.g. it wasn't created during propose), skip pushing
-     and note it in the final summary.
    - Continue to next task
 
    **Pause if:**
@@ -85,29 +79,12 @@ Implement tasks from an OpenSpec change.
    - Error or blocker encountered → report and wait for guidance
    - User interrupts
 
-7. **When all tasks are complete: self-review and mark PR ready**
-
-   - Run `/code-review` against the change's branch diff (against `main`)
-     and apply any high-confidence fixes it finds, committing and pushing
-     them.
-   - Check whether a PR exists for this branch and is still a draft:
-     ```bash
-     gh pr view --json isDraft
-     ```
-     If `isDraft` is `true`, mark it ready:
-     ```bash
-     gh pr ready
-     ```
-   - If `gh` is unavailable, no PR exists, or the PR is already ready, skip
-     this step and note it in the summary.
-
-8. **On completion or pause, show status**
+7. **On completion or pause, show status**
 
    Display:
    - Tasks completed this session
    - Overall progress: "N/M tasks complete"
-   - If all done: note that self-review ran and the PR was marked ready (or
-     why it was skipped), then suggest archive
+   - If all done: suggest archive
    - If paused: explain why and wait for guidance
 
 **Output During Implementation**

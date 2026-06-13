@@ -1,12 +1,5 @@
 ---
-name: openspec-propose
-description: Propose a new change with all artifacts generated in one step. Use when the user wants to quickly describe what they want to build and get a complete proposal with design, specs, and tasks ready for implementation.
-license: MIT
-compatibility: Requires openspec CLI.
-metadata:
-  author: openspec
-  version: "1.0"
-  generatedBy: "1.3.1"
+description: Propose a new change - create it and generate all artifacts in one step
 ---
 
 Propose a new change - create the change and generate all artifacts in one step.
@@ -20,11 +13,11 @@ When ready to implement, run /opsx:apply
 
 ---
 
-**Input**: The user's request should include a change name (kebab-case) OR a description of what they want to build.
+**Input**: The argument after `/opsx:propose` is the change name (kebab-case), OR a description of what the user wants to build.
 
 **Steps**
 
-1. **If no clear input provided, ask what they want to build**
+1. **If no input provided, ask what they want to build**
 
    Use the **AskUserQuestion tool** (open-ended, no preset options) to ask:
    > "What change do you want to work on? Describe what you want to build or fix."
@@ -79,32 +72,7 @@ When ready to implement, run /opsx:apply
       - Use **AskUserQuestion tool** to clarify
       - Then continue with creation
 
-5. **Create a branch and open a draft PR**
-
-   Once all `applyRequires` artifacts are `done`, give this change its own
-   branch and draft PR so the user can follow progress on GitHub:
-
-   ```bash
-   git checkout main && git pull
-   git checkout -b openspec/<name>
-   git add openspec/changes/<name>
-   git commit -m "docs: propose <name>"
-   git push -u origin openspec/<name>
-   ```
-
-   Then open a draft PR with a description derived from `proposal.md`'s
-   "Why" and "What Changes" sections:
-
-   ```bash
-   gh pr create --draft --title "<name>" --body "<description from proposal.md>"
-   ```
-
-   - If `gh` is not installed or not authenticated, skip this step and tell
-     the user a draft PR could not be opened (they can run it manually).
-   - If a branch named `openspec/<name>` already exists, check it out
-     instead of creating a new one.
-
-6. **Show final status**
+5. **Show final status**
    ```bash
    openspec status --change "<name>"
    ```
@@ -114,9 +82,8 @@ When ready to implement, run /opsx:apply
 After completing all artifacts, summarize:
 - Change name and location
 - List of artifacts created with brief descriptions
-- Branch and draft PR URL (or a note if the PR step was skipped)
 - What's ready: "All artifacts created! Ready for implementation."
-- Prompt: "Run `/opsx:apply` or ask me to implement to start working on the tasks."
+- Prompt: "Run `/opsx:apply` to start implementing."
 
 **Artifact Creation Guidelines**
 

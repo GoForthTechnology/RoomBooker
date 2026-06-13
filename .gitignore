@@ -62,3 +62,6 @@ service-account-key.json
 play_sa_key.json
 sa_key.json
 google-play-key.json
+
+# Personal/local Claude Code overrides (not shared with team)
+.claude/settings.local.json

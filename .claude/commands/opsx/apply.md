@@ -1,17 +1,13 @@
 ---
-name: openspec-apply-change
-description: Implement tasks from an OpenSpec change. Use when the user wants to start implementing, continue implementation, or work through tasks.
-license: MIT
-compatibility: Requires openspec CLI.
-metadata:
-  author: openspec
-  version: "1.0"
-  generatedBy: "1.3.1"
+name: "OPSX: Apply"
+description: Implement tasks from an OpenSpec change (Experimental)
+category: Workflow
+tags: [workflow, artifacts, experimental]
 ---
 
 Implement tasks from an OpenSpec change.
 
-**Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
+**Input**: Optionally specify a change name (e.g., `/opsx:apply add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
 **Steps**
 
@@ -39,13 +35,13 @@ Implement tasks from an OpenSpec change.
    ```
 
    This returns:
-   - `contextFiles`: artifact ID -> array of concrete file paths (varies by schema - could be proposal/specs/design/tasks or spec/tests/implementation/docs)
+   - `contextFiles`: artifact ID -> array of concrete file paths (varies by schema)
    - Progress (total, complete, remaining)
    - Task list with status
    - Dynamic instruction based on current state
 
    **Handle states:**
-   - If `state: "blocked"` (missing artifacts): show message, suggest using openspec-continue-change
+   - If `state: "blocked"` (missing artifacts): show message, suggest using `/opsx:continue`
    - If `state: "all_done"`: congratulate, suggest archive
    - Otherwise: proceed to implementation
 
@@ -71,12 +67,6 @@ Implement tasks from an OpenSpec change.
    - Make the code changes required
    - Keep changes minimal and focused
    - Mark task complete in the tasks file: `- [ ]` → `- [x]`
-   - Commit the change (code, tests, and the updated tasks file) and push to
-     the change's branch (`openspec/<name>`), if it exists. One commit per
-     task or per small group of related tasks is fine - this keeps the
-     change's draft PR diff updating as work progresses. If the branch
-     doesn't exist yet (e.g. it wasn't created during propose), skip pushing
-     and note it in the final summary.
    - Continue to next task
 
    **Pause if:**
@@ -85,29 +75,12 @@ Implement tasks from an OpenSpec change.
    - Error or blocker encountered → report and wait for guidance
    - User interrupts
 
-7. **When all tasks are complete: self-review and mark PR ready**
-
-   - Run `/code-review` against the change's branch diff (against `main`)
-     and apply any high-confidence fixes it finds, committing and pushing
-     them.
-   - Check whether a PR exists for this branch and is still a draft:
-     ```bash
-     gh pr view --json isDraft
-     ```
-     If `isDraft` is `true`, mark it ready:
-     ```bash
-     gh pr ready
-     ```
-   - If `gh` is unavailable, no PR exists, or the PR is already ready, skip
-     this step and note it in the summary.
-
-8. **On completion or pause, show status**
+7. **On completion or pause, show status**
 
    Display:
    - Tasks completed this session
    - Overall progress: "N/M tasks complete"
-   - If all done: note that self-review ran and the PR was marked ready (or
-     why it was skipped), then suggest archive
+   - If all done: suggest archive
    - If paused: explain why and wait for guidance
 
 **Output During Implementation**
@@ -138,7 +111,7 @@ Working on task 4/7: <task description>
 - [x] Task 2
 ...
 
-All tasks complete! Ready to archive this change.
+All tasks complete! You can archive this change with `/opsx:archive`.
 ```
 
 **Output On Pause (Issue Encountered)**

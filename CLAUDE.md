@@ -1,6 +1,17 @@
-# Gemini Project Guide: Room Booker
+# Claude Project Guide: Room Booker
 
-This document provides instructions for interacting with the Room Booker Flutter project using Gemini.
+This document provides instructions for working in the Room Booker Flutter project.
+
+## Agent Config Sync (Claude <-> Gemini)
+
+This project is used with both Claude Code and Gemini CLI. Keep the two tool configs in sync:
+
+- `CLAUDE.md` <-> `GEMINI.md`: when one is updated with project-wide guidance (architecture, conventions, workflow, etc.), mirror the change into the other.
+- `.claude/settings.json` (permissions, MCP servers) <-> `.gemini/settings.json`: when adding/removing permissions, MCP servers, or other shared config in one, make the equivalent change in the other.
+- `.claude/skills/` <-> `.gemini/skills/` and `.claude/commands/` <-> `.gemini/commands/`: keep skills/commands available to both tools when they're broadly useful (OpenSpec-specific files are managed by `openspec update`/`openspec init` for each tool separately).
+
+Tool-specific personal settings (e.g. `.claude/settings.local.json`) do not need to be mirrored.
+
 ## Project Overview
 
 This is a Flutter monorepo workspace for managing room reservations. It consists of multiple packages:
@@ -35,19 +46,30 @@ The Kiosk is designed for a **USB-C Hub** connection:
 - **Programmatic Lockdown**: The "Lock" icon in the AppBar triggers `LockTaskMode` to pin the application and disable system navigation.
 - **Safe De-provisioning**: To prevent accidental resets, the "De-provision" action is hidden inside the "Device Info" dialog under a confirmation flow.
 
-## Getting Started
-...
+## Tech Stack
 
-- **Backend:** Firebase (Authentication, Firestore, Analytics, Performance Monitoring)
-- **Routing:** `auto_route`
-- **State Management:** `provider`
-- **Error Reporting:** `sentry_flutter`
-- **Calendar UI:** `syncfusion_flutter_calendar`
+- **Framework**: Flutter (SDK >=3.4.3 <4.0.0)
+- **Backend**: Firebase (Authentication, Firestore, Analytics, Performance Monitoring)
+- **Routing**: `auto_route`
+- **State Management**: `provider`
+- **Error Reporting**: `sentry_flutter`
+- **Calendar UI**: `syncfusion_flutter_calendar`
 
 ## Architecture
 
-- **Shared Core:** All booking-related logic and data access lives in `packages/roombooker_core`. UI components MUST NOT implement business logic or direct repository access.
-- **Portal App:** The primary interface for users and admins lives in `packages/roombooker_portal`.
+- **Shared Core**: All booking-related logic and data access lives in `packages/roombooker_core`. UI components MUST NOT implement business logic or direct repository access.
+- **Portal App**: The primary interface for users and admins lives in `packages/roombooker_portal`.
+- **Presentation**: `packages/roombooker_portal/lib/ui/`
+- **Domain**: `packages/roombooker_core/lib/data/entities/`, `packages/roombooker_core/lib/logic/`
+- **Data**: `packages/roombooker_core/lib/data/`
+- **Router**: `packages/roombooker_portal/lib/router.dart`
+
+## Conventions
+
+- Booking logic must go through `BookingService`.
+- `BookingRepo` is internal and should not be accessed directly by UI.
+- Use camelCase for variables/functions, PascalCase for classes, snake_case for files.
+- Max line length: 80 characters.
 
 ## Getting Started
 
@@ -83,7 +105,7 @@ Run tests for all packages from the root:
 ## Testing Standards
 
 ### Test Maintenance
-- **Always update existing tests** to match new implementation logic or UI changes. 
+- **Always update existing tests** to match new implementation logic or UI changes.
 - **NEVER remove a test file** or test case without explicit permission from the user. If you believe a test is truly obsolete, you MUST ask for permission before deleting it.
 - **Coverage**: All new functionality, data entities, and business logic MUST be covered by appropriate unit or widget tests.
 
@@ -186,9 +208,7 @@ If the Play Store build fails to sign in:
 
 ## Development Workflow
 
-When working on tasks, you **MUST** always follow the OpenSpec flow. Each
-change is developed on its own branch and reviewed via a GitHub Pull
-Request:
+This project follows the **OpenSpec** spec-driven workflow (see `openspec/`), with each change developed on its own branch and reviewed via a GitHub Pull Request. You **MUST** follow it for any non-trivial change:
 
 1. **Explore** (`/opsx:explore`): Think through the problem, investigate the codebase, and clarify requirements before formalizing anything.
 2. **Propose** (`/opsx:propose`): Create a new change under `openspec/changes/<change>/` with a proposal, design, specs, and task list. Once the artifacts are complete, create branch `openspec/<change>`, push it, and open a **draft PR** whose description is derived from `proposal.md`.

@@ -79,32 +79,7 @@ When ready to implement, run /opsx:apply
       - Use **AskUserQuestion tool** to clarify
       - Then continue with creation
 
-5. **Create a branch and open a draft PR**
-
-   Once all `applyRequires` artifacts are `done`, give this change its own
-   branch and draft PR so the user can follow progress on GitHub:
-
-   ```bash
-   git checkout main && git pull
-   git checkout -b openspec/<name>
-   git add openspec/changes/<name>
-   git commit -m "docs: propose <name>"
-   git push -u origin openspec/<name>
-   ```
-
-   Then open a draft PR with a description derived from `proposal.md`'s
-   "Why" and "What Changes" sections:
-
-   ```bash
-   gh pr create --draft --title "<name>" --body "<description from proposal.md>"
-   ```
-
-   - If `gh` is not installed or not authenticated, skip this step and tell
-     the user a draft PR could not be opened (they can run it manually).
-   - If a branch named `openspec/<name>` already exists, check it out
-     instead of creating a new one.
-
-6. **Show final status**
+5. **Show final status**
    ```bash
    openspec status --change "<name>"
    ```
@@ -114,7 +89,6 @@ When ready to implement, run /opsx:apply
 After completing all artifacts, summarize:
 - Change name and location
 - List of artifacts created with brief descriptions
-- Branch and draft PR URL (or a note if the PR step was skipped)
 - What's ready: "All artifacts created! Ready for implementation."
 - Prompt: "Run `/opsx:apply` or ask me to implement to start working on the tasks."
 

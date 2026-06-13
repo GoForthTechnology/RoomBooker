@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff)",
+      "Bash(git diff *)",
+      "Bash(git log)",
+      "Bash(git log *)",
+      "Bash(git branch)",
+      "Bash(git branch *)",
+      "Bash(git show *)",
+      "Bash(flutter pub get)",
+      "Bash(flutter pub get *)",
+      "Bash(flutter test)",
+      "Bash(flutter test *)",
+      "Bash(flutter analyze)",
+      "Bash(flutter analyze *)",
+      "Bash(dart run build_runner build --delete-conflicting-outputs)",
+      "Bash(openspec --version)",
+      "Bash(openspec --help)",
+      "Bash(openspec update *)",
+      "Bash(openspec config *)",
+      "Bash(openspec list*)",
+      "Bash(openspec show*)",
+      "Bash(openspec validate*)"
+    ]
+  }
+}
