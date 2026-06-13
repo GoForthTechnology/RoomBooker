@@ -7,7 +7,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:roombooker_core/data/services/auth_service.dart';
 import 'package:roombooker_core/data/entities/organization.dart';
 import 'package:roombooker_core/data/entities/request.dart';
-
+import 'package:roombooker_core/data/repos/org_repo.dart';
 import 'package:roombooker_core/data/services/booking_service.dart';
 import 'package:roombooker_portal/router.dart';
 import 'package:roombooker_portal/ui/screens/view_bookings/view_bookings_view_model.dart';
@@ -65,16 +65,30 @@ void main() {
   late StreamController<Request> requestTapController;
   late StreamController<Request?> initialRequestController;
   late StreamController<CalendarViewState> calendarViewStateController;
+  late StreamController<DragDetails> dragEndController;
+  late StreamController<ResizeDetails> resizeEndController;
 
   setUpAll(() {
     registerFallbackValue(Stream<(Request?, PrivateRequestDetails?)>.empty());
-    registerFallbackValue(FakeRequest());
-    registerFallbackValue(FakePrivateRequestDetails());
+    registerFallbackValue(Request(
+      eventStartTime: DateTime(2020),
+      eventEndTime: DateTime(2020),
+      roomID: 'fallback_room',
+      roomName: 'fallback_room_name',
+    ));
+    registerFallbackValue(PrivateRequestDetails(
+      eventName: '',
+      name: '',
+      email: '',
+      phone: '',
+    ));
     registerFallbackValue(FakeViewBookingsRoute());
     registerFallbackValue(
       ViewBookingsRoute(orgID: 'test', createRequest: false),
     );
     registerFallbackValue(Uri());
+    registerFallbackValue(RequestStatus.pending);
+    registerFallbackValue(() async => RecurringBookingEditChoice.thisInstance);
   });
 
   setUp(() {
@@ -93,6 +107,8 @@ void main() {
     initialRequestController = StreamController<Request?>.broadcast();
     calendarViewStateController =
         StreamController<CalendarViewState>.broadcast();
+    dragEndController = StreamController<DragDetails>.broadcast();
+    resizeEndController = StreamController<ResizeDetails>.broadcast();
 
     when(
       () => mockCalendarViewModel.dateTapStream,
@@ -100,6 +116,12 @@ void main() {
     when(
       () => mockCalendarViewModel.requestTapStream,
     ).thenAnswer((_) => requestTapController.stream);
+    when(
+      () => mockCalendarViewModel.dragEndStream,
+    ).thenAnswer((_) => dragEndController.stream);
+    when(
+      () => mockCalendarViewModel.resizeEndStream,
+    ).thenAnswer((_) => resizeEndController.stream);
     when(
       () => mockRequestEditorViewModel.initialRequestStream,
     ).thenAnswer((_) => initialRequestController.stream);
@@ -114,6 +136,7 @@ void main() {
     ).thenReturn(null);
 
     when(() => mockRequestEditorViewModel.isRescheduling).thenReturn(false);
+    when(() => mockRequestEditorViewModel.choiceProvider).thenReturn(() async => null);
 
     when(() => mockOrgState.org).thenReturn(mockOrganization);
     when(() => mockOrganization.id).thenReturn('test_org_id');
@@ -126,6 +149,7 @@ void main() {
     String? existingRequestID,
     Function(Request)? showRequestDialog,
     Function()? showEditorAsDialog,
+    Function(String)? showSnackBar,
     Function(Uri)? updateUri,
     Size? size,
     Future<DateTime?> Function(DateTime, DateTime, DateTime)? pickDate,
@@ -147,6 +171,7 @@ void main() {
       showPrivateBookings: showPrivateBookings,
       showRequestDialog: showRequestDialog ?? (_) {},
       showEditorAsDialog: showEditorAsDialog ?? () {},
+      showSnackBar: showSnackBar ?? (_) {},
       updateUri: updateUri ?? (_) {},
       pickDate:
           pickDate ?? (initial, first, last) async => DateTime(2023, 10, 27),
@@ -654,6 +679,137 @@ void main() {
       await Future.delayed(Duration.zero);
 
       verify(() => mockStackRouter.push(any())).called(1);
+    });
+  });
+
+  group('drag & resize rescheduling', () {
+    final now = DateTime(2026, 6, 13, 10, 0);
+    final request = Request(
+      id: 'req_123',
+      eventStartTime: now,
+      eventEndTime: now.add(const Duration(hours: 1)),
+      roomID: 'room_1',
+      roomName: 'Room 1',
+      publicName: 'Test Meeting',
+      status: RequestStatus.confirmed,
+    );
+    final privateDetails = PrivateRequestDetails(
+      eventName: 'Test Event',
+      name: 'Test Name',
+      email: 'test@example.com',
+      phone: '1234567890',
+    );
+
+    test('dragEndStream event triggers booking update successfully', () async {
+      when(() => mockBookingService.getRequestDetails('test_org_id', 'req_123'))
+          .thenAnswer((_) => Stream.value(privateDetails));
+      when(() => mockBookingService.updateBooking(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            originalStartTime: any(named: 'originalStartTime'),
+          )).thenAnswer((_) async {});
+
+      createViewModel();
+      
+      final dropTime = DateTime(2026, 6, 13, 12, 0);
+      dragEndController.add(DragDetails(
+        request: request,
+        dropTime: dropTime,
+      ));
+
+      await Future.delayed(Duration.zero);
+
+      verify(() => mockBookingService.getRequestDetails('test_org_id', 'req_123')).called(1);
+      final captured = verify(() => mockBookingService.updateBooking(
+            'test_org_id',
+            request,
+            captureAny(),
+            privateDetails,
+            RequestStatus.confirmed,
+            any(),
+            originalStartTime: request.eventStartTime,
+          )).captured;
+
+      expect(captured.length, 1);
+      final updatedRequest = captured.first as Request;
+      expect(updatedRequest.eventStartTime, dropTime);
+      expect(updatedRequest.eventEndTime, dropTime.add(const Duration(hours: 1)));
+    });
+
+    test('resizeEndStream event triggers booking update successfully', () async {
+      when(() => mockBookingService.getRequestDetails('test_org_id', 'req_123'))
+          .thenAnswer((_) => Stream.value(privateDetails));
+      when(() => mockBookingService.updateBooking(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            originalStartTime: any(named: 'originalStartTime'),
+          )).thenAnswer((_) async {});
+
+      createViewModel();
+      
+      final newStartTime = DateTime(2026, 6, 13, 10, 0);
+      final newEndTime = DateTime(2026, 6, 13, 11, 30);
+      resizeEndController.add(ResizeDetails(
+        request: request,
+        startTime: newStartTime,
+        endTime: newEndTime,
+      ));
+
+      await Future.delayed(Duration.zero);
+
+      verify(() => mockBookingService.getRequestDetails('test_org_id', 'req_123')).called(1);
+      final captured = verify(() => mockBookingService.updateBooking(
+            'test_org_id',
+            request,
+            captureAny(),
+            privateDetails,
+            RequestStatus.confirmed,
+            any(),
+            originalStartTime: request.eventStartTime,
+          )).captured;
+
+      expect(captured.length, 1);
+      final updatedRequest = captured.first as Request;
+      expect(updatedRequest.eventStartTime, newStartTime);
+      expect(updatedRequest.eventEndTime, newEndTime);
+    });
+
+    test('rescheduling handles error and displays SnackBar', () async {
+      final snackbarCompleter = Completer<String>();
+      when(() => mockBookingService.getRequestDetails('test_org_id', 'req_123'))
+          .thenAnswer((_) => Stream.value(privateDetails));
+      when(() => mockBookingService.updateBooking(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            originalStartTime: any(named: 'originalStartTime'),
+          )).thenThrow(Exception('Overlap conflict'));
+
+      createViewModel(
+        showSnackBar: (msg) {
+          snackbarCompleter.complete(msg);
+        },
+      );
+
+      final dropTime = DateTime(2026, 6, 13, 12, 0);
+      dragEndController.add(DragDetails(
+        request: request,
+        dropTime: dropTime,
+      ));
+
+      final errorMsg = await snackbarCompleter.future;
+      expect(errorMsg, contains('Failed to reschedule: Exception: Overlap conflict'));
     });
   });
 }

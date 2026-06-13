@@ -201,6 +201,7 @@ void main() {
               showPrivateBookings: true,
               showRequestDialog: (_) {},
               showEditorAsDialog: () {},
+              showSnackBar: (_) {},
               updateUri: (_) {},
               pickDate: (d, _, _) async => d,
               pickTime: (d) async => TimeOfDay.fromDateTime(d),

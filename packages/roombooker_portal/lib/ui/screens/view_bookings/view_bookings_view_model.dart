@@ -39,6 +39,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
   final Size Function() sizeProvider;
   final Function(Request) showRequestDialog;
   final Function() showEditorAsDialog;
+  final Function(String) showSnackBar;
   final Future<DateTime?> Function(DateTime, DateTime, DateTime) pickDate;
   final Future<TimeOfDay?> Function(DateTime) pickTime;
   final PrintService? printService;
@@ -64,6 +65,7 @@ class ViewBookingsViewModel extends ChangeNotifier {
     required this.showPrivateBookings,
     required this.showRequestDialog,
     required this.showEditorAsDialog,
+    required this.showSnackBar,
     required Function(Uri) updateUri,
     required this.pickDate,
     required this.pickTime,
@@ -86,6 +88,12 @@ class ViewBookingsViewModel extends ChangeNotifier {
     _subscriptions.add(_calendarViewModel.dateTapStream.listen(_onTapDate));
     _subscriptions.add(
       _calendarViewModel.requestTapStream.listen(_onTapBooking),
+    );
+    _subscriptions.add(
+      _calendarViewModel.dragEndStream.listen(_onDragEnd),
+    );
+    _subscriptions.add(
+      _calendarViewModel.resizeEndStream.listen(_onResizeEnd),
     );
     _subscriptions.add(_currentUriStream().listen(updateUri));
 
@@ -168,6 +176,53 @@ class ViewBookingsViewModel extends ChangeNotifier {
     } else {
       log("Loading new request for date ${details.date}");
       loadNewRequest(details.date);
+    }
+  }
+
+  void _onDragEnd(DragDetails details) {
+    log("Event dragged: ${details.request.id} to ${details.dropTime}");
+    final request = details.request;
+    final duration = request.eventEndTime.difference(request.eventStartTime);
+    final newStart = details.dropTime;
+    final newEnd = newStart.add(duration);
+    _rescheduleRequest(request, newStart, newEnd);
+  }
+
+  void _onResizeEnd(ResizeDetails details) {
+    log("Event resized: ${details.request.id} to ${details.startTime} - ${details.endTime}");
+    _rescheduleRequest(details.request, details.startTime, details.endTime);
+  }
+
+  Future<void> _rescheduleRequest(
+    Request originalRequest,
+    DateTime newStart,
+    DateTime newEnd,
+  ) async {
+    try {
+      final details = await _bookingService
+          .getRequestDetails(orgID, originalRequest.id!)
+          .first;
+      if (details == null) {
+        throw Exception("Request details with ID ${originalRequest.id} not found");
+      }
+
+      final updatedRequest = originalRequest.copyWith(
+        eventStartTime: newStart,
+        eventEndTime: newEnd,
+      );
+
+      await _bookingService.updateBooking(
+        orgID,
+        originalRequest,
+        updatedRequest,
+        details,
+        originalRequest.status ?? RequestStatus.pending,
+        _requestEditorViewModel.choiceProvider,
+        originalStartTime: originalRequest.eventStartTime,
+      );
+    } catch (e) {
+      log("Error rescheduling booking: $e");
+      showSnackBar("Failed to reschedule: $e");
     }
   }
 

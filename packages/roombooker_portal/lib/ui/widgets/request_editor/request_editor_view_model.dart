@@ -46,6 +46,7 @@ class EditorViewState {
 
 class RequestEditorViewModel extends ChangeNotifier {
   final Future<RecurringBookingEditChoice?> Function() _choiceProvider;
+  Future<RecurringBookingEditChoice?> Function() get choiceProvider => _choiceProvider;
   final String editorTitle;
 
   final BookingService _bookingService;

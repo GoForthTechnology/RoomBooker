@@ -59,6 +59,8 @@ void main() {
 
     when(() => mockCalendarViewModel.dateTapStream).thenAnswer((_) => dateTapController.stream);
     when(() => mockCalendarViewModel.requestTapStream).thenAnswer((_) => requestTapController.stream);
+    when(() => mockCalendarViewModel.dragEndStream).thenAnswer((_) => const Stream.empty());
+    when(() => mockCalendarViewModel.resizeEndStream).thenAnswer((_) => const Stream.empty());
     when(() => mockCalendarViewModel.calendarViewState()).thenAnswer((_) => Stream.empty());
     when(() => mockCalendarViewModel.registerNewAppointmentStream(any())).thenReturn(null);
     when(() => mockRequestEditorViewModel.currentDataStream()).thenAnswer((_) => Stream.empty());
@@ -95,6 +97,7 @@ void main() {
       showPrivateBookings: true,
       showRequestDialog: (_) {},
       showEditorAsDialog: () {},
+      showSnackBar: (_) {},
       updateUri: (_) {},
       pickDate: (_, __, ___) async => null,
       pickTime: (_) async => null,

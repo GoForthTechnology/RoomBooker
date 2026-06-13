@@ -304,14 +304,49 @@ void main() {
       );
     });
 
-    test('handleResizeEnd emits resize details on resizeEventStream', () async {
-      final appointment = Appointment(
-        subject: 'Public Event',
-        startTime: DateTime.now(),
-        endTime: DateTime.now().add(Duration(hours: 1)),
+    test('handleResizeEnd emits resize details on resizeEndStream', () async {
+      final now = DateTime.now();
+      final request = Request(
+        id: 'req_1',
+        roomID: 'room_1',
+        eventStartTime: now,
+        eventEndTime: now.add(Duration(hours: 1)),
+        publicName: 'Public Event',
+        status: RequestStatus.confirmed,
+        roomName: 'Test Room',
       );
-      final startTime = DateTime.now().add(Duration(minutes: 30));
-      final endTime = DateTime.now().add(Duration(hours: 1, minutes: 30));
+      final startTime = now.add(Duration(minutes: 30));
+      final endTime = now.add(Duration(hours: 1, minutes: 30));
+
+      when(
+        () => mockBookingService.getRequestsStream(
+          orgID: any(named: 'orgID'),
+          isAdmin: any(named: 'isAdmin'),
+          start: any(named: 'start'),
+          end: any(named: 'end'),
+          includeStatuses: any(named: 'includeStatuses'),
+          includeRoomIDs: any(named: 'includeRoomIDs'),
+        ),
+      ).thenAnswer((_) => Stream.value([request]));
+
+      Completer<ResizeDetails> resizeDetails = Completer();
+      viewModel = CalendarViewModel(
+        orgState: mockOrgState,
+        roomState: mockRoomState,
+        loggingService: mockLoggingService,
+        bookingService: mockBookingService,
+        onResizeEnd: (details) {
+          resizeDetails.complete(details);
+        },
+      );
+
+      viewModel.controller.displayDate = now;
+      await Future.delayed(Duration(seconds: 1));
+      final state = await viewModel
+          .calendarViewState()
+          .where((state) => state.dataSource.appointments?.isNotEmpty ?? false)
+          .first;
+      final appointment = state.dataSource.appointments!.first as Appointment;
 
       final details = AppointmentResizeEndDetails(
         appointment,
@@ -319,24 +354,14 @@ void main() {
         startTime,
         endTime,
       );
-
-      var completer = Completer<ResizeDetails>();
-      var viewModel = CalendarViewModel(
-        orgState: mockOrgState,
-
-        roomState: mockRoomState,
-        loggingService: mockLoggingService,
-        bookingService: mockBookingService,
-        onResizeEnd: (details) => completer.complete(details),
-      );
       viewModel.handleResizeEnd(details);
 
-      var gotDetails = await completer.future;
+      var gotDetails = await resizeDetails.future;
 
       expect(
         gotDetails,
         isA<ResizeDetails>()
-            .having((d) => d.appointment, 'appointment', appointment)
+            .having((d) => d.request, 'request', request)
             .having((d) => d.startTime, 'startTime', startTime)
             .having((d) => d.endTime, 'endTime', endTime),
       );

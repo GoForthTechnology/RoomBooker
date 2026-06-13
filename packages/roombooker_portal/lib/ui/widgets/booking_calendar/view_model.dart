@@ -34,6 +34,12 @@ class CalendarViewModel extends ChangeNotifier {
   final PublishSubject<Request> _requestTapSubject = PublishSubject();
   Stream<Request> get requestTapStream => _requestTapSubject.stream;
 
+  final PublishSubject<DragDetails> _dragEndSubject = PublishSubject();
+  Stream<DragDetails> get dragEndStream => _dragEndSubject.stream;
+
+  final PublishSubject<ResizeDetails> _resizeEndSubject = PublishSubject();
+  Stream<ResizeDetails> get resizeEndStream => _resizeEndSubject.stream;
+
   final Function(DragDetails)? onDragEnd;
   final Function(ResizeDetails)? onResizeEnd;
 
@@ -151,6 +157,8 @@ class CalendarViewModel extends ChangeNotifier {
     _initialRequestSubject.close();
     _dateTapSubject.close();
     _requestTapSubject.close();
+    _dragEndSubject.close();
+    _resizeEndSubject.close();
     _roomStateSubject.close();
     super.dispose();
   }
@@ -503,22 +511,39 @@ class CalendarViewModel extends ChangeNotifier {
       log("Appointment not found in state, cannot call onAppointmentDragEnd");
       return;
     }
+    final dragDetails = DragDetails(
+      request: request,
+      dropTime: details.droppingTime!,
+    );
+    _dragEndSubject.add(dragDetails);
     if (onDragEnd != null) {
-      onDragEnd!(
-        DragDetails(request: request, dropTime: details.droppingTime!),
-      );
+      onDragEnd!(dragDetails);
     }
   }
 
   void handleResizeEnd(AppointmentResizeEndDetails details) {
+    if (details.appointment == null ||
+        details.startTime == null ||
+        details.endTime == null) {
+      return;
+    }
+    var appointment = details.appointment as Appointment?;
+    if (appointment == null) {
+      return;
+    }
+    Request? request = _requestIndex.valueOrNull?[_appointmentID(appointment)];
+    if (request == null) {
+      log("Appointment not found in state, cannot call onAppointmentResizeEnd");
+      return;
+    }
+    final resizeDetails = ResizeDetails(
+      request: request,
+      startTime: details.startTime!,
+      endTime: details.endTime!,
+    );
+    _resizeEndSubject.add(resizeDetails);
     if (onResizeEnd != null) {
-      onResizeEnd!(
-        ResizeDetails(
-          appointment: details.appointment,
-          startTime: details.startTime!,
-          endTime: details.endTime!,
-        ),
-      );
+      onResizeEnd!(resizeDetails);
     }
   }
 
@@ -601,12 +626,12 @@ class DragDetails {
 }
 
 class ResizeDetails {
-  final Appointment appointment;
+  final Request request;
   final DateTime startTime;
   final DateTime endTime;
 
   ResizeDetails({
-    required this.appointment,
+    required this.request,
     required this.startTime,
     required this.endTime,
   });

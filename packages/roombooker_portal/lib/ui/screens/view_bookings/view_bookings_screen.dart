@@ -121,6 +121,13 @@ class ViewBookingsScreen extends StatelessWidget {
       showRoomSelector: true,
       showRequestDialog: (request) => _showRequestDialog(request, context),
       showEditorAsDialog: () => _showPannelAsDialog(context, context.read()),
+      showSnackBar: (message) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message)),
+          );
+        }
+      },
       updateUri: (uri) async {
         await SystemNavigator.routeInformationUpdated(uri: uri);
       },
@@ -148,8 +155,10 @@ class ViewBookingsScreen extends StatelessWidget {
       var prefRepo = Provider.of<PreferencesRepo>(context, listen: false);
       defaultView = prefRepo.defaultCalendarView.name;
     }
+    final orgState = context.read<OrgState>();
+    final canEdit = !readOnlyMode && orgState.currentUserIsAdmin;
     return CalendarViewModel(
-      orgState: context.read(),
+      orgState: orgState,
 
       roomState: context.read(),
       bookingService: context.read(),
@@ -170,6 +179,8 @@ class ViewBookingsScreen extends StatelessWidget {
       showNavigationArrow: true,
       allowViewNavigation:
           false, // This must be false for Month -> Day navigvation to work properly
+      allowDragAndDrop: canEdit,
+      allowAppointmentResize: canEdit,
     );
   }
 

@@ -1,10 +1,11 @@
 # Specification: Independent Instance Rescheduling
 
+## Purpose
+This document defines the requirements for independent instance rescheduling and visual reschedule actions (drag-to-move and drag-to-resize).
+
 ## [RESCHED-000] Compliance
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
-
 ## Requirements
-
 ### Requirement: Independent Instance Rescheduling
 The system SHALL allow a single instance of a recurring booking series to be moved to a different time and date without affecting the rest of the series.
 
@@ -44,3 +45,20 @@ When a rescheduling edit is active, calendar cell taps in time-aware views (Day/
 - **WHEN** an edit session for an existing event is active and editable
 - **AND** the user taps an empty slot in the Week View
 - **THEN** the system SHALL update the active event's time to the tapped slot.
+
+### Requirement: Interactive Drag-to-Move
+The system SHALL allow administrators to visually drag and drop confirmed bookings on the calendar to change their start and end dates and times.
+
+#### Scenario: Drag and drop confirmed booking
+- **WHEN** an administrator drags a confirmed booking to a new calendar time slot
+- **THEN** the system SHALL update the booking's start and end times in Firestore
+- **AND** the calendar SHALL show the booking at the new time slot.
+
+### Requirement: Interactive Drag-to-Resize
+The system SHALL allow administrators to visually drag the top or bottom edges of a confirmed booking on the calendar to change its duration.
+
+#### Scenario: Resize confirmed booking
+- **WHEN** an administrator drags the bottom edge of a confirmed booking to a new time
+- **THEN** the system SHALL update the booking's end time in Firestore
+- **AND** the calendar SHALL show the booking with the new duration.
+
