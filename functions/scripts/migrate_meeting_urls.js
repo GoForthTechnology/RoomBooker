@@ -26,6 +26,7 @@ async function migrateOrg(orgRef) {
   const confirmedRequests = await orgRef.collection("confirmed-requests").get();
 
   let migrated = 0;
+  let skipped = 0;
   for (const doc of confirmedRequests.docs) {
     const meetingUrl = doc.data().meetingUrl;
     if (!meetingUrl) {
@@ -33,6 +34,19 @@ async function migrateOrg(orgRef) {
     }
 
     const detailsRef = orgRef.collection("request-details").doc(doc.id);
+    const detailsSnapshot = await detailsRef.get();
+    if (!detailsSnapshot.exists) {
+      // PrivateRequestDetails requires name/email/phone/eventName; writing
+      // meetingUrl alone here would create a doc that fails to deserialize.
+      // Flag for manual investigation instead.
+      console.warn(
+          `  Skipping ${orgRef.id}/confirmed-requests/${doc.id}: ` +
+          "has meetingUrl but no request-details doc exists",
+      );
+      skipped++;
+      continue;
+    }
+
     await db.runTransaction(async (t) => {
       t.set(detailsRef, {meetingUrl}, {merge: true});
       t.update(doc.ref, {meetingUrl: admin.firestore.FieldValue.delete()});
@@ -40,17 +54,23 @@ async function migrateOrg(orgRef) {
     migrated++;
     console.log(`  Migrated meetingUrl for ${orgRef.id}/confirmed-requests/${doc.id}`);
   }
-  return migrated;
+  return {migrated, skipped};
 }
 
 async function main() {
   const orgs = await db.collection("orgs").get();
-  let total = 0;
+  let totalMigrated = 0;
+  let totalSkipped = 0;
   for (const orgDoc of orgs.docs) {
     console.log(`Scanning org ${orgDoc.id}...`);
-    total += await migrateOrg(orgDoc.ref);
+    const {migrated, skipped} = await migrateOrg(orgDoc.ref);
+    totalMigrated += migrated;
+    totalSkipped += skipped;
   }
-  console.log(`Done. Migrated ${total} confirmed-requests document(s).`);
+  console.log(
+      `Done. Migrated ${totalMigrated} confirmed-requests document(s), ` +
+      `skipped ${totalSkipped}.`,
+  );
 }
 
 main().catch((err) => {

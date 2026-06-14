@@ -595,19 +595,22 @@ class _KioskDashboardState extends State<KioskDashboard> {
                                 style: const TextStyle(fontSize: 32, color: Colors.white70),
                               ),
                               const SizedBox(height: 48),
-                              StreamBuilder<PrivateRequestDetails?>(
-                                stream: _bookingService.getRequestDetails(
-                                  widget.orgID,
-                                  currentBooking.id!,
+                              if (currentBooking.id == null)
+                                const SizedBox.shrink()
+                              else
+                                StreamBuilder<PrivateRequestDetails?>(
+                                  stream: _bookingService.getRequestDetails(
+                                    widget.orgID,
+                                    currentBooking.id!,
+                                  ),
+                                  builder: (context, detailsSnapshot) {
+                                    return JoinMeetingButton(
+                                      meetingUrl: detailsSnapshot.data?.meetingUrl,
+                                      foregroundColor: backgroundColor,
+                                      onLaunch: _launchMeeting,
+                                    );
+                                  },
                                 ),
-                                builder: (context, detailsSnapshot) {
-                                  return JoinMeetingButton(
-                                    meetingUrl: detailsSnapshot.data?.meetingUrl,
-                                    foregroundColor: backgroundColor,
-                                    onLaunch: _launchMeeting,
-                                  );
-                                },
-                              ),
                             ],
                             const SizedBox(height: 48),
                             if (!_isServiceRunning)
