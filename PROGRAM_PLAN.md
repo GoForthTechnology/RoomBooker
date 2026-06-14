@@ -85,7 +85,7 @@ Build high-contrast UI, 6-digit provisioning, and basic Dual-Display routing.
 This phase is split into sequenced sub-changes. 4a and 4c are
 prerequisites for 4d; 4b can proceed in parallel with 4a/4c.
 
-*   **4a. Privacy Guard** [NOT STARTED]: Move `meetingUrl` from `Request`
+*   **4a. Privacy Guard** [DONE]: Move `meetingUrl` from `Request`
     to `PrivateRequestDetails` (REQ-12), including a migration/compat
     plan for existing documents and updates to the Portal request
     editor and Kiosk dashboard.
