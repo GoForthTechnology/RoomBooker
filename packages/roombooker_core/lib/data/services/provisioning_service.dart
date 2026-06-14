@@ -1,13 +1,21 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:roombooker_core/data/entities/kiosk_grant.dart';
 import 'package:roombooker_core/data/entities/provisioning_handshake.dart';
-import 'package:roombooker_core/data/entities/kiosk_identity.dart';
 
 class ProvisioningService {
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions? _functions;
 
-  ProvisioningService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  ProvisioningService({
+    FirebaseFirestore? firestore,
+    FirebaseFunctions? functions,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _functions = functions;
+
+  FirebaseFunctions get _functionsInstance =>
+      _functions ?? FirebaseFunctions.instance;
 
   /// Generates a 6-digit activation code and stores it in Firestore.
   Future<String> createActivationCode({
@@ -36,35 +44,31 @@ class ProvisioningService {
     return code;
   }
 
-  /// Verifies a code and returns the associated Room and Org IDs.
-  /// Throws an exception if the code is invalid or expired.
-  Future<ProvisioningHandshake?> consumeActivationCode(String code) async {
-    final doc = await _firestore.collection('provisioning_codes').doc(code).get();
-
-    if (!doc.exists) {
-      throw Exception('Invalid activation code');
-    }
-
-    final handshake = ProvisioningHandshake.fromJson(doc.data()!);
-    if (handshake.isExpired) {
-      await _firestore.collection('provisioning_codes').doc(code).delete();
-      throw Exception('Activation code expired');
-    }
-
-    // Delete the code immediately upon consumption
-    await _firestore.collection('provisioning_codes').doc(code).delete();
-
-    return handshake;
+  /// Claims a Kiosk grant for the calling (anonymously authenticated) user
+  /// by redeeming an activation code. Returns the org/room this device is
+  /// now authorized to access.
+  Future<KioskGrant> claimKioskGrant({
+    required String code,
+    required String deviceID,
+  }) async {
+    final callable = _functionsInstance.httpsCallable('claimKioskGrant');
+    final result = await callable.call<Map<String, dynamic>>({
+      'code': code,
+      'deviceID': deviceID,
+    });
+    return KioskGrant.fromJson(Map<String, dynamic>.from(result.data));
   }
 
-  /// Registers a kiosk device identity.
-  Future<void> registerKiosk(KioskIdentity identity) async {
-    await _firestore
-        .collection('orgs')
-        .doc(identity.orgID)
-        .collection('kiosks')
-        .doc(identity.deviceId)
-        .set(identity.toJson());
+  /// Revokes the calling user's Kiosk grant for the given org/room.
+  Future<void> revokeKioskGrant({
+    required String orgID,
+    required String roomID,
+  }) async {
+    final callable = _functionsInstance.httpsCallable('revokeKioskGrant');
+    await callable.call<Map<String, dynamic>>({
+      'orgID': orgID,
+      'roomID': roomID,
+    });
   }
 
   String _generateRandomCode() {

@@ -15,6 +15,7 @@ dependencies:
   firebase_core: ^4.2.0
   firebase_auth: ^6.1.1
   cloud_firestore: ^6.0.3
+  cloud_functions: ^6.0.3
   rxdart: ^0.28.0
   collection: ^1.19.0
   intl: ^0.20.0

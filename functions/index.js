@@ -17,6 +17,61 @@ const {calculateOverlaps} = require("./overlap_calculator");
 admin.initializeApp();
 const db = admin.firestore();
 
+exports.claimKioskGrant = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "Caller must be signed in.");
+  }
+
+  const {code, deviceID} = data;
+  if (!code) {
+    throw new functions.https.HttpsError("invalid-argument", "code is required.");
+  }
+
+  const codeRef = db.collection("provisioning_codes").doc(code);
+  const codeSnap = await codeRef.get();
+  if (!codeSnap.exists) {
+    throw new functions.https.HttpsError("not-found", "Invalid activation code.");
+  }
+
+  const handshake = codeSnap.data();
+  const expiresAt = handshake.expiresAt.toDate ? handshake.expiresAt.toDate() : new Date(handshake.expiresAt);
+  if (new Date() > expiresAt) {
+    await codeRef.delete();
+    throw new functions.https.HttpsError("deadline-exceeded", "Activation code expired.");
+  }
+
+  const {orgID, roomID, orgName, roomName} = handshake;
+  await db.collection("orgs").doc(orgID)
+      .collection("rooms").doc(roomID)
+      .collection("kiosk-grants").doc(context.auth.uid)
+      .set({
+        deviceID: deviceID || null,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+  await codeRef.delete();
+
+  return {orgID, roomID, orgName, roomName};
+});
+
+exports.revokeKioskGrant = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "Caller must be signed in.");
+  }
+
+  const {orgID, roomID} = data;
+  if (!orgID || !roomID) {
+    throw new functions.https.HttpsError("invalid-argument", "orgID and roomID are required.");
+  }
+
+  await db.collection("orgs").doc(orgID)
+      .collection("rooms").doc(roomID)
+      .collection("kiosk-grants").doc(context.auth.uid)
+      .delete();
+
+  return {success: true};
+});
+
 exports.onNewPendingBooking = functions.firestore
     .document("orgs/{orgID}/pending-requests/{bookingID}")
     .onCreate(async (snap, context) => {

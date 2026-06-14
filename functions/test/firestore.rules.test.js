@@ -244,4 +244,86 @@ describe("Firestore Security Rules", () => {
       });
     });
   });
+
+  describe("Kiosk Access Control", () => {
+    const orgID = "kioskOrg";
+    const ownerID = "kioskOwner";
+    const roomID = "room1";
+    const otherRoomID = "room2";
+    const kioskUid = "kioskUid";
+    const requestID = "req1";
+    const otherRequestID = "req2";
+
+    beforeEach(async () => {
+      const ownerDb = getDb({ uid: ownerID });
+      await ownerDb.collection("orgs").doc(orgID).set({
+        name: "Kiosk Org",
+        ownerID: ownerID,
+        acceptingAdminRequests: true,
+      });
+
+      // Seed data that clients cannot write directly (kiosk-grants), plus
+      // confirmed-requests used by the request-details scoping rule.
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await db.doc(`orgs/${orgID}/rooms/${roomID}/kiosk-grants/${kioskUid}`).set({
+          deviceID: "device-1",
+          createdAt: new Date(),
+        });
+        await db.doc(`orgs/${orgID}/confirmed-requests/${requestID}`).set({ roomID });
+        await db.doc(`orgs/${orgID}/confirmed-requests/${otherRequestID}`).set({ roomID: otherRoomID });
+      });
+    });
+
+    describe("kiosk-grants", () => {
+      it("allows an admin to read a room's grants", async () => {
+        const db = getDb({ uid: ownerID });
+        await assertSucceeds(db.doc(`orgs/${orgID}/rooms/${roomID}/kiosk-grants/${kioskUid}`).get());
+      });
+
+      it("denies clients from writing grants directly", async () => {
+        const db = getDb({ uid: kioskUid });
+        await assertFails(db.doc(`orgs/${orgID}/rooms/${roomID}/kiosk-grants/${kioskUid}`).set({ deviceID: "hacked" }));
+      });
+    });
+
+    describe("request-details", () => {
+      it("allows an authorized kiosk to read details for its own room", async () => {
+        const db = getDb({ uid: kioskUid });
+        await assertSucceeds(db.doc(`orgs/${orgID}/request-details/${requestID}`).get());
+      });
+
+      it("denies an authorized kiosk reading details for another room", async () => {
+        const db = getDb({ uid: kioskUid });
+        await assertFails(db.doc(`orgs/${orgID}/request-details/${otherRequestID}`).get());
+      });
+
+      it("denies a client with no grant", async () => {
+        const db = getDb({ uid: "randomUser" });
+        await assertFails(db.doc(`orgs/${orgID}/request-details/${requestID}`).get());
+      });
+
+      it("denies an unauthenticated client", async () => {
+        const db = testEnv.unauthenticatedContext().firestore();
+        await assertFails(db.doc(`orgs/${orgID}/request-details/${requestID}`).get());
+      });
+    });
+
+    describe("confirmed-requests", () => {
+      it("allows an authorized kiosk to create a booking for its own room", async () => {
+        const db = getDb({ uid: kioskUid });
+        await assertSucceeds(db.collection(`orgs/${orgID}/confirmed-requests`).add({ roomID }));
+      });
+
+      it("denies an authorized kiosk creating a booking for another room", async () => {
+        const db = getDb({ uid: kioskUid });
+        await assertFails(db.collection(`orgs/${orgID}/confirmed-requests`).add({ roomID: otherRoomID }));
+      });
+
+      it("denies a client with no grant from creating a booking", async () => {
+        const db = getDb({ uid: "randomUser" });
+        await assertFails(db.collection(`orgs/${orgID}/confirmed-requests`).add({ roomID }));
+      });
+    });
+  });
 });

@@ -1,6 +1,15 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:roombooker_core/data/services/provisioning_service.dart';
+
+class MockFirebaseFunctions extends Mock implements FirebaseFunctions {}
+
+class MockHttpsCallable extends Mock implements HttpsCallable {}
+
+class MockHttpsCallableResult<T> extends Mock
+    implements HttpsCallableResult<T> {}
 
 void main() {
   group('ProvisioningService', () {
@@ -29,17 +38,53 @@ void main() {
       expect(doc.data()!['roomName'], 'Sanctuary');
     });
 
-    test('consumeActivationCode retrieves names correctly', () async {
-      final code = await service.createActivationCode(
-        orgID: 'org-1',
-        orgName: 'Goforth',
-        roomID: 'room-1',
-        roomName: 'Room 101',
-      );
+    test('claimKioskGrant calls the callable and returns a KioskGrant', () async {
+      final functions = MockFirebaseFunctions();
+      final callable = MockHttpsCallable();
+      final result = MockHttpsCallableResult<Map<String, dynamic>>();
 
-      final handshake = await service.consumeActivationCode(code);
-      expect(handshake?.orgName, 'Goforth');
-      expect(handshake?.roomName, 'Room 101');
+      when(() => functions.httpsCallable('claimKioskGrant')).thenReturn(callable);
+      when(() => callable.call<Map<String, dynamic>>(any()))
+          .thenAnswer((_) async => result);
+      when(() => result.data).thenReturn({
+        'orgID': 'org-1',
+        'orgName': 'My Church',
+        'roomID': 'room-1',
+        'roomName': 'Sanctuary',
+      });
+
+      service = ProvisioningService(firestore: firestore, functions: functions);
+
+      final grant = await service.claimKioskGrant(code: '123456', deviceID: 'device-1');
+
+      expect(grant.orgID, 'org-1');
+      expect(grant.orgName, 'My Church');
+      expect(grant.roomID, 'room-1');
+      expect(grant.roomName, 'Sanctuary');
+      verify(() => callable.call<Map<String, dynamic>>({
+            'code': '123456',
+            'deviceID': 'device-1',
+          })).called(1);
+    });
+
+    test('revokeKioskGrant calls the callable with orgID and roomID', () async {
+      final functions = MockFirebaseFunctions();
+      final callable = MockHttpsCallable();
+      final result = MockHttpsCallableResult<Map<String, dynamic>>();
+
+      when(() => functions.httpsCallable('revokeKioskGrant')).thenReturn(callable);
+      when(() => callable.call<Map<String, dynamic>>(any()))
+          .thenAnswer((_) async => result);
+      when(() => result.data).thenReturn({'success': true});
+
+      service = ProvisioningService(firestore: firestore, functions: functions);
+
+      await service.revokeKioskGrant(orgID: 'org-1', roomID: 'room-1');
+
+      verify(() => callable.call<Map<String, dynamic>>({
+            'orgID': 'org-1',
+            'roomID': 'room-1',
+          })).called(1);
     });
   });
 }

@@ -5,7 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kiosk_mode/kiosk_mode.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:uuid/uuid.dart';
 import 'package:roombooker_core/roombooker_core.dart';
 import 'package:roombooker_kiosk/firebase_options.dart';
 
@@ -21,10 +23,27 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   final prefs = await SharedPreferences.getInstance();
 
+  if (FirebaseAuth.instance.currentUser == null) {
+    try {
+      await FirebaseAuth.instance.signInAnonymously();
+    } catch (e) {
+      debugPrint('Kiosk: Anonymous sign-in failed: $e');
+    }
+  }
+
+  const storage = FlutterSecureStorage();
+  try {
+    if (await storage.read(key: 'deviceID') == null) {
+      await storage.write(key: 'deviceID', value: const Uuid().v4());
+    }
+  } catch (e) {
+    debugPrint('Kiosk: Failed to read/write deviceID: $e');
+  }
+
   runApp(
     MultiProvider(
       providers: [
-        Provider<FlutterSecureStorage>(create: (_) => const FlutterSecureStorage()),
+        Provider<FlutterSecureStorage>(create: (_) => storage),
         Provider<SharedPreferences>(create: (_) => prefs),
         Provider<ProvisioningService>(create: (_) => ProvisioningService()),
         ChangeNotifierProvider<LoggingService>(create: (_) => DebugLoggingService()),
@@ -174,22 +193,23 @@ class _ProvisioningScreenState extends State<ProvisioningScreen> {
     final code = _controllers.map((c) => c.text).join();
     
     try {
-      debugPrint('Kiosk: Consuming code $code...');
+      debugPrint('Kiosk: Claiming grant for code $code...');
       final provisioningService = Provider.of<ProvisioningService>(context, listen: false);
       final storage = Provider.of<FlutterSecureStorage>(context, listen: false);
-      final handshake = await provisioningService.consumeActivationCode(code);
+      final deviceID = await storage.read(key: 'deviceID');
+      final grant = await provisioningService.claimKioskGrant(
+        code: code,
+        deviceID: deviceID ?? '',
+      );
 
-      if (handshake != null) {
-        debugPrint('Kiosk: Handshake successful for Room ID: ${handshake.roomID}');
-        // Only persist the IDs (The device identity)
-        await storage.write(key: 'roomID', value: handshake.roomID);
-        await storage.write(key: 'orgID', value: handshake.orgID);
-        
-        if (!mounted) return;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const ProvisioningGuard()),
-        );
-      }
+      debugPrint('Kiosk: Grant claimed for Room ID: ${grant.roomID}');
+      await storage.write(key: 'roomID', value: grant.roomID);
+      await storage.write(key: 'orgID', value: grant.orgID);
+
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const ProvisioningGuard()),
+      );
     } catch (e) {
       debugPrint('Kiosk: Provisioning error: $e');
       if (!mounted) return;
@@ -378,7 +398,21 @@ class _KioskDashboardState extends State<KioskDashboard> {
 
                     if (confirmed == true) {
                       if (!context.mounted) return;
+                      final provisioningService = Provider.of<ProvisioningService>(context, listen: false);
                       final storage = Provider.of<FlutterSecureStorage>(context, listen: false);
+                      try {
+                        await provisioningService.revokeKioskGrant(
+                          orgID: widget.orgID,
+                          roomID: widget.roomID,
+                        );
+                      } catch (e) {
+                        debugPrint('Kiosk: Failed to revoke grant: $e');
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to revoke kiosk access: $e')),
+                          );
+                        }
+                      }
                       await storage.deleteAll();
                       if (!context.mounted) return;
                       Navigator.of(context).pushAndRemoveUntil(
