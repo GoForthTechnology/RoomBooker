@@ -92,7 +92,7 @@ prerequisites for 4d; 4b can proceed in parallel with 4a/4c.
 *   **4b. Agenda View** [NOT STARTED]: Refactor the Kiosk Dashboard to
     show a scrollable daily agenda for the assigned room (REQ-04,
     REQ-15). No auth dependency — can be done independently.
-*   **4c. Kiosk Device Identity & Scoped Access** [NOT STARTED]:
+*   **4c. Kiosk Device Identity & Scoped Access** [DONE]:
     Issue a room-scoped Firebase Auth credential during provisioning
     (REQ-19), define the "In-Room User" identity (REQ-21), and add
     Firestore rules granting room-scoped access to

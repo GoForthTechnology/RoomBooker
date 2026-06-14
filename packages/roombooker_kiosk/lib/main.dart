@@ -260,6 +260,40 @@ class _ProvisioningScreenState extends State<ProvisioningScreen> {
   }
 }
 
+class JoinMeetingButton extends StatelessWidget {
+  final String? meetingUrl;
+  final Color foregroundColor;
+  final void Function(String url) onLaunch;
+
+  const JoinMeetingButton({
+    super.key,
+    required this.meetingUrl,
+    required this.foregroundColor,
+    required this.onLaunch,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final url = meetingUrl;
+    if (url == null) {
+      return const SizedBox.shrink();
+    }
+    return SizedBox(
+      width: 300,
+      height: 80,
+      child: ElevatedButton(
+        onPressed: () => onLaunch(url),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: foregroundColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        child: const Text('JOIN MEETING', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+}
+
 class KioskDashboard extends StatefulWidget {
   final String orgID;
   final String roomID;
@@ -561,19 +595,21 @@ class _KioskDashboardState extends State<KioskDashboard> {
                                 style: const TextStyle(fontSize: 32, color: Colors.white70),
                               ),
                               const SizedBox(height: 48),
-                              if (currentBooking.meetingUrl != null)
-                                SizedBox(
-                                  width: 300,
-                                  height: 80,
-                                  child: ElevatedButton(
-                                    onPressed: () => _launchMeeting(currentBooking!.meetingUrl!),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: backgroundColor,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                    ),
-                                    child: const Text('JOIN MEETING', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                              if (currentBooking.id == null)
+                                const SizedBox.shrink()
+                              else
+                                StreamBuilder<PrivateRequestDetails?>(
+                                  stream: _bookingService.getRequestDetails(
+                                    widget.orgID,
+                                    currentBooking.id!,
                                   ),
+                                  builder: (context, detailsSnapshot) {
+                                    return JoinMeetingButton(
+                                      meetingUrl: detailsSnapshot.data?.meetingUrl,
+                                      foregroundColor: backgroundColor,
+                                      onLaunch: _launchMeeting,
+                                    );
+                                  },
                                 ),
                             ],
                             const SizedBox(height: 48),

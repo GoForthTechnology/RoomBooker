@@ -90,6 +90,7 @@ void main() {
         phone: '123-456-7890',
         eventName: 'Test Event',
         message: 'Test message',
+        meetingUrl: 'https://meet.example.com/test',
       );
     });
 
@@ -206,6 +207,10 @@ void main() {
         expect(viewModel.eventNameContoller.text, 'Test Event');
         expect(viewModel.additionalInfoController.text, 'Test message');
         expect(viewModel.idController.text, 'request1');
+        expect(
+          viewModel.meetingUrlController.text,
+          'https://meet.example.com/test',
+        );
       });
 
       test('text controllers are empty for new request', () async {
@@ -776,6 +781,64 @@ void main() {
               that: predicate<Request>((r) => r.publicName == 'Updated Name'),
             ),
             any(),
+            any(),
+            any(),
+            originalStartTime: confirmedRequest.eventStartTime,
+          ),
+        ).called(1);
+      });
+
+      test('Save action persists meetingUrl to PrivateRequestDetails only', () async {
+        final confirmedRequest = Request(
+          id: 'confirmed_request',
+          eventStartTime: DateTime(2024, 1, 1, 10, 0),
+          eventEndTime: DateTime(2024, 1, 1, 11, 0),
+          roomID: 'room1',
+          roomName: 'Test Room',
+          status: RequestStatus.confirmed,
+          recurrancePattern: RecurrancePattern.never(),
+        );
+
+        viewModel = createViewModel();
+        viewModel.initializeFromExistingRequest(confirmedRequest, testDetails);
+
+        // Toggle Edit
+        var viewState = await viewModel.viewStateStream.first;
+        var editAction = viewState.actions.firstWhere((a) => a.title == 'Edit');
+        await editAction.onPressed();
+
+        when(
+          () => mockBookingService.updateBooking(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            originalStartTime: any(named: 'originalStartTime'),
+          ),
+        ).thenAnswer((_) async {});
+
+        viewModel.meetingUrlController.text = 'https://meet.example.com/new';
+        viewModel.updateRoom(testRoom); // Ensure stream has value
+
+        viewState = await viewModel.viewStateStream.first;
+        final saveAction = viewState.actions.firstWhere(
+          (a) => a.title == 'Save',
+        );
+
+        await saveAction.onPressed();
+
+        verify(
+          () => mockBookingService.updateBooking(
+            'test-org',
+            confirmedRequest,
+            any(),
+            any(
+              that: predicate<PrivateRequestDetails>(
+                (d) => d.meetingUrl == 'https://meet.example.com/new',
+              ),
+            ),
             any(),
             any(),
             originalStartTime: confirmedRequest.eventStartTime,
