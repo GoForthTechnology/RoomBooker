@@ -1,4 +1,14 @@
-## ADDED Requirements
+# Privacy Stance Specification: Room Booker
+
+## Purpose
+This document specifies the application's privacy posture regarding
+advertising identifiers and demographic tracking, and the build/runtime
+guarantees that enforce it.
+
+## [PRIV-000] Compliance
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
+
+## Requirements
 
 ### Requirement: Exclusion of Advertising Identifiers
 The system SHALL NOT collect or transmit the Android Advertising ID (AD_ID) for any purpose.

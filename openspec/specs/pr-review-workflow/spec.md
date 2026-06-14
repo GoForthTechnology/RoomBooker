@@ -1,4 +1,13 @@
-## ADDED Requirements
+# PR Review Workflow Specification: Room Booker
+
+## Purpose
+This document specifies the branch-per-change, draft-PR, self-review, and
+archive/merge process used for OpenSpec changes in this project.
+
+## [PRWF-000] Compliance
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
+
+## Requirements
 
 ### Requirement: Branch and Draft PR per Change
 Each OpenSpec change SHALL be developed on its own dedicated branch, with a
@@ -29,8 +38,8 @@ reflects progress.
   `tasks.md`, SHALL be committed and pushed to the change's branch.
 
 ### Requirement: Self-Review Before Ready for Review
-Before a change's PR is marked ready for human review, a self-review of the
-PR's diff SHALL be performed and any resulting high-confidence fixes applied.
+A self-review of a change's PR diff SHALL be performed, with high-confidence
+fixes applied, before the PR is marked ready for human review.
 
 #### Scenario: Self-review runs after all tasks complete
 - **WHEN** all tasks in `tasks.md` are marked complete
@@ -50,9 +59,9 @@ same branch.
   change's existing branch without rewriting prior commit history.
 
 ### Requirement: Archive as Final Pre-Merge Step
-Merging a change's spec deltas into the canonical specs and archiving the
-change directory SHALL occur as the final commit on the change's branch,
-after the user has approved the PR and before it is merged.
+A change's spec deltas SHALL be merged into the canonical specs and its
+change directory archived as the final commit on the change's branch, after
+the user has approved the PR and before it is merged.
 
 #### Scenario: Archive performed after approval
 - **WHEN** the user approves a change's PR and requests it be archived
