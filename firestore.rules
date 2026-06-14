@@ -35,7 +35,12 @@ service cloud.firestore {
       function isAdmin() {
         return isOwner(orgID) || exists(/databases/$(database)/documents/orgs/$(orgID)/active-admins/$(request.auth.uid));
       }
-      
+
+      function isAuthorizedKiosk(roomID) {
+        return request.auth != null
+          && exists(/databases/$(database)/documents/orgs/$(orgID)/rooms/$(roomID)/kiosk-grants/$(request.auth.uid));
+      }
+
       allow read: if true; 
       allow create: if isAuthenticated() 
                     && incomingData().ownerID == request.auth.uid
@@ -63,30 +68,33 @@ service cloud.firestore {
      
       match /request-details/{requestID} {
         allow create: if true;
-        allow read, write: if isAdmin();
+        allow read: if isAdmin()
+          || isAuthorizedKiosk(get(/databases/$(database)/documents/orgs/$(orgID)/confirmed-requests/$(requestID)).data.roomID);
+        allow write: if isAdmin();
       }
-      
+
       match /denied-requests/{requestID} {
         allow read, write: if isAdmin();
       }
-      
+
       match /confirmed-requests/{requestID} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow create: if isAdmin() || isAuthorizedKiosk(incomingData().roomID);
+        allow update, delete: if isAdmin();
       }
-      
+
       match /rooms/{roomID} {
         allow read: if true;
         allow write: if isAdmin();
-      }
-      
-      match /request-logs/{logID} {
-        allow create, read, write: if isAdmin();
+
+        match /kiosk-grants/{uid} {
+          allow read: if isAdmin();
+          allow write: if false; // Only the Admin SDK (Cloud Functions) writes grants
+        }
       }
 
-      match /kiosks/{deviceID} {
-        allow read: if true;
-        allow write: if true; // Kiosk logic handles this via handshake
+      match /request-logs/{logID} {
+        allow create, read, write: if isAdmin();
       }
     }
 

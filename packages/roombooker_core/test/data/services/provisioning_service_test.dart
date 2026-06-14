@@ -29,17 +29,5 @@ void main() {
       expect(doc.data()!['roomName'], 'Sanctuary');
     });
 
-    test('consumeActivationCode retrieves names correctly', () async {
-      final code = await service.createActivationCode(
-        orgID: 'org-1',
-        orgName: 'Goforth',
-        roomID: 'room-1',
-        roomName: 'Room 101',
-      );
-
-      final handshake = await service.consumeActivationCode(code);
-      expect(handshake?.orgName, 'Goforth');
-      expect(handshake?.roomName, 'Room 101');
-    });
   });
 }

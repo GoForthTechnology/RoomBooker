@@ -1,5 +1,5 @@
 export 'data/entities/blackout_window.dart';
-export 'data/entities/kiosk_identity.dart';
+export 'data/entities/kiosk_grant.dart';
 export 'data/entities/log_entry.dart';
 export 'data/entities/organization.dart';
 export 'data/entities/overlap.dart';
