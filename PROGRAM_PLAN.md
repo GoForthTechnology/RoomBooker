@@ -37,6 +37,10 @@ The Kiosk system is transitioning from a passive "Hallway Sign" into an active "
 *   **Decision:** Organizations SHALL have a dedicated "System User" identity for Kiosk attribution.
 *   **Rationale:** To facilitate instant "In-Room Bookings" without requiring personal logins on shared hardware, the Kiosk will act as a virtual administrator. This ensures accountability (attributed to 'In-Room Hub') while maintaining speed.
 
+### 2.8 Kiosk Device Identity & Scoped Access
+*   **Decision:** The Kiosk SHALL authenticate to Firebase using a room-scoped credential issued during the provisioning handshake, rather than operating as an anonymous/unauthenticated client.
+*   **Rationale:** Secure, room-scoped read access to `PrivateRequestDetails` (REQ-13) and the ability to write auto-confirmed bookings as the "In-Room User" (REQ-17) both require Firestore security rules to identify the requesting Kiosk and its assigned room. The current open `kiosks/{deviceID}` rule and org-wide `isAdmin()` check cannot support this. This decision is a **prerequisite** for the rest of Phase 4.
+
 ## 3. Strict Requirements
 
 ### 3.1 Kiosk Functionality (The Tactical Hub)
@@ -54,12 +58,17 @@ The Kiosk system is transitioning from a passive "Hallway Sign" into an active "
 *   **REQ-11:** The Kiosk SHALL provide a 6-digit activation interface for room-to-device provisioning. [DONE]
 
 ### 3.3 Link Privacy & Security
-*   **REQ-12:** Video conference links MUST be stored in `PrivateRequestDetails` to prevent unauthorized access from public calendar views.
-*   **REQ-13:** The Kiosk application SHALL be granted temporary read access to the `PrivateRequestDetails` for the active meeting in its assigned room.
+*   **REQ-12:** Video conference links MUST be stored in `PrivateRequestDetails` to prevent unauthorized access from public calendar views. Existing `confirmed-requests` documents with a public `meetingUrl` field MUST be migrated (or read-compatible during a transition window) so no links are lost.
+*   **REQ-13:** The Kiosk application SHALL be granted read access to `PrivateRequestDetails`, scoped to its assigned room, for the active meeting in that room.
 
 ### 3.4 Automation & Integration
 *   **REQ-14:** The system SHALL support auto-provisioning of Google Meet links via Workspace API upon Admin confirmation.
-*   **REQ-18:** Instant bookings created on the Kiosk SHALL automatically trigger the auto-provisioning engine to attach a Meet URL.
+*   **REQ-18:** Instant bookings created on the Kiosk SHALL automatically trigger the auto-provisioning engine to attach a Meet URL. *(Depends on the Phase 5 auto-provisioning engine; until that exists, instant bookings are created without a Meet URL — see Phase 4d.)*
+
+### 3.5 Kiosk Identity & Access Control
+*   **REQ-19:** During provisioning, the Kiosk SHALL be issued a room-scoped Firebase Auth credential (e.g. a custom token/claims containing `orgID` and `roomID`), replacing the current anonymous/unauthenticated client.
+*   **REQ-20:** Firestore security rules SHALL grant a Kiosk read access to `PrivateRequestDetails` and write access to `confirmed-requests` only for documents belonging to its assigned `roomID`.
+*   **REQ-21:** The "In-Room User" (see 2.7) SHALL be represented as a concrete, attributable identity (e.g. an `Organization.systemUserID` or dedicated admin-equivalent record) usable to attribute Kiosk-originated bookings.
 
 ## 4. Execution Phases
 
@@ -73,12 +82,39 @@ Establish the Android `AccessibilityService` (Kotlin) and prove automated "Join.
 Build high-contrast UI, 6-digit provisioning, and basic Dual-Display routing.
 
 ### Phase 4: Tactical Hub & Secure Orchestration [IN PROGRESS]
-*   **Agenda View**: Refactor Dashboard to show full daily agenda.
-*   **Instant Booking**: Implement "Quick Book" buttons and "In-Room User" identity.
-*   **Privacy Guard**: Move meeting URLs to `PrivateRequestDetails`.
-*   **Scoped Access**: Implement Firestore rules for room-specific Kiosk access.
+This phase is split into sequenced sub-changes. 4a and 4c are
+prerequisites for 4d; 4b can proceed in parallel with 4a/4c.
+
+*   **4a. Privacy Guard** [NOT STARTED]: Move `meetingUrl` from `Request`
+    to `PrivateRequestDetails` (REQ-12), including a migration/compat
+    plan for existing documents and updates to the Portal request
+    editor and Kiosk dashboard.
+*   **4b. Agenda View** [NOT STARTED]: Refactor the Kiosk Dashboard to
+    show a scrollable daily agenda for the assigned room (REQ-04,
+    REQ-15). No auth dependency — can be done independently.
+*   **4c. Kiosk Device Identity & Scoped Access** [NOT STARTED]:
+    Issue a room-scoped Firebase Auth credential during provisioning
+    (REQ-19), define the "In-Room User" identity (REQ-21), and add
+    Firestore rules granting room-scoped access to
+    `PrivateRequestDetails` and `confirmed-requests` (REQ-13, REQ-20).
+    Foundational prerequisite for 4d. Also removes the unused
+    `KioskIdentity`/`registerKiosk`/`kiosks/{deviceID}` scaffolding
+    (dead code with an overly-open Firestore rule).
+    *   **Future follow-up (not in scope for 4c):** the
+        `kiosk-grants/{uid}` doc introduced here stores enough metadata
+        (`deviceID`, `createdAt`) to let the Portal show, per room,
+        whether a Kiosk is currently attached (and since when). This
+        should become a small Portal admin-UI change in a later
+        change/phase — likely alongside Phase 5's Ops Monitoring work.
+*   **4d. Instant Booking ("Quick Book")** [NOT STARTED]: Implement
+    gap/conflict detection and "Quick Book" buttons (15m/30m/60m)
+    that create auto-confirmed bookings attributed to the In-Room User
+    (REQ-16, REQ-17), using the identity/rules from 4c. Created without
+    a Meet URL until Phase 5's auto-provisioning trigger exists (REQ-18).
 
 ### Phase 5: Advanced Automation & Deployment
-*   **Auto-Provisioning**: Cloud Functions for Google Workspace integration (Meet link generation).
+*   **Auto-Provisioning**: Cloud Functions for Google Workspace integration
+    (Meet link generation), including the trigger that fulfills REQ-18
+    for Kiosk-originated instant bookings.
 *   **Proactive Feedback**: "Ending Soon" notifications and "Extend Meeting" controls.
 *   **Ops Monitoring**: Remote heartbeat and hardware status reporting.
