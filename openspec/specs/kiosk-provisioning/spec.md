@@ -1,4 +1,14 @@
-## ADDED Requirements
+# Kiosk Provisioning Specification: Room Booker
+
+## Purpose
+This document specifies how Kiosk devices are linked to a room and
+organization via an activation code, how that identity is persisted and
+verified, and the security/UX guarantees around (de)provisioning.
+
+## [PROV-000] Compliance
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
+
+## Requirements
 
 ### Requirement: Activation Handshake
 The system MUST use a 6-digit numeric activation code to securely link a new hardware device to a specific room and organization.

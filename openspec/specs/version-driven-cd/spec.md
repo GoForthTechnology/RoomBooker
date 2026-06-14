@@ -1,4 +1,13 @@
-## ADDED Requirements
+# Version-Driven CD Specification: Room Booker
+
+## Purpose
+This document specifies how semantic version tags route Android builds to
+Google Play Internal/Production deployment tracks via the CI/CD pipeline.
+
+## [CD-000] Compliance
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
+
+## Requirements
 
 ### Requirement: Semantic Version Routing
 The CI/CD pipeline MUST route application builds to specific deployment tracks based on the semantic versioning tag that triggered the build.

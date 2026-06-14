@@ -1,4 +1,14 @@
-## ADDED Requirements
+# Dual-Display Orchestration Specification: Room Booker
+
+## Purpose
+This document specifies how the Kiosk application detects and orchestrates
+its Tablet (Controller) and TV (Stage) displays for dual-display
+meeting-room setups, including display lifecycle management.
+
+## [DUAL-000] Compliance
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
+
+## Requirements
 
 ### Requirement: Display Detection and Role Assignment
 The Kiosk application MUST detect the presence of a secondary display (HDMI/USB-C) and automatically assign display roles.
