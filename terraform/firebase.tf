@@ -43,21 +43,3 @@ resource "google_firebase_web_app" "default" {
   
   depends_on = [google_firebase_project.default]
 }
-
-resource "google_firebaserules_ruleset" "firestore" {
-  provider = google-beta
-  project  = var.project_id
-  source {
-    files {
-      name    = "firestore.rules"
-      content = file("../firestore.rules")
-    }
-  }
-}
-
-resource "google_firebaserules_release" "firestore" {
-  provider     = google-beta
-  name         = "cloud.firestore"
-  ruleset_name = google_firebaserules_ruleset.firestore.name
-  project      = var.project_id
-}
