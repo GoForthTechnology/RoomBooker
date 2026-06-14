@@ -1,3 +1,15 @@
+# Data Repo Layer Specification: Room Booker
+
+## Purpose
+This document specifies the Firestore/local-storage access-layer contracts
+provided by `packages/roombooker_core/lib/data/repos/` (`BookingRepo`,
+`OrgRepo`, `RoomRepo`, `LogRepo`, `UserRepo`, `PreferencesRepo`): collection
+layout, query/stream semantics, transactional guarantees, and side effects
+(audit logging, analytics events).
+
+## [REPO-000] Compliance
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
+
 ## Requirements
 
 ### Requirement: Booking Request Collection Layout
