@@ -24,12 +24,20 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
 
   if (FirebaseAuth.instance.currentUser == null) {
-    await FirebaseAuth.instance.signInAnonymously();
+    try {
+      await FirebaseAuth.instance.signInAnonymously();
+    } catch (e) {
+      debugPrint('Kiosk: Anonymous sign-in failed: $e');
+    }
   }
 
   const storage = FlutterSecureStorage();
-  if (await storage.read(key: 'deviceID') == null) {
-    await storage.write(key: 'deviceID', value: const Uuid().v4());
+  try {
+    if (await storage.read(key: 'deviceID') == null) {
+      await storage.write(key: 'deviceID', value: const Uuid().v4());
+    }
+  } catch (e) {
+    debugPrint('Kiosk: Failed to read/write deviceID: $e');
   }
 
   runApp(
