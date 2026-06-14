@@ -163,7 +163,7 @@ class RequestEditorViewModel extends ChangeNotifier {
     contactEmailController.text = details?.email ?? "";
     phoneNumberController.text = details?.phone ?? "";
     additionalInfoController.text = details?.message ?? "";
-    meetingUrlController.text = request?.meetingUrl ?? "";
+    meetingUrlController.text = details?.meetingUrl ?? "";
 
     // Re-initialize repeat view model with request data
     // Dispose old one if needed? Actually, better to just update it or create new one and replace.
@@ -503,7 +503,6 @@ class RequestEditorViewModel extends ChangeNotifier {
         ignoreOverlapsStream,
         eventNameContoller.textStream,
         repeatBookingsViewModel.patternStream,
-        meetingUrlController.textStream,
       ],
       (List<dynamic> values) {
         Request? initialRequest = values[0];
@@ -515,7 +514,6 @@ class RequestEditorViewModel extends ChangeNotifier {
         bool ignoreOverlaps = values[6];
         String eventName = values[7];
         RecurrancePattern? pattern = values[8];
-        String meetingUrl = values[9];
 
         if (initialRequest == null) {
           return null;
@@ -533,7 +531,6 @@ class RequestEditorViewModel extends ChangeNotifier {
           roomID: roomID,
           roomName: roomName,
           publicName: isPublic ? eventName : null,
-          meetingUrl: meetingUrl.isNotEmpty ? meetingUrl : null,
           ignoreOverlaps: ignoreOverlaps,
         );
       },
@@ -541,19 +538,21 @@ class RequestEditorViewModel extends ChangeNotifier {
   }
 
   Stream<PrivateRequestDetails> _detailsStream() {
-    return Rx.combineLatest5(
+    return Rx.combineLatest6(
       eventNameContoller.textStream,
       contactNameController.textStream,
       contactEmailController.textStream,
       phoneNumberController.textStream,
       additionalInfoController.textStream,
-      (eventName, name, email, phone, additionalInfo) {
+      meetingUrlController.textStream,
+      (eventName, name, email, phone, additionalInfo, meetingUrl) {
         return PrivateRequestDetails(
           name: name,
           email: email,
           phone: phone,
           eventName: eventName,
           message: additionalInfo,
+          meetingUrl: meetingUrl.isNotEmpty ? meetingUrl : null,
         );
       },
     );

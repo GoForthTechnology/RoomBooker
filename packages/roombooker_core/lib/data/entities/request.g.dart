@@ -14,6 +14,7 @@ PrivateRequestDetails _$PrivateRequestDetailsFromJson(
   name: json['name'] as String,
   email: json['email'] as String,
   phone: json['phone'] as String,
+  meetingUrl: json['meetingUrl'] as String?,
 );
 
 Map<String, dynamic> _$PrivateRequestDetailsToJson(
@@ -24,6 +25,7 @@ Map<String, dynamic> _$PrivateRequestDetailsToJson(
   'phone': instance.phone,
   'message': instance.message,
   'eventName': instance.eventName,
+  'meetingUrl': instance.meetingUrl,
 };
 
 Request _$RequestFromJson(Map<String, dynamic> json) => Request(
@@ -37,7 +39,6 @@ Request _$RequestFromJson(Map<String, dynamic> json) => Request(
   roomID: json['roomID'] as String,
   roomName: json['roomName'] as String,
   publicName: json['publicName'] as String?,
-  meetingUrl: json['meetingUrl'] as String?,
   recurranceOverrides: (json['recurranceOverrides'] as Map<String, dynamic>?)
       ?.map(
         (k, e) => MapEntry(
@@ -50,7 +51,6 @@ Request _$RequestFromJson(Map<String, dynamic> json) => Request(
 
 Map<String, dynamic> _$RequestToJson(Request instance) => <String, dynamic>{
   'publicName': instance.publicName,
-  'meetingUrl': instance.meetingUrl,
   'eventStartTime': instance.eventStartTime.toIso8601String(),
   'eventEndTime': instance.eventEndTime.toIso8601String(),
   'roomID': instance.roomID,
