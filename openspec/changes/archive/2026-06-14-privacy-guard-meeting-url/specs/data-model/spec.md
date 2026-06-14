@@ -26,10 +26,10 @@ Sensitive information about a booking MUST be stored separately in
 ## ADDED Requirements
 
 ### Requirement: Meeting URL Migration
-Existing `confirmed-requests` documents with a non-null `meetingUrl` field
-MUST be migrated to the corresponding `PrivateRequestDetails.meetingUrl`
-before the `Request.meetingUrl` field is removed from the deployed
-application, so that no meeting links are lost.
+The system MUST migrate existing `confirmed-requests` documents with a
+non-null `meetingUrl` field to the corresponding
+`PrivateRequestDetails.meetingUrl` before the `Request.meetingUrl` field is
+removed from the deployed application, so that no meeting links are lost.
 
 #### Scenario: Backfill existing confirmed requests
 - **WHEN** the migration script runs against an org's `confirmed-requests`
