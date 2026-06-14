@@ -43,6 +43,8 @@ without depending on local `firebase login` credentials.
 ## Impact
 
 - **New file**: `.github/workflows/firebase-backend-deploy.yml`
+- **Modified file**: `firebase.json` (add a `functions` config block so
+  `firebase deploy --only functions` has a deploy target)
 - **Modified file**: `terraform/firebase.tf` (remove firebaserules
   ruleset/release resources)
 - **Terraform state**: `terraform state rm google_firebaserules_ruleset.firestore`

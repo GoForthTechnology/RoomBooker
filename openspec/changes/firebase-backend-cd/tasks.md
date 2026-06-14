@@ -9,6 +9,9 @@
       with `GOOGLE_APPLICATION_CREDENTIALS` pointing at that file.
 - [x] 1.2 Ensure the temporary credentials file is removed in an `if: always()`
       cleanup step.
+- [x] 1.3 Add a `functions` config block to `firebase.json` (source:
+      `functions`, codebase `default`) so `firebase deploy --only functions`
+      has a target to deploy.
 
 ## 2. Terraform Cleanup
 
