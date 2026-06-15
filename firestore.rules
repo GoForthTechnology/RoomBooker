@@ -94,7 +94,9 @@ service cloud.firestore {
       }
 
       match /request-logs/{logID} {
-        allow create, read, write: if isAdmin();
+        allow read, write: if isAdmin();
+        allow create: if isAdmin()
+          || isAuthorizedKiosk(get(/databases/$(database)/documents/orgs/$(orgID)/confirmed-requests/$(incomingData().requestID)).data.roomID);
       }
     }
 

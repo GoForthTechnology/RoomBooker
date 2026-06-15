@@ -325,5 +325,39 @@ describe("Firestore Security Rules", () => {
         await assertFails(db.collection(`orgs/${orgID}/confirmed-requests`).add({ roomID }));
       });
     });
+
+    describe("request-logs", () => {
+      it("allows an authorized kiosk to create a log entry for a booking in its own room", async () => {
+        const db = getDb({ uid: kioskUid });
+        await assertSucceeds(db.collection(`orgs/${orgID}/request-logs`).add({
+          requestID,
+          action: "create",
+          timestamp: new Date().toISOString(),
+        }));
+      });
+
+      it("denies an authorized kiosk creating a log entry for a booking in another room", async () => {
+        const db = getDb({ uid: kioskUid });
+        await assertFails(db.collection(`orgs/${orgID}/request-logs`).add({
+          requestID: otherRequestID,
+          action: "create",
+          timestamp: new Date().toISOString(),
+        }));
+      });
+
+      it("denies a client with no grant from creating a log entry", async () => {
+        const db = getDb({ uid: "randomUser" });
+        await assertFails(db.collection(`orgs/${orgID}/request-logs`).add({
+          requestID,
+          action: "create",
+          timestamp: new Date().toISOString(),
+        }));
+      });
+
+      it("denies an authorized kiosk reading log entries", async () => {
+        const db = getDb({ uid: kioskUid });
+        await assertFails(db.collection(`orgs/${orgID}/request-logs`).get());
+      });
+    });
   });
 });
