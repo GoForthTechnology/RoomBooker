@@ -380,7 +380,8 @@ class _KioskDashboardState extends State<KioskDashboard> {
     }
   }
 
-  Future<void> _onQuickBook(Duration duration, String roomName, DateTime now) async {
+  Future<void> _onQuickBook(Duration duration, String roomName) async {
+    final now = DateTime.now();
     try {
       await _bookingService.addBooking(
         widget.orgID,
@@ -654,7 +655,7 @@ class _KioskDashboardState extends State<KioskDashboard> {
                             bookings: bookings,
                             now: now,
                             onBook: (duration) =>
-                                _onQuickBook(duration, roomName, now),
+                                _onQuickBook(duration, roomName),
                           ),
                         ],
                       ],

@@ -76,12 +76,12 @@ class RequestLogsWidget extends StatelessWidget {
     final action = log.entry.action;
     final adminEmail = log.entry.adminEmail;
 
-    if (requesterActions.contains(action)) {
-      return log.details.email;
-    }
-
     if (log.request.bookedVia == BookingSource.kiosk) {
       return "Booked via Kiosk";
+    }
+
+    if (requesterActions.contains(action)) {
+      return log.details.email;
     }
 
     // For admin actions, use adminEmail if present, otherwise fallback

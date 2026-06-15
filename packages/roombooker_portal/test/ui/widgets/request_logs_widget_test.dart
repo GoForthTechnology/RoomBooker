@@ -395,11 +395,15 @@ void main() {
         acceptingAdminRequests: true,
       );
 
+      // Quick Book bookings are created via BookingService.addBooking,
+      // which logs Action.create (the same action requester-submitted
+      // bookings use) - the "Booked via Kiosk" label must take precedence
+      // over the requester-email display for this action.
       final logEntry = RequestLogEntry(
         id: 'log1',
         requestID: 'req1',
         timestamp: DateTime.now(),
-        action: Action.approve,
+        action: Action.create,
         adminEmail: null,
       );
 
@@ -435,7 +439,7 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest(org: org));
       await tester.pumpAndSettle();
 
-      expect(find.text('Booked via Kiosk - approve'), findsOneWidget);
+      expect(find.text('Booked via Kiosk - create'), findsOneWidget);
     },
   );
 }
