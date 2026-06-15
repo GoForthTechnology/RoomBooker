@@ -60,15 +60,26 @@
       computation enabling/disabling 15m/30m/60m against a stubbed next
       booking, and the `onBook` callback firing with the tapped duration.
 
-## 6. Validation
+## 6. Firestore rules (added after manual testing)
 
-- [x] 6.1 Run `(cd packages/roombooker_core && flutter test)` and confirm
+- [x] 6.1 Update `firestore.rules` so an authorized Kiosk can `create`
+      `request-logs` entries for bookings in its own room (the
+      `addBooking` `_log` write was rejected by the `isAdmin()`-only
+      rule, surfacing as a "Failed to book room" error).
+- [x] 6.2 Add `functions/test/firestore.rules.test.js` coverage for the
+      new `request-logs` create rule (allowed for own-room kiosk, denied
+      for other-room kiosk, denied for ungranted clients, reads remain
+      admin-only).
+
+## 7. Validation
+
+- [x] 7.1 Run `(cd packages/roombooker_core && flutter test)` and confirm
       all tests pass.
-- [x] 6.2 Run `(cd packages/roombooker_kiosk && flutter test)` and confirm
+- [x] 7.2 Run `(cd packages/roombooker_kiosk && flutter test)` and confirm
       all tests pass.
-- [x] 6.3 Run `(cd packages/roombooker_portal && flutter test)` and
+- [x] 7.3 Run `(cd packages/roombooker_portal && flutter test)` and
       confirm all tests pass.
-- [x] 6.4 Run `flutter analyze` from the repo root and confirm no new
+- [x] 7.4 Run `flutter analyze` from the repo root and confirm no new
       issues.
-- [x] 6.5 Run `openspec validate kiosk-instant-booking --strict` and
+- [x] 7.5 Run `openspec validate kiosk-instant-booking --strict` and
       confirm the change's spec deltas are valid.

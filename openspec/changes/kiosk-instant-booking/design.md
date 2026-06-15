@@ -36,8 +36,12 @@ Book bookings are created without a `meetingUrl`.
 - No new Firebase Auth identity, `Organization.systemUserID`, or
   admin-equivalent user record — superseded by the lightweight `bookedVia`
   label per user decision.
-- No changes to Firestore rules — `kiosk-access-control` (REQ-20) already
-  authorizes the Kiosk to create `confirmed-requests` for its own room.
+- ~~No changes to Firestore rules — `kiosk-access-control` (REQ-20) already
+  authorizes the Kiosk to create `confirmed-requests` for its own
+  room.~~ **Revised**: manual testing showed `addBooking`'s post-write
+  `_log` call also writes a `request-logs` entry, which the original
+  `kiosk-access-control` rules restricted to `isAdmin()`. A rules change
+  was required after all (see Risks / Trade-offs).
 - No "extend meeting" / "end early" controls (Phase 5: Proactive Feedback).
 - No booking durations other than 15/30/60 minutes.
 
@@ -113,6 +117,15 @@ email.
 - **[Trade-off]** Quick Book durations are fixed at 15/30/60m per REQ-16;
   no custom-duration picker. Matches the spec and keeps the Kiosk UI
   one-tap.
+- **[Risk]** `addBooking`'s `_log` write to `request-logs` was rejected by
+  `isAdmin()`-only rules for the Kiosk's anonymous user, causing
+  `addBooking` to throw (and the booking creation to surface as a
+  "Failed to book room" error in the UI) even though the
+  `confirmed-requests`/`request-details` writes succeeded. → Added a
+  `request-logs` `create` rule allowing `isAuthorizedKiosk(roomID)` for
+  the booking's own room (looked up via the `confirmed-requests` doc
+  named by `requestID`), mirroring the existing `confirmed-requests`
+  create rule. Read/write remain `isAdmin()`-only.
 
 ## Migration Plan
 
