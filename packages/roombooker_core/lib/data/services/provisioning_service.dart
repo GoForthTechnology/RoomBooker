@@ -25,7 +25,9 @@ class ProvisioningService {
     required String roomName,
   }) async {
     final code = _generateRandomCode();
-    final expiresAt = DateTime.now().add(const Duration(minutes: 10));
+    final expiresAt = DateTime.now().toUtc().add(
+      const Duration(minutes: 10),
+    );
 
     final handshake = ProvisioningHandshake(
       code: code,

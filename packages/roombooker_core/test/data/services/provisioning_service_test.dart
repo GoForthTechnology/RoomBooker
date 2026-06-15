@@ -38,6 +38,27 @@ void main() {
       expect(doc.data()!['roomName'], 'Sanctuary');
     });
 
+    test('createActivationCode stores expiresAt as a UTC timestamp', () async {
+      final code = await service.createActivationCode(
+        orgID: 'org-123',
+        orgName: 'My Church',
+        roomID: 'room-456',
+        roomName: 'Sanctuary',
+      );
+
+      final doc = await firestore.collection('provisioning_codes').doc(code).get();
+      final expiresAt = doc.data()!['expiresAt'] as String;
+
+      // Must be unambiguously UTC (trailing 'Z') so the claimKioskGrant
+      // Cloud Function (running in Node, which treats offset-less
+      // datetime strings as local time) doesn't misinterpret a non-UTC
+      // device-local timestamp as already expired.
+      expect(expiresAt, endsWith('Z'));
+
+      final parsed = DateTime.parse(expiresAt);
+      expect(parsed.isAfter(DateTime.now().toUtc()), true);
+    });
+
     test('claimKioskGrant calls the callable and returns a KioskGrant', () async {
       final functions = MockFirebaseFunctions();
       final callable = MockHttpsCallable();
