@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:roombooker_core/data/entities/log_entry.dart';
 import 'package:roombooker_core/data/entities/organization.dart';
+import 'package:roombooker_core/data/entities/request.dart';
 import 'package:roombooker_core/data/services/booking_service.dart';
 import 'package:roombooker_core/data/repos/log_repo.dart';
 import 'package:roombooker_portal/router.dart';
@@ -74,6 +75,10 @@ class RequestLogsWidget extends StatelessWidget {
     const requesterActions = {Action.create, Action.request};
     final action = log.entry.action;
     final adminEmail = log.entry.adminEmail;
+
+    if (log.request.bookedVia == BookingSource.kiosk) {
+      return "Booked via Kiosk";
+    }
 
     if (requesterActions.contains(action)) {
       return log.details.email;

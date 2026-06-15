@@ -47,6 +47,7 @@ Request _$RequestFromJson(Map<String, dynamic> json) => Request(
         ),
       ),
   ignoreOverlaps: json['ignoreOverlaps'] as bool? ?? false,
+  bookedVia: $enumDecodeNullable(_$BookingSourceEnumMap, json['bookedVia']),
 );
 
 Map<String, dynamic> _$RequestToJson(Request instance) => <String, dynamic>{
@@ -60,7 +61,10 @@ Map<String, dynamic> _$RequestToJson(Request instance) => <String, dynamic>{
     (k, e) => MapEntry(k.toIso8601String(), e?.toJson()),
   ),
   'ignoreOverlaps': instance.ignoreOverlaps,
+  'bookedVia': _$BookingSourceEnumMap[instance.bookedVia],
 };
+
+const _$BookingSourceEnumMap = {BookingSource.kiosk: 'kiosk'};
 
 RecurrancePattern _$RecurrancePatternFromJson(Map<String, dynamic> json) =>
     RecurrancePattern(
