@@ -12,6 +12,7 @@ import 'package:roombooker_core/roombooker_core.dart';
 import 'package:roombooker_kiosk/firebase_options.dart';
 
 import 'package:flutter/foundation.dart';
+import 'package:roombooker_kiosk/agenda_list.dart';
 import 'package:roombooker_kiosk/stage_ui.dart';
 import 'package:roombooker_kiosk/display_orchestrator.dart';
 import 'package:roombooker_kiosk/display_wrapper.dart';
@@ -321,10 +322,12 @@ class _KioskDashboardState extends State<KioskDashboard> {
     _checkServiceStatus();
     
     // Memoize streams so they don't recreate on every rebuild
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
     _bookingsStream = _bookingService.listRequests(
-      orgID: widget.orgID, 
-      startTime: DateTime.now().subtract(const Duration(hours: 1)),
-      endTime: DateTime.now().add(const Duration(hours: 4)),
+      orgID: widget.orgID,
+      startTime: startOfDay,
+      endTime: startOfDay.add(const Duration(days: 1)),
       includeRoomIDs: {widget.roomID},
       includeStatuses: {RequestStatus.confirmed},
     );
@@ -564,64 +567,62 @@ class _KioskDashboardState extends State<KioskDashboard> {
               ),
               body: Column(
                 children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.all(48.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                roomName,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 32, color: Colors.white60, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                status == RoomStatus.available ? 'AVAILABLE' : 'OCCUPIED',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 120, fontWeight: FontWeight.w900, color: Colors.white),
-                              ),
-                            ),
-                            if (currentBooking != null) ...[
-                              const SizedBox(height: 16),
-                              Text(
-                                currentBooking.publicName ?? 'Private Meeting',
-                                style: const TextStyle(fontSize: 32, color: Colors.white70),
-                              ),
-                              const SizedBox(height: 48),
-                              if (currentBooking.id == null)
-                                const SizedBox.shrink()
-                              else
-                                StreamBuilder<PrivateRequestDetails?>(
-                                  stream: _bookingService.getRequestDetails(
-                                    widget.orgID,
-                                    currentBooking.id!,
-                                  ),
-                                  builder: (context, detailsSnapshot) {
-                                    return JoinMeetingButton(
-                                      meetingUrl: detailsSnapshot.data?.meetingUrl,
-                                      foregroundColor: backgroundColor,
-                                      onLaunch: _launchMeeting,
-                                    );
-                                  },
-                                ),
-                            ],
-                            const SizedBox(height: 48),
-                            if (!_isServiceRunning)
-                              ElevatedButton(
-                                onPressed: () => platform.invokeMethod('openAccessibilitySettings'),
-                                child: const Text('ENABLE AUTOMATION SERVICE'),
-                              ),
-                          ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(48, 24, 48, 24),
+                    child: Column(
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            roomName,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 32, color: Colors.white60, fontWeight: FontWeight.bold),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            status == RoomStatus.available ? 'AVAILABLE' : 'OCCUPIED',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 80, fontWeight: FontWeight.w900, color: Colors.white),
+                          ),
+                        ),
+                        if (currentBooking != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            currentBooking.publicName ?? 'Private Meeting',
+                            style: const TextStyle(fontSize: 28, color: Colors.white70),
+                          ),
+                          const SizedBox(height: 16),
+                          if (currentBooking.id == null)
+                            const SizedBox.shrink()
+                          else
+                            StreamBuilder<PrivateRequestDetails?>(
+                              stream: _bookingService.getRequestDetails(
+                                widget.orgID,
+                                currentBooking.id!,
+                              ),
+                              builder: (context, detailsSnapshot) {
+                                return JoinMeetingButton(
+                                  meetingUrl: detailsSnapshot.data?.meetingUrl,
+                                  foregroundColor: backgroundColor,
+                                  onLaunch: _launchMeeting,
+                                );
+                              },
+                            ),
+                        ],
+                        const SizedBox(height: 16),
+                        if (!_isServiceRunning)
+                          ElevatedButton(
+                            onPressed: () => platform.invokeMethod('openAccessibilitySettings'),
+                            child: const Text('ENABLE AUTOMATION SERVICE'),
+                          ),
+                      ],
                     ),
+                  ),
+                  Expanded(
+                    child: AgendaListView(bookings: bookings, now: now),
                   ),
                   _buildDiagnosticSection(),
                 ],

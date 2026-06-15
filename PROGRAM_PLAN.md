@@ -85,11 +85,11 @@ Build high-contrast UI, 6-digit provisioning, and basic Dual-Display routing.
 This phase is split into sequenced sub-changes. 4a and 4c are
 prerequisites for 4d; 4b can proceed in parallel with 4a/4c.
 
-*   **4a. Privacy Guard** [NOT STARTED]: Move `meetingUrl` from `Request`
+*   **4a. Privacy Guard** [DONE]: Move `meetingUrl` from `Request`
     to `PrivateRequestDetails` (REQ-12), including a migration/compat
     plan for existing documents and updates to the Portal request
     editor and Kiosk dashboard.
-*   **4b. Agenda View** [NOT STARTED]: Refactor the Kiosk Dashboard to
+*   **4b. Agenda View** [DONE]: Refactor the Kiosk Dashboard to
     show a scrollable daily agenda for the assigned room (REQ-04,
     REQ-15). No auth dependency — can be done independently.
 *   **4c. Kiosk Device Identity & Scoped Access** [DONE]:
