@@ -227,13 +227,18 @@ For rapid iteration on the hardware-bound `roombooker_kiosk` application:
     ```bash
     cd packages/roombooker_kiosk/android && ./gradlew assembleDebug --no-daemon
     ```
-2.  **Serve for LAN Download**:
-    Start a temporary server from the APK output directory:
-    ```bash
-    cd packages/roombooker_kiosk/build/app/outputs/flutter-apk/
-    python3 -m http.server 8000 --bind 0.0.0.0
-    ```
-3.  **Install on Hardware**:
-    Access `http://<server-lan-ip>:8000` from the device's browser to download and install.
+    The output APK is written to
+    `packages/roombooker_kiosk/build/app/outputs/flutter-apk/app-debug.apk`.
+2.  **Retrieve the APK**:
+    - For emulator testing (e.g. from a MacBook), the user SCPs
+      `app-debug.apk` from this machine directly - no server needed.
+    - For installing on physical Kiosk hardware, serve it for LAN download
+      from the output directory if requested:
+      ```bash
+      cd packages/roombooker_kiosk/build/app/outputs/flutter-apk/
+      python3 -m http.server 8000 --bind 0.0.0.0
+      ```
+      then access `http://<server-lan-ip>:8000` from the device's browser
+      to download and install.
 
 This loop allows for testing native features (Accessibility Services, Kiosk Mode) that cannot be verified in a headless environment.
