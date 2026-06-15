@@ -382,6 +382,7 @@ class _KioskDashboardState extends State<KioskDashboard> {
 
   Future<void> _onQuickBook(Duration duration, String roomName) async {
     final now = DateTime.now();
+    setState(() => _logs.insert(0, '[QUICKBOOK] Tapped ${duration.inMinutes}m — orgID=${widget.orgID} roomID=${widget.roomID}'));
     try {
       await _bookingService.addBooking(
         widget.orgID,
@@ -393,6 +394,7 @@ class _KioskDashboardState extends State<KioskDashboard> {
           publicName: 'In-Room Booking',
           status: RequestStatus.confirmed,
           bookedVia: BookingSource.kiosk,
+          recurrancePattern: RecurrancePattern.never(),
         ),
         PrivateRequestDetails(
           name: 'In-Room Hub',
@@ -402,8 +404,11 @@ class _KioskDashboardState extends State<KioskDashboard> {
           eventName: 'In-Room Booking',
         ),
       );
-    } catch (e) {
       if (!mounted) return;
+      setState(() => _logs.insert(0, '[QUICKBOOK] Success — booked ${duration.inMinutes}m from ${now.toIso8601String()}'));
+    } catch (e, st) {
+      if (!mounted) return;
+      setState(() => _logs.insert(0, '[QUICKBOOK] ERROR: $e\n$st'));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to book room: $e')),
       );

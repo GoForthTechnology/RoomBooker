@@ -191,6 +191,41 @@ void main() {
       expect(requests.first.id, "req1");
     });
 
+    test("listRequests excludes confirmed bookings without recurrancePattern",
+        () async {
+      // Bookings written without recurrancePattern (e.g. a bug in Quick Book)
+      // are invisible to listRequests because the query filters on
+      // recurrancePattern.frequency == "never". This test locks in that
+      // behaviour so the query contract is explicit.
+      var startTime = DateTime(2023, 1, 1, 10, 0);
+      var endTime = DateTime(2023, 1, 1, 11, 0);
+
+      await fakeFirestore
+          .collection("orgs")
+          .doc("org1")
+          .collection("confirmed-requests")
+          .doc("no-pattern")
+          .set({
+        "eventStartTime": startTime.toIso8601String(),
+        "eventEndTime": endTime.toIso8601String(),
+        "roomID": "room1",
+        "roomName": "Room 1",
+        // intentionally omitting recurrancePattern
+      });
+
+      var requests = await bookingRepo
+          .listRequests(
+            orgID: "org1",
+            startTime: startTime.subtract(Duration(hours: 1)),
+            endTime: endTime.add(Duration(days: 1)),
+            includeStatuses: {RequestStatus.confirmed},
+          )
+          .skip(1)
+          .first;
+
+      expect(requests.where((r) => r.id == "no-pattern"), isEmpty);
+    });
+
     test("confirmRequest moves request from pending to confirmed", () async {
       var request = Request(
         id: "req1",
