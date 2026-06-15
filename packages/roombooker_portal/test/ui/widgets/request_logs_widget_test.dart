@@ -384,4 +384,58 @@ void main() {
 
     expect(find.text('requester@example.com - create'), findsOneWidget);
   });
+
+  testWidgets(
+    'RequestLogsWidget shows "Booked via Kiosk" for Kiosk-originated bookings',
+    (tester) async {
+      final org = Organization(
+        id: 'org1',
+        name: 'Test Org',
+        ownerID: 'owner1',
+        acceptingAdminRequests: true,
+      );
+
+      final logEntry = RequestLogEntry(
+        id: 'log1',
+        requestID: 'req1',
+        timestamp: DateTime.now(),
+        action: Action.approve,
+        adminEmail: null,
+      );
+
+      final request = Request(
+        id: 'req1',
+        roomID: 'room1',
+        roomName: 'Room 1',
+        eventStartTime: DateTime.now(),
+        eventEndTime: DateTime.now().add(const Duration(hours: 1)),
+        publicName: 'In-Room Booking',
+        bookedVia: BookingSource.kiosk,
+      );
+
+      final decoratedLog = DecoratedLogEntry(
+        PrivateRequestDetails(
+          email: '',
+          eventName: 'In-Room Booking',
+          name: 'In-Room Hub',
+          phone: '',
+        ),
+        entry: logEntry,
+        request: request,
+      );
+
+      when(
+        () => mockLogRepo.getLogEntries(any(), limit: any(named: 'limit')),
+      ).thenAnswer((_) => Stream.value([logEntry]));
+
+      when(
+        () => mockBookingService.decorateLogs(any(), any()),
+      ).thenAnswer((_) => Stream.value([decoratedLog]));
+
+      await tester.pumpWidget(createWidgetUnderTest(org: org));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Booked via Kiosk - approve'), findsOneWidget);
+    },
+  );
 }

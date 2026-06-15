@@ -13,6 +13,7 @@ import 'package:roombooker_kiosk/firebase_options.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:roombooker_kiosk/agenda_list.dart';
+import 'package:roombooker_kiosk/quick_book_panel.dart';
 import 'package:roombooker_kiosk/stage_ui.dart';
 import 'package:roombooker_kiosk/display_orchestrator.dart';
 import 'package:roombooker_kiosk/display_wrapper.dart';
@@ -379,6 +380,35 @@ class _KioskDashboardState extends State<KioskDashboard> {
     }
   }
 
+  Future<void> _onQuickBook(Duration duration, String roomName, DateTime now) async {
+    try {
+      await _bookingService.addBooking(
+        widget.orgID,
+        Request(
+          eventStartTime: now,
+          eventEndTime: now.add(duration),
+          roomID: widget.roomID,
+          roomName: roomName,
+          publicName: 'In-Room Booking',
+          status: RequestStatus.confirmed,
+          bookedVia: BookingSource.kiosk,
+        ),
+        PrivateRequestDetails(
+          name: 'In-Room Hub',
+          email: '',
+          phone: '',
+          message: '',
+          eventName: 'In-Room Booking',
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to book room: $e')),
+      );
+    }
+  }
+
   Future<void> _showInfoDialog() async {
     showDialog(
       context: context,
@@ -618,6 +648,15 @@ class _KioskDashboardState extends State<KioskDashboard> {
                             onPressed: () => platform.invokeMethod('openAccessibilitySettings'),
                             child: const Text('ENABLE AUTOMATION SERVICE'),
                           ),
+                        if (status == RoomStatus.available) ...[
+                          const SizedBox(height: 16),
+                          QuickBookPanel(
+                            bookings: bookings,
+                            now: now,
+                            onBook: (duration) =>
+                                _onQuickBook(duration, roomName, now),
+                          ),
+                        ],
                       ],
                     ),
                   ),

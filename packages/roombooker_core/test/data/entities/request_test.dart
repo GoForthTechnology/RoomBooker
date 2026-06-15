@@ -1387,4 +1387,37 @@ void main() {
           expectedStartTimes);
     });
   });
+
+  group('Request bookedVia serialization', () {
+    var now = DateTime(2025, 1, 1, 0, 0, 0);
+
+    test('Request without bookedVia deserializes with bookedVia == null', () {
+      var json = {
+        'eventStartTime': now.toIso8601String(),
+        'eventEndTime': now.add(Duration(hours: 1)).toIso8601String(),
+        'roomID': 'room1',
+        'roomName': 'Conference Room A',
+        'ignoreOverlaps': false,
+      };
+
+      var request = Request.fromJson(json);
+
+      expect(request.bookedVia, isNull);
+    });
+
+    test('Request with bookedVia: kiosk round-trips through JSON', () {
+      var request = Request(
+        eventStartTime: now,
+        eventEndTime: now.add(Duration(hours: 1)),
+        roomID: 'room1',
+        roomName: 'Conference Room A',
+        bookedVia: BookingSource.kiosk,
+      );
+
+      var json = request.toJson();
+      var roundTripped = Request.fromJson(json);
+
+      expect(roundTripped.bookedVia, BookingSource.kiosk);
+    });
+  });
 }

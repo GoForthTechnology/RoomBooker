@@ -8,6 +8,8 @@ part 'request.g.dart';
 
 enum RequestStatus { unknown, confirmed, denied, pending }
 
+enum BookingSource { kiosk }
+
 @JsonSerializable(explicitToJson: true)
 class PrivateRequestDetails {
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -95,6 +97,7 @@ class Request {
   final bool ignoreOverlaps;
   @JsonKey(includeFromJson: false, includeToJson: false)
   final DateTime? recurrenceInstanceStartDate;
+  final BookingSource? bookedVia;
 
   Request({
     this.recurrancePattern,
@@ -108,6 +111,7 @@ class Request {
     this.recurranceOverrides,
     this.ignoreOverlaps = false,
     this.recurrenceInstanceStartDate,
+    this.bookedVia,
   }) {
     if (!eventStartTime.isBefore(eventEndTime)) {
       log(
@@ -139,6 +143,7 @@ class Request {
     Map<DateTime, Request?>? recurranceOverrides,
     bool? ignoreOverlaps,
     DateTime? recurrenceInstanceStartDate,
+    BookingSource? bookedVia,
   }) {
     return Request(
       eventStartTime: eventStartTime ?? this.eventStartTime,
@@ -152,6 +157,7 @@ class Request {
       recurranceOverrides: recurranceOverrides ?? this.recurranceOverrides,
       ignoreOverlaps: ignoreOverlaps ?? this.ignoreOverlaps,
       recurrenceInstanceStartDate: recurrenceInstanceStartDate ?? this.recurrenceInstanceStartDate,
+      bookedVia: bookedVia ?? this.bookedVia,
     );
   }
 
@@ -166,7 +172,8 @@ class Request {
       roomName: $roomName,
       status: $status,
       recurrencePattern: $recurrancePattern,
-      ignoreOverlaps: $ignoreOverlaps
+      ignoreOverlaps: $ignoreOverlaps,
+      bookedVia: $bookedVia
     }""";
   }
 
@@ -188,7 +195,8 @@ class Request {
         other.recurrancePattern == recurrancePattern &&
         other.ignoreOverlaps == ignoreOverlaps &&
         other.recurranceOverrides == recurranceOverrides &&
-        other.status == status;
+        other.status == status &&
+        other.bookedVia == bookedVia;
   }
 
   @override
@@ -202,7 +210,8 @@ class Request {
         ignoreOverlaps.hashCode ^
         recurranceOverrides.hashCode ^
         publicName.hashCode ^
-        status.hashCode;
+        status.hashCode ^
+        bookedVia.hashCode;
   }
 
   List<Request> expand(
