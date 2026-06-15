@@ -89,7 +89,7 @@ prerequisites for 4d; 4b can proceed in parallel with 4a/4c.
     to `PrivateRequestDetails` (REQ-12), including a migration/compat
     plan for existing documents and updates to the Portal request
     editor and Kiosk dashboard.
-*   **4b. Agenda View** [NOT STARTED]: Refactor the Kiosk Dashboard to
+*   **4b. Agenda View** [DONE]: Refactor the Kiosk Dashboard to
     show a scrollable daily agenda for the assigned room (REQ-04,
     REQ-15). No auth dependency — can be done independently.
 *   **4c. Kiosk Device Identity & Scoped Access** [DONE]:
