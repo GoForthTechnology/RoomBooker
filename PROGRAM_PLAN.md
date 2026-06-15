@@ -81,7 +81,7 @@ Establish the Android `AccessibilityService` (Kotlin) and prove automated "Join.
 ### Phase 3: Dashboard Productization [DONE]
 Build high-contrast UI, 6-digit provisioning, and basic Dual-Display routing.
 
-### Phase 4: Tactical Hub & Secure Orchestration [IN PROGRESS]
+### Phase 4: Tactical Hub & Secure Orchestration [DONE]
 This phase is split into sequenced sub-changes. 4a and 4c are
 prerequisites for 4d; 4b can proceed in parallel with 4a/4c.
 
@@ -106,7 +106,7 @@ prerequisites for 4d; 4b can proceed in parallel with 4a/4c.
         whether a Kiosk is currently attached (and since when). This
         should become a small Portal admin-UI change in a later
         change/phase — likely alongside Phase 5's Ops Monitoring work.
-*   **4d. Instant Booking ("Quick Book")** [NOT STARTED]: Implement
+*   **4d. Instant Booking ("Quick Book")** [DONE]: Implement
     gap/conflict detection and "Quick Book" buttons (15m/30m/60m)
     that create auto-confirmed bookings attributed to the In-Room User
     (REQ-16, REQ-17), using the identity/rules from 4c. Created without
