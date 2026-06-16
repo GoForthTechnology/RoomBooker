@@ -4,22 +4,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
-import 'package:roombooker_core/data/entities/organization.dart';
 import 'package:roombooker_core/data/repos/room_repo.dart';
+import 'package:roombooker_core/roombooker_core.dart';
 import 'package:roombooker_portal/ui/widgets/room_list_widget.dart';
 
 class MockRoomRepo extends Mock implements RoomRepo {}
 
-// Fake class for Room since we might need to use it in specific matchers or just nice to have
+class MockProvisioningService extends Mock implements ProvisioningService {}
+
 class FakeRoom extends Fake implements Room {}
 
 void main() {
   late MockRoomRepo mockRepo;
+  late MockProvisioningService mockProvisioningService;
   late Organization testOrg;
   late StreamController<List<Room>> roomStreamController;
 
   setUp(() {
     mockRepo = MockRoomRepo();
+    mockProvisioningService = MockProvisioningService();
     testOrg = Organization(
       id: 'org1',
       name: 'Test Org',
@@ -28,22 +31,32 @@ void main() {
     );
     roomStreamController = StreamController<List<Room>>();
 
-    // Register fallback values if needed
     registerFallbackValue(
         Room(name: 'Fallback Room', colorHex: '#000000', orderKey: 0));
-    registerFallbackValue(
-        <Room>[]); // For List<Room> if needed, though usually not for simple args
+    registerFallbackValue(<Room>[]);
+
   });
 
   tearDown(() {
     roomStreamController.close();
   });
 
+  void stubKioskGrants(List<KioskGrantRecord> grants) {
+    when(() => mockProvisioningService.listKioskGrants(
+          orgID: any(named: 'orgID'),
+          roomID: any(named: 'roomID'),
+        )).thenAnswer((_) => Stream.value(grants));
+  }
+
   Widget createWidgetUnderTest() {
     return MaterialApp(
       home: Scaffold(
-        body: ChangeNotifierProvider<RoomRepo>.value(
-          value: mockRepo,
+        body: MultiProvider(
+          providers: [
+            ChangeNotifierProvider<RoomRepo>.value(value: mockRepo),
+            Provider<ProvisioningService>.value(
+                value: mockProvisioningService),
+          ],
           child: RoomListWidget(
             org: testOrg,
             repo: mockRepo,
@@ -81,6 +94,7 @@ void main() {
     ];
     when(() => mockRepo.listRooms(any()))
         .thenAnswer((_) => Stream.value(rooms));
+    stubKioskGrants([]);
 
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pump();
@@ -116,6 +130,7 @@ void main() {
     when(() => mockRepo.listRooms(any()))
         .thenAnswer((_) => Stream.value([room]));
     when(() => mockRepo.removeRoom(any(), any())).thenAnswer((_) async {});
+    stubKioskGrants([]);
 
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pump();
@@ -136,6 +151,7 @@ void main() {
     when(() => mockRepo.listRooms(any()))
         .thenAnswer((_) => Stream.value([room]));
     when(() => mockRepo.updateRoom(any(), any())).thenAnswer((_) async {});
+    stubKioskGrants([]);
 
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pump();
@@ -150,5 +166,40 @@ void main() {
     await tester.pumpAndSettle();
 
     verify(() => mockRepo.updateRoom(testOrg.id!, any(that: isA<Room>().having((r) => r.name, 'name', 'Updated Room')))).called(1);
+  });
+
+  testWidgets('shows Link Kiosk button when no grant exists',
+      (WidgetTester tester) async {
+    final room = Room(name: 'Room A', id: '1');
+    when(() => mockRepo.listRooms(any()))
+        .thenAnswer((_) => Stream.value([room]));
+    stubKioskGrants([]);
+
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pump();
+
+    expect(find.byIcon(Icons.screenshot_monitor), findsOneWidget);
+    expect(find.byIcon(Icons.link_off), findsNothing);
+  });
+
+  testWidgets('shows Revoke button when a grant exists',
+      (WidgetTester tester) async {
+    final room = Room(name: 'Room A', id: '1');
+    when(() => mockRepo.listRooms(any()))
+        .thenAnswer((_) => Stream.value([room]));
+    stubKioskGrants([
+      KioskGrantRecord(
+        uid: 'uid-1',
+        deviceID: 'device-abc123',
+        createdAt: DateTime(2026, 1, 15),
+      ),
+    ]);
+
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pump(); // settle room list stream
+    await tester.pump(); // settle kiosk-grants stream
+
+    expect(find.byIcon(Icons.link_off), findsOneWidget);
+    // connected state shows small green screenshot_monitor + link_off (revoke) side by side
   });
 }

@@ -54,6 +54,37 @@ exports.claimKioskGrant = functions.https.onCall(async (data, context) => {
   return {orgID, roomID, orgName, roomName};
 });
 
+exports.adminRevokeKioskGrant = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "Caller must be signed in.");
+  }
+
+  const {orgID, roomID} = data;
+  if (!orgID || !roomID) {
+    throw new functions.https.HttpsError("invalid-argument", "orgID and roomID are required.");
+  }
+
+  const orgDoc = await db.collection("orgs").doc(orgID).get();
+  if (!orgDoc.exists) {
+    throw new functions.https.HttpsError("not-found", "Org not found.");
+  }
+  const isOwner = orgDoc.data().ownerID === context.auth.uid;
+  const adminDoc = await db.collection("orgs").doc(orgID)
+      .collection("active-admins").doc(context.auth.uid).get();
+  if (!isOwner && !adminDoc.exists) {
+    throw new functions.https.HttpsError("permission-denied", "Must be an org admin.");
+  }
+
+  const grantsRef = db.collection("orgs").doc(orgID)
+      .collection("rooms").doc(roomID)
+      .collection("kiosk-grants");
+  const grants = await grantsRef.get();
+  const deletions = grants.docs.map((doc) => doc.ref.delete());
+  await Promise.all(deletions);
+
+  return {success: true};
+});
+
 exports.revokeKioskGrant = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError("unauthenticated", "Caller must be signed in.");

@@ -1,3 +1,17 @@
+/// A grant document from `kiosk-grants/{uid}` as read by an admin in the
+/// Portal, containing the device's identity and provisioning timestamp.
+class KioskGrantRecord {
+  final String uid;
+  final String? deviceID;
+  final DateTime? createdAt;
+
+  KioskGrantRecord({
+    required this.uid,
+    this.deviceID,
+    this.createdAt,
+  });
+}
+
 /// Result of a successful `claimKioskGrant` call: identifies the org/room
 /// this Kiosk device is now authorized to access.
 class KioskGrant {
