@@ -198,57 +198,11 @@ class _KioskStatusButton extends StatelessWidget {
             onPressed: () => _provisionKiosk(context, provisioningService),
           );
         }
-        if (grants.length > 1) {
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Tooltip(
-                message: 'Multiple Kiosk devices linked',
-                child: Icon(Icons.warning_amber, color: Colors.orange,
-                    size: 20),
-              ),
-              const SizedBox(width: 4),
-              IconButton(
-                icon: const Icon(Icons.link_off, color: Colors.red),
-                tooltip: 'Revoke All Kiosks',
-                onPressed: () => _confirmRevoke(
-                    context, provisioningService, multiple: true),
-              ),
-            ],
-          );
-        }
-        final grant = grants.first;
-        final shortID = (grant.deviceID ?? 'unknown').length > 8
-            ? '${(grant.deviceID ?? 'unknown').substring(0, 8)}…'
-            : (grant.deviceID ?? 'unknown');
-        final dateStr = grant.createdAt != null
-            ? DateFormat('MMM d, y').format(grant.createdAt!)
-            : '—';
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Tooltip(
-              message: 'Kiosk linked: ${grant.deviceID ?? "unknown"}'
-                  '\nSince: $dateStr',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.screenshot_monitor,
-                      size: 16, color: Colors.green),
-                  const SizedBox(width: 4),
-                  Text(shortID,
-                      style: const TextStyle(fontSize: 11,
-                          color: Colors.green)),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.link_off, color: Colors.red),
-              tooltip: 'Revoke Kiosk',
-              onPressed: () =>
-                  _confirmRevoke(context, provisioningService),
-            ),
-          ],
+        return IconButton(
+          icon: const Icon(Icons.phonelink, color: Colors.green),
+          tooltip: 'Kiosk Linked',
+          onPressed: () =>
+              _showKioskDialog(context, provisioningService, grants),
         );
       },
     );
@@ -306,26 +260,62 @@ class _KioskStatusButton extends StatelessWidget {
     }
   }
 
-  Future<void> _confirmRevoke(
-      BuildContext context, ProvisioningService svc,
-      {bool multiple = false}) async {
+  Future<void> _showKioskDialog(BuildContext context, ProvisioningService svc,
+      List<KioskGrantRecord> grants) async {
+    Widget content;
+    String revokeLabel;
+    if (grants.length == 1) {
+      final grant = grants.first;
+      final dateStr = grant.createdAt != null
+          ? DateFormat('MMM d, y').format(grant.createdAt!)
+          : '—';
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Device: ${grant.deviceID ?? 'unknown'}'),
+          const SizedBox(height: 4),
+          Text('Linked: $dateStr'),
+          const SizedBox(height: 12),
+          const Text(
+            'Revoking will disconnect the Kiosk. '
+            'The device will lose access on its next interaction.',
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+        ],
+      );
+      revokeLabel = 'Revoke';
+    } else {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${grants.length} devices are linked to this room.'),
+          const SizedBox(height: 12),
+          const Text(
+            'Revoking will disconnect all linked Kiosks. '
+            'Each device will lose access on its next interaction.',
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+        ],
+      );
+      revokeLabel = 'Revoke All';
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(multiple ? 'Revoke All Kiosks?' : 'Revoke Kiosk?'),
-        content: const Text(
-          'This will disconnect the Kiosk from this room. '
-          'The device will lose access on its next interaction.',
-        ),
+        title: const Text('Kiosk Linked'),
+        content: content,
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: const Text('Close'),
           ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Revoke'),
+            child: Text(revokeLabel),
           ),
         ],
       ),

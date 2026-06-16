@@ -179,7 +179,7 @@ void main() {
     await tester.pump();
 
     expect(find.byIcon(Icons.screenshot_monitor), findsOneWidget);
-    expect(find.byIcon(Icons.link_off), findsNothing);
+    expect(find.byIcon(Icons.phonelink), findsNothing);
   });
 
   testWidgets('shows Revoke button when a grant exists',
@@ -199,7 +199,7 @@ void main() {
     await tester.pump(); // settle room list stream
     await tester.pump(); // settle kiosk-grants stream
 
-    expect(find.byIcon(Icons.link_off), findsOneWidget);
-    // connected state shows small green screenshot_monitor + link_off (revoke) side by side
+    expect(find.byIcon(Icons.phonelink), findsOneWidget);
+    expect(find.byIcon(Icons.screenshot_monitor), findsNothing);
   });
 }
