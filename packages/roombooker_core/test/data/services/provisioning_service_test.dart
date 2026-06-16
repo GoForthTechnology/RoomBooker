@@ -107,5 +107,46 @@ void main() {
             'roomID': 'room-1',
           })).called(1);
     });
+
+    test('adminRevokeKioskGrant calls the callable with orgID and roomID',
+        () async {
+      final functions = MockFirebaseFunctions();
+      final callable = MockHttpsCallable();
+      final result = MockHttpsCallableResult<Map<String, dynamic>>();
+
+      when(() => functions.httpsCallable('adminRevokeKioskGrant'))
+          .thenReturn(callable);
+      when(() => callable.call<Map<String, dynamic>>(any()))
+          .thenAnswer((_) async => result);
+      when(() => result.data).thenReturn({'success': true});
+
+      service = ProvisioningService(firestore: firestore, functions: functions);
+
+      await service.adminRevokeKioskGrant(orgID: 'org-1', roomID: 'room-1');
+
+      verify(() => callable.call<Map<String, dynamic>>({
+            'orgID': 'org-1',
+            'roomID': 'room-1',
+          })).called(1);
+    });
+
+    test('listKioskGrants emits KioskGrantRecords from Firestore', () async {
+      await firestore
+          .collection('orgs')
+          .doc('org-1')
+          .collection('rooms')
+          .doc('room-1')
+          .collection('kiosk-grants')
+          .doc('uid-abc')
+          .set({'deviceID': 'device-xyz', 'createdAt': null});
+
+      final grants = await service
+          .listKioskGrants(orgID: 'org-1', roomID: 'room-1')
+          .first;
+
+      expect(grants.length, 1);
+      expect(grants.first.uid, 'uid-abc');
+      expect(grants.first.deviceID, 'device-xyz');
+    });
   });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:roombooker_core/data/repos/room_repo.dart';
 import 'package:roombooker_core/roombooker_core.dart';
@@ -145,66 +146,7 @@ class RoomTile extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              icon: const Icon(Icons.screenshot_monitor),
-              tooltip: 'Provision Kiosk',
-              onPressed: () async {
-                try {
-                  final provisioningService =
-                      Provider.of<ProvisioningService>(context, listen: false);
-                  final code = await provisioningService.createActivationCode(
-                    orgID: org.id!,
-                    orgName: org.name,
-                    roomID: room.id!,
-                    roomName: room.name,
-                  );
-
-                  if (!context.mounted) return;
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Provision Kiosk'),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Enter this 6-digit code on the Kiosk terminal to link it to this room:',
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            code,
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 8,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Valid for 10 minutes',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Close'),
-                        ),
-                      ],
-                    ),
-                  );
-                } catch (e) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to generate code: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-            ),
+            _KioskStatusButton(org: org, room: room),
             IconButton(
               icon: const Icon(Icons.edit),
               tooltip: 'Edit Room',
@@ -229,6 +171,175 @@ class RoomTile extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _KioskStatusButton extends StatelessWidget {
+  final Organization org;
+  final Room room;
+
+  const _KioskStatusButton({required this.org, required this.room});
+
+  @override
+  Widget build(BuildContext context) {
+    final provisioningService =
+        Provider.of<ProvisioningService>(context, listen: false);
+    return StreamBuilder<List<KioskGrantRecord>>(
+      stream: provisioningService.listKioskGrants(
+        orgID: org.id!,
+        roomID: room.id!,
+      ),
+      builder: (context, snapshot) {
+        final grants = snapshot.data ?? [];
+        if (grants.isEmpty) {
+          return IconButton(
+            icon: const Icon(Icons.screenshot_monitor),
+            tooltip: 'Link Kiosk',
+            onPressed: () => _provisionKiosk(context, provisioningService),
+          );
+        }
+        if (grants.length > 1) {
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Tooltip(
+                message: 'Multiple Kiosk devices linked',
+                child: Icon(Icons.warning_amber, color: Colors.orange,
+                    size: 20),
+              ),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(Icons.link_off, color: Colors.red),
+                tooltip: 'Revoke All Kiosks',
+                onPressed: () => _confirmRevoke(
+                    context, provisioningService, multiple: true),
+              ),
+            ],
+          );
+        }
+        final grant = grants.first;
+        final shortID = (grant.deviceID ?? 'unknown').length > 8
+            ? '${(grant.deviceID ?? 'unknown').substring(0, 8)}…'
+            : (grant.deviceID ?? 'unknown');
+        final dateStr = grant.createdAt != null
+            ? DateFormat('MMM d, y').format(grant.createdAt!)
+            : '—';
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Tooltip(
+              message: 'Kiosk linked: ${grant.deviceID ?? "unknown"}'
+                  '\nSince: $dateStr',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.screenshot_monitor,
+                      size: 16, color: Colors.green),
+                  const SizedBox(width: 4),
+                  Text(shortID,
+                      style: const TextStyle(fontSize: 11,
+                          color: Colors.green)),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.link_off, color: Colors.red),
+              tooltip: 'Revoke Kiosk',
+              onPressed: () =>
+                  _confirmRevoke(context, provisioningService),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _provisionKiosk(
+      BuildContext context, ProvisioningService svc) async {
+    try {
+      final code = await svc.createActivationCode(
+        orgID: org.id!,
+        orgName: org.name,
+        roomID: room.id!,
+        roomName: room.name,
+      );
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Provision Kiosk'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Enter this 6-digit code on the Kiosk terminal'
+                ' to link it to this room:',
+              ),
+              const SizedBox(height: 16),
+              Text(
+                code,
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 8,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text('Valid for 10 minutes',
+                  style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to generate code: $e'),
+        backgroundColor: Colors.red,
+      ));
+    }
+  }
+
+  Future<void> _confirmRevoke(
+      BuildContext context, ProvisioningService svc,
+      {bool multiple = false}) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(multiple ? 'Revoke All Kiosks?' : 'Revoke Kiosk?'),
+        content: const Text(
+          'This will disconnect the Kiosk from this room. '
+          'The device will lose access on its next interaction.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Revoke'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await svc.adminRevokeKioskGrant(orgID: org.id!, roomID: room.id!);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to revoke Kiosk: $e'),
+        backgroundColor: Colors.red,
+      ));
+    }
   }
 }
 

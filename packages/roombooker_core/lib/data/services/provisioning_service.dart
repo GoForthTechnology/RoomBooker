@@ -73,6 +73,42 @@ class ProvisioningService {
     });
   }
 
+  /// Returns a live stream of all Kiosk grants for a room, for admin display.
+  Stream<List<KioskGrantRecord>> listKioskGrants({
+    required String orgID,
+    required String roomID,
+  }) {
+    return _firestore
+        .collection('orgs')
+        .doc(orgID)
+        .collection('rooms')
+        .doc(roomID)
+        .collection('kiosk-grants')
+        .snapshots()
+        .map((snap) => snap.docs.map((doc) {
+              final data = doc.data();
+              final ts = data['createdAt'];
+              return KioskGrantRecord(
+                uid: doc.id,
+                deviceID: data['deviceID'] as String?,
+                createdAt: ts != null ? (ts as Timestamp).toDate() : null,
+              );
+            }).toList());
+  }
+
+  /// Admin-only: revokes all Kiosk grants for a room via Cloud Function.
+  Future<void> adminRevokeKioskGrant({
+    required String orgID,
+    required String roomID,
+  }) async {
+    final callable =
+        _functionsInstance.httpsCallable('adminRevokeKioskGrant');
+    await callable.call<Map<String, dynamic>>({
+      'orgID': orgID,
+      'roomID': roomID,
+    });
+  }
+
   String _generateRandomCode() {
     final rnd = Random();
     final code = rnd.nextInt(900000) + 100000; // 100,000 to 999,999
