@@ -96,7 +96,25 @@ Archive a completed change in the experimental workflow.
    commit locally as before and let the user push/commit per their normal
    flow.
 
-7. **Display summary**
+7. **Merge the PR**
+
+   Look up the PR for the change's branch:
+   ```bash
+   gh pr view openspec/<name> --json number,state,isDraft
+   ```
+
+   If a PR exists:
+   - If it is a draft, mark it ready first: `gh pr ready <number>`
+   - Squash-merge and delete the branch:
+     ```bash
+     gh pr merge <number> --squash --delete-branch --admin
+     ```
+     (The `--admin` flag overrides branch protection rules that would
+     otherwise block the merge.)
+
+   If no PR exists (change was developed directly on `main`), skip this step.
+
+8. **Display summary**
 
    Show archive completion summary including:
    - Change name
@@ -104,9 +122,8 @@ Archive a completed change in the experimental workflow.
    - Archive location
    - Whether specs were synced (if applicable)
    - Whether the archive commit was pushed to the change's branch
+   - PR merge status (merged / no PR found)
    - Note about any warnings (incomplete artifacts/tasks)
-   - Reminder: once the user approves the PR, they can squash-merge it
-     (`gh pr merge <pr-number> --squash --delete-branch`)
 
 **Output On Success**
 
@@ -117,6 +134,7 @@ Archive a completed change in the experimental workflow.
 **Schema:** <schema-name>
 **Archived to:** openspec/changes/archive/YYYY-MM-DD-<name>/
 **Specs:** ✓ Synced to main specs (or "No delta specs" or "Sync skipped")
+**PR:** ✓ Merged and branch deleted (or "No PR found")
 
 All artifacts complete. All tasks complete.
 ```
