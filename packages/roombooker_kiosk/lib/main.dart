@@ -309,7 +309,6 @@ class _KioskDashboardState extends State<KioskDashboard> {
   static const platform = MethodChannel('org.goforthtech.roombooker_kiosk/automation');
   static const diagnosticChannel = MethodChannel('org.goforthtech.roombooker_kiosk/diagnostics');
 
-  final List<String> _logs = [];
   bool _isServiceRunning = false;
   late final BookingService _bookingService;
   
@@ -343,11 +342,9 @@ class _KioskDashboardState extends State<KioskDashboard> {
     diagnosticChannel.setMethodCallHandler((call) async {
       if (call.method == 'log') {
         final Map data = call.arguments;
-        setState(() {
-          if (data['type'] == 'SERVICE_CONNECTED') _isServiceRunning = true;
-          _logs.insert(0, '[${data['type']}] ${data['message']}');
-          if (_logs.length > 50) _logs.removeLast();
-        });
+        if (data['type'] == 'SERVICE_CONNECTED') {
+          setState(() => _isServiceRunning = true);
+        }
       }
     });
   }
@@ -356,9 +353,7 @@ class _KioskDashboardState extends State<KioskDashboard> {
     try {
       final bool isRunning = await platform.invokeMethod('checkServiceStatus');
       setState(() => _isServiceRunning = isRunning);
-    } catch (e) {
-       setState(() => _logs.insert(0, '[ERROR] Status check failed: $e'));
-    }
+    } catch (_) {}
   }
 
   Future<void> _launchMeeting(String url) async {
@@ -366,13 +361,11 @@ class _KioskDashboardState extends State<KioskDashboard> {
     await orchestrator.refresh();
     
     if (orchestrator.secondaryDisplay != null) {
-      setState(() => _logs.insert(0, '[ROUTING] Launching meeting on TV Stage...'));
       await platform.invokeMethod('launchMeeting', {
         'url': url,
         'displayId': orchestrator.secondaryDisplay!.displayId,
       });
     } else {
-      setState(() => _logs.insert(0, '[ROUTING] No TV found. Launching locally.'));
       await platform.invokeMethod('launchMeeting', {
         'url': url,
         'displayId': null,
@@ -382,7 +375,6 @@ class _KioskDashboardState extends State<KioskDashboard> {
 
   Future<void> _onQuickBook(Duration duration, String roomName) async {
     final now = DateTime.now();
-    setState(() => _logs.insert(0, '[QUICKBOOK] Tapped ${duration.inMinutes}m — orgID=${widget.orgID} roomID=${widget.roomID}'));
     try {
       await _bookingService.addBooking(
         widget.orgID,
@@ -404,11 +396,8 @@ class _KioskDashboardState extends State<KioskDashboard> {
           eventName: 'In-Room Booking',
         ),
       );
+    } catch (e) {
       if (!mounted) return;
-      setState(() => _logs.insert(0, '[QUICKBOOK] Success — booked ${duration.inMinutes}m from ${now.toIso8601String()}'));
-    } catch (e, st) {
-      if (!mounted) return;
-      setState(() => _logs.insert(0, '[QUICKBOOK] ERROR: $e\n$st'));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to book room: $e')),
       );
@@ -669,7 +658,6 @@ class _KioskDashboardState extends State<KioskDashboard> {
                   Expanded(
                     child: AgendaListView(bookings: bookings, now: now),
                   ),
-                  _buildDiagnosticSection(),
                 ],
               ),
             );
@@ -685,33 +673,5 @@ class _KioskDashboardState extends State<KioskDashboard> {
       case RoomStatus.busy: return Colors.red.shade900;
       case RoomStatus.transitioning: return Colors.orange.shade900;
     }
-  }
-
-  Widget _buildDiagnosticSection() {
-    return Container(
-      height: 200,
-      color: Colors.black,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                const Text('SYSTEM LOGS', style: TextStyle(color: Colors.grey, fontSize: 10)),
-                const Spacer(),
-                IconButton(icon: const Icon(Icons.delete_sweep, size: 16, color: Colors.grey), onPressed: () => setState(() => _logs.clear())),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _logs.length,
-              itemBuilder: (context, index) => Text(_logs[index], style: const TextStyle(color: Colors.greenAccent, fontSize: 10)),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
