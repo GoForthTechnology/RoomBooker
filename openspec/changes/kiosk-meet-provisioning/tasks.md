@@ -3,7 +3,7 @@
 - [x] 1.1 Add a `meet-provisioner` service account resource to `terraform/` and grant it the `roles/meet.spaceCreator` IAM role (or the equivalent `meetings.space.created` OAuth scope binding)
 - [x] 1.2 Enable the Google Meet API (`meet.googleapis.com`) in the GCP project via Terraform (`google_project_service`)
 - [x] 1.3 Create a service account key and store it in Secret Manager as `meet-provisioner-key`; add the Secret Manager secret resource to Terraform
-- [ ] 1.4 Run `terraform apply` and verify the service account, API enablement, and secret exist in the GCP Console
+- [x] 1.4 Run `terraform apply` and verify the service account, API enablement, and secret exist in the GCP Console
 
 ## 2. Cloud Functions: `onKioskBookingCreated`
 
@@ -30,8 +30,8 @@
 
 ## 5. Deploy & Validate
 
-- [ ] 5.1 Deploy Cloud Functions: `firebase deploy --only functions`
-- [ ] 5.2 Deploy Firestore rules: `firebase deploy --only firestore:rules`
+- [x] 5.1 Deploy Cloud Functions: `firebase deploy --only functions`
+- [x] 5.2 Deploy Firestore rules: `firebase deploy --only firestore:rules`
 - [ ] 5.3 Build and install a debug Kiosk APK on the test device
 - [ ] 5.4 End-to-end test: tap a Quick Book button, observe PROVISIONING spinner, confirm JOIN button appears with a valid `meet.google.com` URL
 - [ ] 5.5 Failure test: temporarily misconfigure the Meet API key, tap Quick Book, confirm PROVISIONING state appears then transitions to ERROR banner, room returns to AVAILABLE after dismissal
