@@ -43,6 +43,7 @@ class CalendarUtils {
 }
 
 DateTime stripTime(DateTime date) {
-  return DateTime(date.year, date.month, date.day);
+  final local = date.toLocal();
+  return DateTime(local.year, local.month, local.day);
 }
 

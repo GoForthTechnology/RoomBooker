@@ -316,6 +316,7 @@ class _KioskDashboardState extends State<KioskDashboard> {
 
   late final Stream<List<Request>> _bookingsStream;
   late final Stream<DocumentSnapshot<Map<String, dynamic>>> _roomStream;
+  late final Stream<int> _tickerStream;
 
   // Provisioning state
   List<({String id, String message})> _provisioningErrors = [];
@@ -334,13 +335,15 @@ class _KioskDashboardState extends State<KioskDashboard> {
     // Memoize streams so they don't recreate on every rebuild
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
-    _bookingsStream = _bookingService.listRequests(
+    _bookingsStream = _bookingService.getRequestsStream(
       orgID: widget.orgID,
-      startTime: startOfDay,
-      endTime: startOfDay.add(const Duration(days: 1)),
+      isAdmin: false,
+      start: startOfDay,
+      end: startOfDay.add(const Duration(days: 1)),
       includeRoomIDs: {widget.roomID},
       includeStatuses: {RequestStatus.confirmed},
     );
+    _tickerStream = Stream.periodic(const Duration(minutes: 1), (i) => i);
     
     _roomStream = FirebaseFirestore.instance
         .collection('orgs')
@@ -606,201 +609,248 @@ class _KioskDashboardState extends State<KioskDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<Request>>(
-      stream: _bookingsStream,
-      builder: (context, bookingsSnapshot) {
-        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-          stream: _roomStream,
-          builder: (context, roomSnapshot) {
-            final now = DateTime.now();
-            final bookings = bookingsSnapshot.data ?? [];
-            final roomData = roomSnapshot.data?.data();
-            final roomName = roomData?['name'] ?? 'LOADING...';
-            
-            // Find current meeting
-            Request? currentBooking;
-            for (var b in bookings) {
-              if (b.eventStartTime.isBefore(now) && b.eventEndTime.isAfter(now)) {
-                currentBooking = b;
-                break;
-              }
-            }
+    return StreamBuilder<int>(
+      stream: _tickerStream,
+      builder: (context, _) {
+        return StreamBuilder<List<Request>>(
+          stream: _bookingsStream,
+          builder: (context, bookingsSnapshot) {
+            return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: _roomStream,
+              builder: (context, roomSnapshot) {
+                final now = DateTime.now();
+                final today = stripTime(now);
+                final bookings = (bookingsSnapshot.data ?? [])
+                    .where((b) =>
+                        stripTime(b.eventStartTime) == today &&
+                        b.eventEndTime.isAfter(now))
+                    .toList();
+                final roomData = roomSnapshot.data?.data();
+                final roomName = roomData?['name'] ?? 'LOADING...';
 
-            // Persistence: Use previous state while loading new stream data to prevent flickering
-            final status = currentBooking != null ? RoomStatus.busy : RoomStatus.available;
-            final backgroundColor = _getBackgroundColor(status);
+                Request? currentBooking;
+                for (var b in bookings) {
+                  if (!b.eventStartTime.isAfter(now) &&
+                      b.eventEndTime.isAfter(now)) {
+                    currentBooking = b;
+                    break;
+                  }
+                }
 
-            return Scaffold(
-              backgroundColor: backgroundColor,
-              appBar: AppBar(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                title: const Text('Kiosk Dashboard'),
-                actions: [
-                  StreamBuilder<KioskMode>(
-                    stream: watchKioskMode(),
-                    builder: (context, snapshot) {
-                      final isLocked = snapshot.data == KioskMode.enabled;
-                      return IconButton(
-                        icon: Icon(isLocked ? Icons.lock : Icons.lock_open),
-                        tooltip: isLocked ? 'Unlock Kiosk' : 'Lock Kiosk',
+                final status = currentBooking != null
+                    ? RoomStatus.busy
+                    : RoomStatus.available;
+                final backgroundColor = _getBackgroundColor(status);
+
+                return Scaffold(
+                  backgroundColor: backgroundColor,
+                  appBar: AppBar(
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    title: const Text('Kiosk Dashboard'),
+                    actions: [
+                      StreamBuilder<KioskMode>(
+                        stream: watchKioskMode(),
+                        builder: (context, snapshot) {
+                          final isLocked =
+                              snapshot.data == KioskMode.enabled;
+                          return IconButton(
+                            icon: Icon(
+                                isLocked ? Icons.lock : Icons.lock_open),
+                            tooltip:
+                                isLocked ? 'Unlock Kiosk' : 'Lock Kiosk',
+                            onPressed: () async {
+                              if (isLocked) {
+                                await stopKioskMode();
+                              } else {
+                                final success = await startKioskMode();
+                                if (!success && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Failed to lock. Ensure Device Admin is enabled.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.info_outline),
+                        tooltip: 'Device Info',
+                        onPressed: _showInfoDialog,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.monitor),
+                        tooltip: 'TV Preview',
                         onPressed: () async {
-                          if (isLocked) {
-                            await stopKioskMode();
-                          } else {
-                            final success = await startKioskMode();
-                            if (!success && context.mounted) {
+                          final orchestrator =
+                              context.read<DisplayOrchestrator>();
+                          await orchestrator.refresh();
+                          if (orchestrator.secondaryDisplay != null) {
+                            await orchestrator.showOnStage('presentation');
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Failed to lock. Ensure Device Admin is enabled.'))
+                                const SnackBar(
+                                  content: Text(
+                                      'Projecting to Secondary Display...'),
+                                ),
+                              );
+                            }
+                          } else {
+                            if (context.mounted) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => const Dialog.fullscreen(
+                                    child: MeetingStageWidget()),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'No Secondary Display found. Showing local preview.'),
+                                ),
                               );
                             }
                           }
                         },
-                      );
-                    }
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.info_outline),
-                    tooltip: 'Device Info',
-                    onPressed: _showInfoDialog,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.monitor),
-                    tooltip: 'TV Preview',
-                    onPressed: () async {
-                      final orchestrator = context.read<DisplayOrchestrator>();
-                      await orchestrator.refresh();
-                      if (orchestrator.secondaryDisplay != null) {
-                        await orchestrator.showOnStage('presentation');
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Projecting to Secondary Display...'))
-                          );
-                        }
-                      } else {
-                        if (context.mounted) {
-                          showDialog(
-                            context: context,
-                            builder: (context) => const Dialog.fullscreen(child: MeetingStageWidget()),
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('No Secondary Display found. Showing local preview.'))
-                          );
-                        }
-                      }
-                    },
-                  ),
-                ],
-              ),
-              body: Stack(
-                children: [
-                Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(48, 24, 48, 24),
-                    child: Column(
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            roomName,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 32, color: Colors.white60, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            status == RoomStatus.available ? 'AVAILABLE' : 'OCCUPIED',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 80, fontWeight: FontWeight.w900, color: Colors.white),
-                          ),
-                        ),
-                        if (currentBooking != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            currentBooking.publicName ?? 'Private Meeting',
-                            style: const TextStyle(fontSize: 28, color: Colors.white70),
-                          ),
-                          const SizedBox(height: 16),
-                          if (currentBooking.id == null)
-                            const SizedBox.shrink()
-                          else
-                            StreamBuilder<PrivateRequestDetails?>(
-                              stream: _bookingService.getRequestDetails(
-                                widget.orgID,
-                                currentBooking.id!,
-                              ),
-                              builder: (context, detailsSnapshot) {
-                                final isKioskBooking =
-                                    currentBooking?.bookedVia ==
-                                    BookingSource.kiosk;
-                                final meetingUrl =
-                                    detailsSnapshot.data?.meetingUrl;
-                                final isProvisioning = isKioskBooking &&
-                                    meetingUrl == null &&
-                                    _provisioningErrors.isEmpty;
-
-                                if (isProvisioning) {
-                                  return const Column(
-                                    children: [
-                                      CircularProgressIndicator(
-                                        color: Colors.white,
+                  body: Stack(
+                    children: [
+                      Column(
+                        children: [
+                          Padding(
+                            padding:
+                                const EdgeInsets.fromLTRB(48, 24, 48, 24),
+                            child: Column(
+                              children: [
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    roomName,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 32,
+                                      color: Colors.white60,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    status == RoomStatus.available
+                                        ? 'AVAILABLE'
+                                        : 'OCCUPIED',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 80,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                if (currentBooking != null) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    currentBooking.publicName ??
+                                        'Private Meeting',
+                                    style: const TextStyle(
+                                        fontSize: 28,
+                                        color: Colors.white70),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  if (currentBooking.id == null)
+                                    const SizedBox.shrink()
+                                  else
+                                    StreamBuilder<PrivateRequestDetails?>(
+                                      stream:
+                                          _bookingService.getRequestDetails(
+                                        widget.orgID,
+                                        currentBooking.id!,
                                       ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        'Generating Meet link…',
-                                        style: TextStyle(color: Colors.white70),
-                                      ),
-                                    ],
-                                  );
-                                }
+                                      builder: (context, detailsSnapshot) {
+                                        final isKioskBooking =
+                                            currentBooking?.bookedVia ==
+                                            BookingSource.kiosk;
+                                        final meetingUrl =
+                                            detailsSnapshot.data?.meetingUrl;
+                                        final isProvisioning =
+                                            isKioskBooking &&
+                                            meetingUrl == null &&
+                                            _provisioningErrors.isEmpty;
 
-                                return JoinMeetingButton(
-                                  meetingUrl: meetingUrl,
-                                  foregroundColor: backgroundColor,
-                                  onLaunch: _launchMeeting,
-                                );
-                              },
+                                        if (isProvisioning) {
+                                          return const Column(
+                                            children: [
+                                              CircularProgressIndicator(
+                                                color: Colors.white,
+                                              ),
+                                              SizedBox(height: 8),
+                                              Text(
+                                                'Generating Meet link…',
+                                                style: TextStyle(
+                                                    color: Colors.white70),
+                                              ),
+                                            ],
+                                          );
+                                        }
+
+                                        return JoinMeetingButton(
+                                          meetingUrl: meetingUrl,
+                                          foregroundColor: backgroundColor,
+                                          onLaunch: _launchMeeting,
+                                        );
+                                      },
+                                    ),
+                                ],
+                                const SizedBox(height: 16),
+                                if (!_isServiceRunning)
+                                  ElevatedButton(
+                                    onPressed: () => platform.invokeMethod(
+                                        'openAccessibilitySettings'),
+                                    child: const Text(
+                                        'ENABLE AUTOMATION SERVICE'),
+                                  ),
+                                if (status == RoomStatus.available) ...[
+                                  const SizedBox(height: 16),
+                                  QuickBookPanel(
+                                    bookings: bookings,
+                                    now: now,
+                                    onBook: (duration) =>
+                                        _onQuickBook(duration, roomName),
+                                  ),
+                                ],
+                              ],
                             ),
-                        ],
-                        const SizedBox(height: 16),
-                        if (!_isServiceRunning)
-                          ElevatedButton(
-                            onPressed: () => platform.invokeMethod('openAccessibilitySettings'),
-                            child: const Text('ENABLE AUTOMATION SERVICE'),
                           ),
-                        if (status == RoomStatus.available) ...[
-                          const SizedBox(height: 16),
-                          QuickBookPanel(
-                            bookings: bookings,
-                            now: now,
-                            onBook: (duration) =>
-                                _onQuickBook(duration, roomName),
+                          Expanded(
+                            child: AgendaListView(
+                                bookings: bookings, now: now),
                           ),
                         ],
-                      ],
-                    ),
+                      ),
+                      if (_provisioningErrors.isNotEmpty ||
+                          _showTimeoutBanner)
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: _buildProvisioningBanner(),
+                        ),
+                    ],
                   ),
-                  Expanded(
-                    child: AgendaListView(bookings: bookings, now: now),
-                  ),
-                ],
-              ),
-                  if (_provisioningErrors.isNotEmpty || _showTimeoutBanner)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: _buildProvisioningBanner(),
-                    ),
-                ],
-              ),
+                );
+              },
             );
           },
         );
-      }
+      },
     );
   }
 

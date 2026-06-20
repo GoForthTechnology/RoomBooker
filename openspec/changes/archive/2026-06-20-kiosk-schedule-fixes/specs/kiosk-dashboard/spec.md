@@ -1,24 +1,4 @@
-# Kiosk Dashboard Specification: Room Booker
-
-## Purpose
-This document defines the requirements for the Kiosk Dashboard's room
-status display and daily agenda, the primary "In-Room Tactical Hub"
-interface shown on the Kiosk's primary display.
-
-## [KIOSK-DASHBOARD-000] Compliance
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119.
-
-## Requirements
-
-### Requirement: Tactical Information Density
-The Kiosk Dashboard SHALL present room status and schedule information
-using a layout optimized for viewing from 1-3 feet (arm's length), with
-large fonts, high contrast, and minimal non-essential chrome.
-
-#### Scenario: Hero status legible at a distance
-- **WHEN** the Kiosk Dashboard is displayed
-- **THEN** the room name and AVAILABLE/OCCUPIED status SHALL be rendered
-  with large, high-contrast text suitable for reading from 1-3 feet away
+## MODIFIED Requirements
 
 ### Requirement: Current Room Status
 The Kiosk Dashboard SHALL display the assigned room's current status as
@@ -47,11 +27,10 @@ requiring a data change.
 ### Requirement: Scrollable Daily Agenda
 The Kiosk Dashboard SHALL display a scrollable agenda listing every
 confirmed booking for the assigned room whose start time falls on the
-current local calendar day and has not yet ended, ordered chronologically
-by start time, showing each booking's time range and title (or "Private
-Meeting" if no public name is set). Recurring bookings SHALL appear at
-their actual occurrence time for today rather than their original series
-start time.
+current local calendar day, ordered chronologically by start time, showing
+each booking's time range and title (or "Private Meeting" if no public name
+is set). Recurring bookings SHALL appear at their actual occurrence time for
+today rather than their original series start time.
 
 #### Scenario: Multiple bookings today
 - **WHEN** the assigned room has two or more confirmed bookings starting
@@ -78,10 +57,6 @@ start time.
 
 #### Scenario: Next-day bookings excluded from agenda
 - **WHEN** a booking's start time falls on the following calendar day
-- **THEN** that booking SHALL NOT appear in the agenda list
-
-#### Scenario: Past bookings excluded from agenda
-- **WHEN** a confirmed booking's end time is at or before the current time
 - **THEN** that booking SHALL NOT appear in the agenda list
 
 ### Requirement: Current Booking Highlighted in Agenda
