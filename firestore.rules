@@ -91,6 +91,11 @@ service cloud.firestore {
           allow read: if isAdmin();
           allow write: if false; // Only the Admin SDK (Cloud Functions) writes grants
         }
+
+        match /provisioning-errors/{docID} {
+          allow read, delete: if isAuthorizedKiosk(roomID);
+          allow create, update: if false; // Only the Admin SDK (Cloud Functions) writes errors
+        }
       }
 
       match /request-logs/{logID} {

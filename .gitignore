@@ -49,6 +49,8 @@ app.*.map.json
 
 
 /functions/node_modules
+/functions/.env
+/functions/.env.local
 sentry.properties
 
 coverage/
