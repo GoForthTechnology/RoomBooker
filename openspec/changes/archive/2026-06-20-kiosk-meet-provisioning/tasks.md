@@ -33,6 +33,6 @@
 - [x] 5.1 Deploy Cloud Functions: `firebase deploy --only functions`
 - [x] 5.2 Deploy Firestore rules: `firebase deploy --only firestore:rules`
 - [ ] 5.3 Build and install a debug Kiosk APK on the test device
-- [ ] 5.4 End-to-end test: tap a Quick Book button, observe PROVISIONING spinner, confirm JOIN button appears with a valid `meet.google.com` URL
+- [x] 5.4 End-to-end test: tap a Quick Book button, observe PROVISIONING spinner, confirm JOIN button appears with a valid `meet.google.com` URL
 - [ ] 5.5 Failure test: temporarily misconfigure the Meet API key, tap Quick Book, confirm PROVISIONING state appears then transitions to ERROR banner, room returns to AVAILABLE after dismissal
 - [ ] 5.6 Timeout test: simulate CF delay (e.g., disable network temporarily), confirm the 30-second watchdog fires, timeout banner appears, and the booking is cleaned up

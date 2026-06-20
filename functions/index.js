@@ -124,11 +124,18 @@ async function getMeetClient() {
     `projects/${projectId}/secrets/meet-provisioner-key/versions/latest`;
 
   const [version] = await secretClient.accessSecretVersion({name: secretName});
-  const keyJson = version.payload.data.toString("utf8");
+  const key = JSON.parse(version.payload.data.toString("utf8"));
+  const impersonationEmail = process.env.MEET_IMPERSONATION_EMAIL;
+  if (!impersonationEmail) {
+    throw new Error("MEET_IMPERSONATION_EMAIL env var not set");
+  }
 
-  const auth = new google.auth.GoogleAuth({
-    credentials: JSON.parse(keyJson),
+  // Meet API requires a Workspace user identity — use DWD JWT impersonation
+  const auth = new google.auth.JWT({
+    email: key.client_email,
+    key: key.private_key,
     scopes: ["https://www.googleapis.com/auth/meetings.space.created"],
+    subject: impersonationEmail,
   });
 
   _meetClient = google.meet({version: "v2", auth});
@@ -169,6 +176,7 @@ exports.onKioskBookingCreated = functions
         await detailsRef.update({meetingUrl: meetingUri});
         logger.log(`Meet space provisioned for ${bookingID}: ${meetingUri}`);
       } catch (error) {
+        _meetClient = null; // Reset so next invocation re-fetches auth token
         logger.error(
             `Failed to provision Meet space for booking ${bookingID}:`,
             error,
