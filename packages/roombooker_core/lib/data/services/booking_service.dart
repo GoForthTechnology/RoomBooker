@@ -212,7 +212,7 @@ class BookingService {
     );
   }
 
-  Future<void> addBooking(
+  Future<String> addBooking(
     String orgID,
     Request request,
     PrivateRequestDetails privateDetails,

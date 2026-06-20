@@ -134,7 +134,7 @@ class BookingRepo {
     );
   }
 
-  Future<void> addBooking(
+  Future<String> addBooking(
     String orgID,
     Request request,
     PrivateRequestDetails privateDetails,
@@ -143,6 +143,7 @@ class BookingRepo {
       return _addBooking(orgID, request, privateDetails, t);
     });
     await _log(orgID, id, "AddBooking", Action.create);
+    return id;
   }
 
   String _addBooking(
