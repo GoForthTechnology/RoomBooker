@@ -510,19 +510,16 @@ class _KioskDashboardState extends State<KioskDashboard> {
     return StreamBuilder<int>(
       stream: _tickerStream,
       builder: (context, _) {
-        final now = DateTime.now();
         return StreamBuilder<List<Request>>(
           stream: _bookingsStream,
           builder: (context, bookingsSnapshot) {
             return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
               stream: _roomStream,
               builder: (context, roomSnapshot) {
-                final allBookings = bookingsSnapshot.data ?? [];
-                final bookings = allBookings
-                    .where((b) =>
-                        b.eventStartTime.year == now.year &&
-                        b.eventStartTime.month == now.month &&
-                        b.eventStartTime.day == now.day)
+                final now = DateTime.now();
+                final today = stripTime(now);
+                final bookings = (bookingsSnapshot.data ?? [])
+                    .where((b) => stripTime(b.eventStartTime) == today)
                     .toList();
                 final roomData = roomSnapshot.data?.data();
                 final roomName = roomData?['name'] ?? 'LOADING...';
