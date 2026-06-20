@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -311,9 +313,17 @@ class _KioskDashboardState extends State<KioskDashboard> {
 
   bool _isServiceRunning = false;
   late final BookingService _bookingService;
-  
+
   late final Stream<List<Request>> _bookingsStream;
   late final Stream<DocumentSnapshot<Map<String, dynamic>>> _roomStream;
+
+  // Provisioning state
+  List<({String id, String message})> _provisioningErrors = [];
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _errorsSubscription;
+  String? _pendingBookingId;
+  StreamSubscription<PrivateRequestDetails?>? _pendingDetailsSubscription;
+  Timer? _provisioningTimer;
+  bool _showTimeoutBanner = false;
 
   @override
   void initState() {
@@ -347,6 +357,96 @@ class _KioskDashboardState extends State<KioskDashboard> {
         }
       }
     });
+
+    _initErrorsStream();
+  }
+
+  void _initErrorsStream() {
+    _errorsSubscription = FirebaseFirestore.instance
+        .collection('orgs')
+        .doc(widget.orgID)
+        .collection('rooms')
+        .doc(widget.roomID)
+        .collection('provisioning-errors')
+        .snapshots()
+        .listen((snapshot) {
+          if (!mounted) return;
+          final errors = snapshot.docs
+              .map((d) => (
+                    id: d.id,
+                    message: d.data()['message'] as String? ??
+                        'An error occurred.',
+                  ))
+              .toList();
+          setState(() {
+            _provisioningErrors = errors;
+            if (errors.isNotEmpty) {
+              _cancelProvisioningWatch();
+            }
+          });
+        });
+  }
+
+  void _startProvisioningWatch(String bookingId) {
+    _cancelProvisioningWatch();
+    setState(() {
+      _pendingBookingId = bookingId;
+      _showTimeoutBanner = false;
+    });
+
+    _pendingDetailsSubscription = _bookingService
+        .getRequestDetails(widget.orgID, bookingId)
+        .listen((details) {
+          if (details?.meetingUrl != null) {
+            _cancelProvisioningWatch();
+          }
+        });
+
+    _provisioningTimer = Timer(
+      const Duration(seconds: 30),
+      _onProvisioningTimeout,
+    );
+  }
+
+  void _cancelProvisioningWatch() {
+    _provisioningTimer?.cancel();
+    _provisioningTimer = null;
+    _pendingDetailsSubscription?.cancel();
+    _pendingDetailsSubscription = null;
+    if (mounted) setState(() => _pendingBookingId = null);
+  }
+
+  Future<void> _onProvisioningTimeout() async {
+    final bookingId = _pendingBookingId;
+    _pendingDetailsSubscription?.cancel();
+    _pendingDetailsSubscription = null;
+
+    if (bookingId != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('orgs')
+            .doc(widget.orgID)
+            .collection('confirmed-requests')
+            .doc(bookingId)
+            .delete();
+      } catch (e) {
+        debugPrint('Kiosk: Failed to clean up timed-out booking: $e');
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _pendingBookingId = null;
+      _showTimeoutBanner = true;
+    });
+  }
+
+  @override
+  void dispose() {
+    _errorsSubscription?.cancel();
+    _pendingDetailsSubscription?.cancel();
+    _provisioningTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _checkServiceStatus() async {
@@ -376,7 +476,7 @@ class _KioskDashboardState extends State<KioskDashboard> {
   Future<void> _onQuickBook(Duration duration, String roomName) async {
     final now = DateTime.now();
     try {
-      await _bookingService.addBooking(
+      final bookingId = await _bookingService.addBooking(
         widget.orgID,
         Request(
           eventStartTime: now,
@@ -396,6 +496,8 @@ class _KioskDashboardState extends State<KioskDashboard> {
           eventName: 'In-Room Booking',
         ),
       );
+      if (!mounted) return;
+      _startProvisioningWatch(bookingId);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -590,7 +692,9 @@ class _KioskDashboardState extends State<KioskDashboard> {
                   ),
                 ],
               ),
-              body: Column(
+              body: Stack(
+                children: [
+                Column(
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(48, 24, 48, 24),
@@ -629,8 +733,32 @@ class _KioskDashboardState extends State<KioskDashboard> {
                                 currentBooking.id!,
                               ),
                               builder: (context, detailsSnapshot) {
+                                final isKioskBooking =
+                                    currentBooking?.bookedVia ==
+                                    BookingSource.kiosk;
+                                final meetingUrl =
+                                    detailsSnapshot.data?.meetingUrl;
+                                final isProvisioning = isKioskBooking &&
+                                    meetingUrl == null &&
+                                    _provisioningErrors.isEmpty;
+
+                                if (isProvisioning) {
+                                  return const Column(
+                                    children: [
+                                      CircularProgressIndicator(
+                                        color: Colors.white,
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Generating Meet link…',
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    ],
+                                  );
+                                }
+
                                 return JoinMeetingButton(
-                                  meetingUrl: detailsSnapshot.data?.meetingUrl,
+                                  meetingUrl: meetingUrl,
                                   foregroundColor: backgroundColor,
                                   onLaunch: _launchMeeting,
                                 );
@@ -660,6 +788,15 @@ class _KioskDashboardState extends State<KioskDashboard> {
                   ),
                 ],
               ),
+                  if (_provisioningErrors.isNotEmpty || _showTimeoutBanner)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: _buildProvisioningBanner(),
+                    ),
+                ],
+              ),
             );
           },
         );
@@ -673,5 +810,70 @@ class _KioskDashboardState extends State<KioskDashboard> {
       case RoomStatus.busy: return Colors.red.shade900;
       case RoomStatus.transitioning: return Colors.orange.shade900;
     }
+  }
+
+  Widget _buildProvisioningBanner() {
+    if (_provisioningErrors.isNotEmpty) {
+      final error = _provisioningErrors.first;
+      return _ProvisioningBanner(
+        message: error.message,
+        onDismiss: () {
+          FirebaseFirestore.instance
+              .collection('orgs')
+              .doc(widget.orgID)
+              .collection('rooms')
+              .doc(widget.roomID)
+              .collection('provisioning-errors')
+              .doc(error.id)
+              .delete();
+        },
+      );
+    }
+    return _ProvisioningBanner(
+      message: "Meet link timed out. Tap OK to retry.",
+      onDismiss: () => setState(() => _showTimeoutBanner = false),
+    );
+  }
+}
+
+class _ProvisioningBanner extends StatelessWidget {
+  final String message;
+  final VoidCallback onDismiss;
+
+  const _ProvisioningBanner({
+    required this.message,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.red.shade800,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              TextButton(
+                onPressed: onDismiss,
+                child: const Text(
+                  'OK',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

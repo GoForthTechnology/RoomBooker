@@ -12,6 +12,8 @@
 const functions = require("firebase-functions/v1");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const {google} = require("googleapis");
+const {SecretManagerServiceClient} = require("@google-cloud/secret-manager");
 const {calculateOverlaps} = require("./overlap_calculator");
 
 admin.initializeApp();
@@ -102,6 +104,98 @@ exports.revokeKioskGrant = functions.https.onCall(async (data, context) => {
 
   return {success: true};
 });
+
+// --- Meet Provisioning ---
+
+let _meetClient = null;
+
+/**
+ * Returns a cached, authenticated Google Meet API client using the
+ * meet-provisioner service account key stored in Secret Manager.
+ *
+ * @return {Promise<object>} Authenticated Meet API v2 client.
+ */
+async function getMeetClient() {
+  if (_meetClient) return _meetClient;
+
+  const secretClient = new SecretManagerServiceClient();
+  const projectId = process.env.GCLOUD_PROJECT || "roombooker-5e947";
+  const secretName =
+    `projects/${projectId}/secrets/meet-provisioner-key/versions/latest`;
+
+  const [version] = await secretClient.accessSecretVersion({name: secretName});
+  const keyJson = version.payload.data.toString("utf8");
+
+  const auth = new google.auth.GoogleAuth({
+    credentials: JSON.parse(keyJson),
+    scopes: ["https://www.googleapis.com/auth/meetings.space.created"],
+  });
+
+  _meetClient = google.meet({version: "v2", auth});
+  return _meetClient;
+}
+
+exports.onKioskBookingCreated = functions
+    .runWith({timeoutSeconds: 15})
+    .firestore.document("orgs/{orgID}/confirmed-requests/{bookingID}")
+    .onCreate(async (snap, context) => {
+      const data = snap.data();
+
+      if (data.bookedVia !== "kiosk") return;
+
+      const {orgID, bookingID} = context.params;
+      const roomID = data.roomID;
+
+      logger.log(`Kiosk booking ${bookingID} created — provisioning Meet space`);
+
+      const detailsRef = db
+          .collection("orgs").doc(orgID)
+          .collection("request-details").doc(bookingID);
+
+      // Idempotency: skip if URL already present
+      const details = await detailsRef.get();
+      if (details.exists && details.data().meetingUrl) {
+        logger.log(`Booking ${bookingID} already has meetingUrl — skipping`);
+        return;
+      }
+
+      try {
+        const meet = await getMeetClient();
+        const response = await meet.spaces.create({
+          requestBody: {config: {accessType: "OPEN"}},
+        });
+
+        const meetingUri = response.data.meetingUri;
+        await detailsRef.update({meetingUrl: meetingUri});
+        logger.log(`Meet space provisioned for ${bookingID}: ${meetingUri}`);
+      } catch (error) {
+        logger.error(
+            `Failed to provision Meet space for booking ${bookingID}:`,
+            error,
+        );
+
+        // Signal the Kiosk with a transient error document
+        const errorRef = db
+            .collection("orgs").doc(orgID)
+            .collection("rooms").doc(roomID)
+            .collection("provisioning-errors").doc();
+
+        await errorRef.set({
+          bookingID,
+          message: "Couldn't generate Meet link. Please try again.",
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // Clean up the booking so the room returns to AVAILABLE
+        await db
+            .collection("orgs").doc(orgID)
+            .collection("confirmed-requests").doc(bookingID)
+            .delete();
+        await detailsRef.delete();
+
+        logger.log(`Cleaned up booking ${bookingID} after provisioning failure`);
+      }
+    });
 
 exports.onNewPendingBooking = functions.firestore
     .document("orgs/{orgID}/pending-requests/{bookingID}")
