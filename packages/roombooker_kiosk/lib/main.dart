@@ -519,7 +519,9 @@ class _KioskDashboardState extends State<KioskDashboard> {
                 final now = DateTime.now();
                 final today = stripTime(now);
                 final bookings = (bookingsSnapshot.data ?? [])
-                    .where((b) => stripTime(b.eventStartTime) == today)
+                    .where((b) =>
+                        stripTime(b.eventStartTime) == today &&
+                        b.eventEndTime.isAfter(now))
                     .toList();
                 final roomData = roomSnapshot.data?.data();
                 final roomName = roomData?['name'] ?? 'LOADING...';
