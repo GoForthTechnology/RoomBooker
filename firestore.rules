@@ -77,10 +77,21 @@ service cloud.firestore {
         allow read, write: if isAdmin();
       }
 
+      match /amendment-details/{requestID} {
+        allow create: if isAuthenticated();
+        allow read, update, delete: if isAdmin();
+      }
+
       match /confirmed-requests/{requestID} {
         allow read: if true;
         allow create: if isAdmin() || isAuthorizedKiosk(incomingData().roomID);
-        allow update, delete: if isAdmin();
+        allow update: if isAdmin()
+          || (isAuthenticated()
+              && request.resource.data.diff(resource.data)
+                  .affectedKeys().hasOnly(['hasPendingAmendment'])
+              && request.resource.data.hasPendingAmendment == true
+              && resource.data.get('hasPendingAmendment', false) == false);
+        allow delete: if isAdmin();
       }
 
       match /rooms/{roomID} {

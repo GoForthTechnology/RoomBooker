@@ -22,8 +22,8 @@
 
 ## 4. Security Rules
 
-- [ ] 4.1 Add `amendment-details/{requestID}` rule: `allow create: if isAuthenticated()`, `allow read, update, delete: if isAdmin()`
-- [ ] 4.2 Add carve-out on `confirmed-requests` `allow update`: authenticated user may update only if `affectedKeys().hasOnly(['hasPendingAmendment'])`, incoming value is `true`, and current value is absent/false
+- [x] 4.1 Add `amendment-details/{requestID}` rule: `allow create: if isAuthenticated()`, `allow read, update, delete: if isAdmin()`
+- [x] 4.2 Add carve-out on `confirmed-requests` `allow update`: authenticated user may update only if `affectedKeys().hasOnly(['hasPendingAmendment'])`, incoming value is `true`, and current value is absent/false
 
 ## 5. Admin Review UI — Pending Queue
 
