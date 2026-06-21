@@ -98,6 +98,8 @@ class Request {
   @JsonKey(includeFromJson: false, includeToJson: false)
   final DateTime? recurrenceInstanceStartDate;
   final BookingSource? bookedVia;
+  @JsonKey(defaultValue: false, includeToJson: false)
+  final bool hasPendingAmendment;
 
   Request({
     this.recurrancePattern,
@@ -112,6 +114,7 @@ class Request {
     this.ignoreOverlaps = false,
     this.recurrenceInstanceStartDate,
     this.bookedVia,
+    this.hasPendingAmendment = false,
   }) {
     if (!eventStartTime.isBefore(eventEndTime)) {
       log(
@@ -144,6 +147,7 @@ class Request {
     bool? ignoreOverlaps,
     DateTime? recurrenceInstanceStartDate,
     BookingSource? bookedVia,
+    bool? hasPendingAmendment,
   }) {
     return Request(
       eventStartTime: eventStartTime ?? this.eventStartTime,
@@ -156,8 +160,11 @@ class Request {
       recurrancePattern: recurrancePattern ?? this.recurrancePattern,
       recurranceOverrides: recurranceOverrides ?? this.recurranceOverrides,
       ignoreOverlaps: ignoreOverlaps ?? this.ignoreOverlaps,
-      recurrenceInstanceStartDate: recurrenceInstanceStartDate ?? this.recurrenceInstanceStartDate,
+      recurrenceInstanceStartDate:
+          recurrenceInstanceStartDate ?? this.recurrenceInstanceStartDate,
       bookedVia: bookedVia ?? this.bookedVia,
+      hasPendingAmendment:
+          hasPendingAmendment ?? this.hasPendingAmendment,
     );
   }
 
@@ -196,7 +203,8 @@ class Request {
         other.ignoreOverlaps == ignoreOverlaps &&
         other.recurranceOverrides == recurranceOverrides &&
         other.status == status &&
-        other.bookedVia == bookedVia;
+        other.bookedVia == bookedVia &&
+        other.hasPendingAmendment == hasPendingAmendment;
   }
 
   @override
@@ -211,7 +219,8 @@ class Request {
         recurranceOverrides.hashCode ^
         publicName.hashCode ^
         status.hashCode ^
-        bookedVia.hashCode;
+        bookedVia.hashCode ^
+        hasPendingAmendment.hashCode;
   }
 
   List<Request> expand(

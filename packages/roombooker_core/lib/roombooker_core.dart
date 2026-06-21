@@ -1,4 +1,5 @@
 export 'data/entities/blackout_window.dart';
+export 'data/entities/booking_amendment.dart';
 export 'data/entities/kiosk_grant.dart';
 export 'data/entities/log_entry.dart';
 export 'data/entities/organization.dart';

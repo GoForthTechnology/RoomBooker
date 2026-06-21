@@ -1,10 +1,10 @@
 ## 1. Data Model
 
-- [ ] 1.1 Add `AmendmentScope` enum (`thisInstance`, `thisAndFuture`) to `roombooker_core` with JSON serialization
-- [ ] 1.2 Add `BookingAmendment` entity (`proposedRequest`, `proposedDetails`, `scope`, `proposedAt`) with `json_serializable`
-- [ ] 1.3 Add `hasPendingAmendment` optional bool field to `Request` entity; default-false on absent, excluded from `toJson` when false
-- [ ] 1.4 Run `build_runner` to regenerate `request.g.dart` and `booking_amendment.g.dart`
-- [ ] 1.5 Add `amendmentProposed`, `amendmentApproved`, `amendmentRejected` to `NotificationEvent` enum
+- [x] 1.1 Add `AmendmentScope` enum (`thisInstance`, `thisAndFuture`) to `roombooker_core` with JSON serialization
+- [x] 1.2 Add `BookingAmendment` entity (`proposedRequest`, `proposedDetails`, `scope`, `proposedAt`) with `json_serializable`
+- [x] 1.3 Add `hasPendingAmendment` optional bool field to `Request` entity; default-false on absent, excluded from `toJson` when false
+- [x] 1.4 Run `build_runner` to regenerate `request.g.dart` and `booking_amendment.g.dart`
+- [x] 1.5 Add `amendmentProposed`, `amendmentApproved`, `amendmentRejected` to `NotificationEvent` enum
 
 ## 2. Data Layer (BookingRepo)
 
