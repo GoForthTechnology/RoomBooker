@@ -325,6 +325,10 @@ class BookingService {
     return _bookingRepo.getRequest(orgID, requestID);
   }
 
+  Stream<List<Request>> listPendingAmendments(String orgID) {
+    return _bookingRepo.listPendingAmendments(orgID);
+  }
+
   // ── Amendment Pass-Throughs ─────────────────────────────────────────────
 
   Future<void> submitAmendment(

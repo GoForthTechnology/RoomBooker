@@ -65,6 +65,9 @@ const _$NotificationEventEnumMap = {
   NotificationEvent.adminRequestCreated: 'adminRequestCreated',
   NotificationEvent.adminRequestApproved: 'adminRequestApproved',
   NotificationEvent.adminRequestRejected: 'adminRequestRejected',
+  NotificationEvent.amendmentProposed: 'amendmentProposed',
+  NotificationEvent.amendmentApproved: 'amendmentApproved',
+  NotificationEvent.amendmentRejected: 'amendmentRejected',
 };
 
 Room _$RoomFromJson(Map<String, dynamic> json) => Room(

@@ -354,7 +354,17 @@ class RequestEditorViewModel extends ChangeNotifier {
 
   List<EditorAction> _getActionsForConfirmedRequest(Request initialRequest) {
     List<EditorAction> actions = [];
-    if (_editingEnabledSubject.value == false) {
+    if (initialRequest.hasPendingAmendment) {
+      actions.add(
+        EditorAction("Amendment Pending — resolve before editing", () async {
+          return ActionResult(
+            false,
+            "Resolve the pending amendment before making direct edits.",
+            false,
+          );
+        }),
+      );
+    } else if (_editingEnabledSubject.value == false) {
       actions.add(
         EditorAction("Edit", () async {
           _editingEnabledSubject.add(true);

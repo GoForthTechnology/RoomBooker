@@ -23,6 +23,8 @@ import 'package:roombooker_portal/ui/widgets/room_selector.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:badges/badges.dart';
 import 'package:roombooker_portal/ui/utils/date_formatting.dart';
+import 'package:roombooker_core/data/services/booking_service.dart';
+import 'package:roombooker_portal/ui/widgets/propose_amendment_dialog.dart';
 
 @RoutePage()
 class ViewBookingsScreen extends StatelessWidget {
@@ -328,6 +330,9 @@ class ViewBookingsScreen extends StatelessWidget {
   }
 
   void _showRequestDialog(Request request, BuildContext context) {
+    final orgID = this.orgID;
+    final bookingService = context.read<BookingService>();
+    final isFuture = request.eventStartTime.isAfter(DateTime.now());
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -344,6 +349,18 @@ class ViewBookingsScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 4.0),
               child: Text('Room: ${request.roomName}'),
             ),
+            if (request.hasPendingAmendment)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Chip(
+                  avatar: const Icon(
+                    Icons.pending_actions,
+                    size: 16,
+                  ),
+                  label: const Text('Change pending'),
+                  backgroundColor: Colors.amber.shade100,
+                ),
+              ),
           ],
         ),
         actions: [
@@ -351,6 +368,19 @@ class ViewBookingsScreen extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
+          if (isFuture && !request.hasPendingAmendment)
+            FilledButton.tonal(
+              onPressed: () {
+                Navigator.pop(context);
+                showProposeAmendmentDialog(
+                  context: context,
+                  orgID: orgID,
+                  request: request,
+                  bookingService: bookingService,
+                );
+              },
+              child: const Text('Propose Change'),
+            ),
         ],
       ),
     );

@@ -497,6 +497,13 @@ class BookingRepo {
     }
   }
 
+  Stream<List<Request>> listPendingAmendments(String orgID) {
+    return _confirmedRequestsRef(orgID)
+        .where('hasPendingAmendment', isEqualTo: true)
+        .snapshots()
+        .map((s) => s.docs.map((d) => d.data()).toList());
+  }
+
   // ── Amendment Methods ──────────────────────────────────────────────────
 
   Future<void> submitAmendment(

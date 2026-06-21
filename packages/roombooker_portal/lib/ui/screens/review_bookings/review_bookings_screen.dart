@@ -10,6 +10,7 @@ import 'package:roombooker_portal/router.dart';
 import 'package:roombooker_portal/ui/widgets/booking_list/confirmed_bookings.dart';
 import 'package:roombooker_portal/ui/widgets/booking_list/conflicting_bookings.dart';
 import 'package:roombooker_portal/ui/widgets/heading.dart';
+import 'package:roombooker_portal/ui/widgets/booking_list/pending_amendments.dart';
 import 'package:roombooker_portal/ui/widgets/booking_list/pending_bookings.dart';
 import 'package:roombooker_portal/ui/widgets/booking_list/rejected_bookings.dart';
 import 'package:roombooker_portal/ui/widgets/room_selector.dart';
@@ -100,6 +101,10 @@ class _ReviewBookingsScreenState extends State<ReviewBookingsScreen> {
                               ),
                               const Heading("Pending"),
                               PendingBookings(
+                                service: bookingService,
+                                orgID: widget.orgID,
+                              ),
+                              PendingAmendments(
                                 service: bookingService,
                                 orgID: widget.orgID,
                               ),
