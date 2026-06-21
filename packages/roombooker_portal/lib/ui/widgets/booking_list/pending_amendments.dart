@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:roombooker_core/data/entities/booking_amendment.dart';
 import 'package:roombooker_core/data/entities/request.dart';
 import 'package:roombooker_core/data/services/booking_service.dart';
@@ -19,11 +18,8 @@ class PendingAmendments extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bookingService =
-        Provider.of<BookingService>(context, listen: false);
-
     return StreamBuilder<List<(Request, BookingAmendment)>>(
-      stream: _amendmentStream(bookingService),
+      stream: _amendmentStream(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Text('Error loading amendments: ${snapshot.error}');
@@ -42,7 +38,7 @@ class PendingAmendments extends StatelessWidget {
               orgID: orgID,
               request: request,
               amendment: amendment,
-              bookingService: bookingService,
+              bookingService: service,
             );
           },
         );
@@ -50,17 +46,15 @@ class PendingAmendments extends StatelessWidget {
     );
   }
 
-  Stream<List<(Request, BookingAmendment)>> _amendmentStream(
-    BookingService bookingService,
-  ) {
-    return bookingService
+  Stream<List<(Request, BookingAmendment)>> _amendmentStream() {
+    return service
         .listPendingAmendments(orgID)
         .switchMap((requests) {
           if (requests.isEmpty) {
             return Stream.value(<(Request, BookingAmendment)>[]);
           }
           final streams = requests.map((r) {
-            return bookingService
+            return service
                 .getAmendment(orgID, r.id!)
                 .map((a) => a == null ? null : (r, a));
           });

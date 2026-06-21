@@ -560,9 +560,10 @@ class BookingRepo {
           case AmendmentScope.thisInstance:
             final snapshot = await t.get(confirmedRef);
             final series = snapshot.data()!;
-            final instanceDate =
-                amendment.instanceStartDate ??
-                amendment.proposedRequest.eventStartTime;
+            final instanceDate = amendment.instanceStartDate ??
+                (throw StateError(
+                  'instanceStartDate must be set for thisInstance scope',
+                ));
             final updated = _overrideRecurrance(
               series,
               amendment.proposedRequest,
@@ -586,6 +587,10 @@ class BookingRepo {
               amendment.proposedDetails,
               t,
             );
+            // New series details are written by _addBooking; original series
+            // keeps its existing request-details (original booker's contact info).
+            t.delete(amendmentRef);
+            return;
         }
       }
       t.set(detailsRef, amendment.proposedDetails);

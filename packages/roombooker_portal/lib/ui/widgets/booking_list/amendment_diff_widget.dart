@@ -194,17 +194,17 @@ class AmendmentDiffWidget extends StatelessWidget {
     );
     addRow(
       'Event Name',
-      amendment.proposedDetails.eventName,
+      '(private)',
       amendment.proposedDetails.eventName,
     );
     addRow(
       'Meeting URL',
-      '',
+      '(private)',
       amendment.proposedDetails.meetingUrl ?? '(none)',
     );
     addRow(
       'Message',
-      '',
+      '(private)',
       amendment.proposedDetails.message,
     );
 

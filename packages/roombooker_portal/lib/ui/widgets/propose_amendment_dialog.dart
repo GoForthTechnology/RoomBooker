@@ -146,6 +146,13 @@ class _AmendmentFormDialogState extends State<_AmendmentFormDialog> {
     try {
       final start = _combine(_startDate, _startTime);
       final end = _combine(_startDate, _endTime);
+      if (!end.isAfter(start)) {
+        setState(() {
+          _error = 'End time must be after start time.';
+          _submitting = false;
+        });
+        return;
+      }
       final proposedRequest = widget.request.copyWith(
         eventStartTime: start,
         eventEndTime: end,
