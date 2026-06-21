@@ -8,17 +8,17 @@
 
 ## 2. Data Layer (BookingRepo)
 
-- [ ] 2.1 Add `_amendmentDetailsRef(orgID, requestID)` Firestore reference helper (new `amendment-details` collection)
-- [ ] 2.2 Implement `submitAmendment`: batch-write creates `amendment-details/{id}` and sets `hasPendingAmendment: true` on confirmed-request; throw `StateError` if flag already set
-- [ ] 2.3 Implement `getAmendment`: return `Stream<BookingAmendment?>` from `amendment-details/{id}` snapshots
-- [ ] 2.4 Implement `applyAmendment`: atomic transaction that updates confirmed-request, updates `request-details`, clears flag, deletes `amendment-details`; delegate to existing `_updateConfirmedBooking` logic for recurring scope handling
-- [ ] 2.5 Implement `rejectAmendment`: batch-write clears `hasPendingAmendment` and deletes `amendment-details/{id}`
-- [ ] 2.6 Extend `deleteBooking` to also delete `amendment-details/{id}` if it exists within the same transaction
-- [ ] 2.7 Add amendment log entries in `submitAmendment`, `applyAmendment`, and `rejectAmendment` using `_log()`
+- [x] 2.1 Add `_amendmentDetailsRef(orgID, requestID)` Firestore reference helper (new `amendment-details` collection)
+- [x] 2.2 Implement `submitAmendment`: batch-write creates `amendment-details/{id}` and sets `hasPendingAmendment: true` on confirmed-request; throw `StateError` if flag already set
+- [x] 2.3 Implement `getAmendment`: return `Stream<BookingAmendment?>` from `amendment-details/{id}` snapshots
+- [x] 2.4 Implement `applyAmendment`: atomic transaction that updates confirmed-request, updates `request-details`, clears flag, deletes `amendment-details`; delegate to existing `_updateConfirmedBooking` logic for recurring scope handling
+- [x] 2.5 Implement `rejectAmendment`: batch-write clears `hasPendingAmendment` and deletes `amendment-details/{id}`
+- [x] 2.6 Extend `deleteBooking` to also delete `amendment-details/{id}` if it exists within the same transaction
+- [x] 2.7 Add amendment log entries in `submitAmendment`, `applyAmendment`, and `rejectAmendment` using `_log()`
 
 ## 3. Service Layer (BookingService)
 
-- [ ] 3.1 Add `submitAmendment`, `getAmendment`, `applyAmendment`, `rejectAmendment` pass-through methods on `BookingService`
+- [x] 3.1 Add `submitAmendment`, `getAmendment`, `applyAmendment`, `rejectAmendment` pass-through methods on `BookingService`
 
 ## 4. Security Rules
 

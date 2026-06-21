@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 
 import 'package:roombooker_core/data/services/analytics_service.dart';
+import 'package:roombooker_core/data/entities/booking_amendment.dart';
 import 'package:roombooker_core/data/entities/log_entry.dart';
 import 'package:roombooker_core/data/entities/request.dart';
 import 'package:roombooker_core/data/services/logging_service.dart';
@@ -253,8 +254,10 @@ class BookingRepo {
   void _deleteBooking(String orgID, String requestID, Transaction t) {
     var requestRef = _confirmedRequestsRef(orgID).doc(requestID);
     var privateDetailsRef = _privateRequestDetailsRef(orgID, requestID);
+    var amendmentRef = _amendmentDetailsRef(orgID, requestID);
     t.delete(requestRef);
     t.delete(privateDetailsRef);
+    t.delete(amendmentRef);
   }
 
   Stream<Request?> getRequest(String orgID, String requestID) {
@@ -492,6 +495,133 @@ class BookingRepo {
         t.set(originalRequestRef, newBooking);
         break;
     }
+  }
+
+  // ── Amendment Methods ──────────────────────────────────────────────────
+
+  Future<void> submitAmendment(
+    String orgID,
+    Request confirmedRequest,
+    BookingAmendment amendment,
+  ) async {
+    final requestID = confirmedRequest.id!;
+    if (confirmedRequest.hasPendingAmendment) {
+      throw StateError(
+        'Booking $requestID already has a pending amendment.',
+      );
+    }
+    final confirmedRef = _confirmedRequestsRef(orgID).doc(requestID);
+    final amendmentRef = _amendmentDetailsRef(orgID, requestID);
+    final batch = _db.batch();
+    batch.update(confirmedRef, {'hasPendingAmendment': true});
+    batch.set(amendmentRef, amendment);
+    await batch.commit();
+    await _log(
+      orgID,
+      requestID,
+      'SubmitAmendment',
+      Action.amendmentProposed,
+    );
+  }
+
+  Stream<BookingAmendment?> getAmendment(String orgID, String requestID) {
+    return _amendmentDetailsRef(orgID, requestID)
+        .snapshots()
+        .map((s) => s.data());
+  }
+
+  Future<void> applyAmendment(
+    String orgID,
+    Request originalRequest,
+    BookingAmendment amendment,
+  ) async {
+    final requestID = originalRequest.id!;
+    final confirmedRef = _confirmedRequestsRef(orgID).doc(requestID);
+    final detailsRef = _privateRequestDetailsRef(orgID, requestID);
+    final amendmentRef = _amendmentDetailsRef(orgID, requestID);
+
+    await _db.runTransaction((t) async {
+      final isRecurring =
+          (originalRequest.recurrancePattern?.frequency ??
+              Frequency.never) !=
+          Frequency.never;
+
+      if (!isRecurring) {
+        t.set(confirmedRef, amendment.proposedRequest);
+      } else {
+        switch (amendment.scope) {
+          case AmendmentScope.thisInstance:
+            final snapshot = await t.get(confirmedRef);
+            final series = snapshot.data()!;
+            final instanceDate =
+                amendment.instanceStartDate ??
+                amendment.proposedRequest.eventStartTime;
+            final updated = _overrideRecurrance(
+              series,
+              amendment.proposedRequest,
+              instanceDate,
+            );
+            t.set(confirmedRef, updated);
+          case AmendmentScope.thisAndFuture:
+            final snapshot = await t.get(confirmedRef);
+            final series = snapshot.data()!;
+            final splitDate = amendment.instanceStartDate ??
+                amendment.proposedRequest.eventStartTime;
+            final updatedPattern = series.recurrancePattern!.copyWith(
+              end: stripTime(splitDate).subtract(const Duration(days: 1)),
+            );
+            t.set(confirmedRef, series.copyWith(
+              recurrancePattern: updatedPattern,
+            ));
+            _addBooking(
+              orgID,
+              amendment.proposedRequest,
+              amendment.proposedDetails,
+              t,
+            );
+        }
+      }
+      t.set(detailsRef, amendment.proposedDetails);
+      t.delete(amendmentRef);
+    });
+    await _log(
+      orgID,
+      requestID,
+      'ApplyAmendment',
+      Action.amendmentApproved,
+    );
+  }
+
+  Future<void> rejectAmendment(String orgID, String requestID) async {
+    final confirmedRef = _confirmedRequestsRef(orgID).doc(requestID);
+    final amendmentRef = _amendmentDetailsRef(orgID, requestID);
+    final batch = _db.batch();
+    batch.update(confirmedRef, {'hasPendingAmendment': FieldValue.delete()});
+    batch.delete(amendmentRef);
+    await batch.commit();
+    await _log(
+      orgID,
+      requestID,
+      'RejectAmendment',
+      Action.amendmentRejected,
+    );
+  }
+
+  DocumentReference<BookingAmendment> _amendmentDetailsRef(
+    String orgID,
+    String requestID,
+  ) {
+    return _db
+        .collection('orgs')
+        .doc(orgID)
+        .collection('amendment-details')
+        .doc(requestID)
+        .withConverter(
+          fromFirestore: (snapshot, _) => BookingAmendment.fromJson(
+            snapshot.data()!,
+          ).copyWith(id: snapshot.id),
+          toFirestore: (amendment, _) => amendment.toJson(),
+        );
   }
 
   DocumentReference<PrivateRequestDetails> _privateRequestDetailsRef(

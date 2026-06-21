@@ -13,6 +13,8 @@ class BookingAmendment {
   final PrivateRequestDetails proposedDetails;
   final AmendmentScope scope;
   final DateTime proposedAt;
+  // Set only when scope == thisInstance; identifies which occurrence to override.
+  final DateTime? instanceStartDate;
 
   BookingAmendment({
     this.id,
@@ -20,6 +22,7 @@ class BookingAmendment {
     required this.proposedDetails,
     required this.scope,
     required this.proposedAt,
+    this.instanceStartDate,
   });
 
   BookingAmendment copyWith({String? id}) {
@@ -29,6 +32,7 @@ class BookingAmendment {
       proposedDetails: proposedDetails,
       scope: scope,
       proposedAt: proposedAt,
+      instanceStartDate: instanceStartDate,
     );
   }
 

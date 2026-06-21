@@ -16,6 +16,9 @@ BookingAmendment _$BookingAmendmentFromJson(Map<String, dynamic> json) =>
       ),
       scope: $enumDecode(_$AmendmentScopeEnumMap, json['scope']),
       proposedAt: DateTime.parse(json['proposedAt'] as String),
+      instanceStartDate: json['instanceStartDate'] == null
+          ? null
+          : DateTime.parse(json['instanceStartDate'] as String),
     );
 
 Map<String, dynamic> _$BookingAmendmentToJson(BookingAmendment instance) =>
@@ -24,6 +27,7 @@ Map<String, dynamic> _$BookingAmendmentToJson(BookingAmendment instance) =>
       'proposedDetails': instance.proposedDetails.toJson(),
       'scope': _$AmendmentScopeEnumMap[instance.scope]!,
       'proposedAt': instance.proposedAt.toIso8601String(),
+      'instanceStartDate': instance.instanceStartDate?.toIso8601String(),
     };
 
 const _$AmendmentScopeEnumMap = {
