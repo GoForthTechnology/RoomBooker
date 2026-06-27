@@ -90,6 +90,21 @@ cd packages/roombooker_portal
 flutter run
 ```
 
+### Running the Portal Web Dev Server
+
+For local manual testing in a browser:
+
+```bash
+# Kill any stale server on the port first, then start fresh
+fuser -k 8081/tcp 2>/dev/null; sleep 1 && \
+  cd packages/roombooker_portal && \
+  flutter run -d web-server --web-port 8081 --web-hostname 0.0.0.0
+```
+
+The app is served at **http://0.0.0.0:8081** once "is being served" appears. Port 8081 is preferred; 8080 is often occupied by other long-running processes.
+
+**Hot reload note**: `mcp__dart__hot_reload` / `mcp__dart__hot_restart` do not work reliably with the `web-server` device. Skip attempting them — restart the process directly instead.
+
 ### Running Tests
 
 Run tests for all packages from the root:
@@ -108,6 +123,10 @@ Run tests for all packages from the root:
 - **Always update existing tests** to match new implementation logic or UI changes.
 - **NEVER remove a test file** or test case without explicit permission from the user. If you believe a test is truly obsolete, you MUST ask for permission before deleting it.
 - **Coverage**: All new functionality, data entities, and business logic MUST be covered by appropriate unit or widget tests.
+
+### Writing Tests in Parallel
+
+When a change requires multiple independent test files (e.g., a widget test, a view-model test, and a dialog test), write them in parallel using fork agents — one agent per file. Each fork should receive the full context it needs (file path, what to test, relevant implementation details) so it can work independently. Collect results before running the test suite.
 
 ## Code Generation
 
@@ -137,6 +156,15 @@ The project's infrastructure on Google Cloud and Firebase is managed using Terra
   - `terraform init`: Initialize the working directory.
   - `terraform plan`: Preview changes.
   - `terraform apply`: Apply changes to the infrastructure.
+
+### Deploying Firestore Rules
+
+The `FIREBASE_TOKEN` for `firebase deploy` is stored in `~/.bashrc`. Load it before deploying:
+
+```bash
+eval "$(grep FIREBASE_TOKEN ~/.bashrc)" && \
+  firebase deploy --only firestore:rules --token "$FIREBASE_TOKEN"
+```
 
 ## Security Guidelines
 
@@ -218,6 +246,11 @@ This project follows the **OpenSpec** spec-driven workflow (see `openspec/`), wi
 6. **Archive and Merge** (`/opsx:archive`): Once the user approves, run `openspec archive <change>` to merge the change's spec deltas into the main specs, commit and push that as the **final commit** on the branch. The user then squash-merges the PR (`gh pr merge <pr> --squash --delete-branch`), keeping the spec delta reviewable for the life of the PR and `main`'s history at roughly one commit per change.
 
 If a change is abandoned, close its PR and delete its branch (`gh pr close <pr> --delete-branch`). All branch/PR steps require an authenticated `gh` CLI; if `gh` is unavailable, skip those steps and note it so the user can run them manually. Per standard git safety rules, Claude does not push to `main` or merge PRs without being explicitly asked.
+
+### Spec Placement
+
+- **Change-specific specs** (`openspec/changes/<change>/specs/`): requirements that are scoped to a single feature and unlikely to be referenced cross-cutting.
+- **Shared specs** (`openspec/specs/`): conventions, patterns, and requirements that multiple future changes may need to reference. When a requirement generalises beyond the current change (e.g. a UI convention that should apply project-wide), extract it to a shared spec and cross-reference it from the change spec using `[TAG-NNN]` notation.
 
 ### Kiosk Development Iteration (APK Server)
 
