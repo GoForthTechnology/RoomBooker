@@ -62,6 +62,7 @@ jobs:
           echo "patch=$PATCH_NUM" >> $GITHUB_OUTPUT
 
       - name: Upload to Google Play (Internal)
+        if: steps.version.outputs.patch != '0'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: play_sa_key.json
