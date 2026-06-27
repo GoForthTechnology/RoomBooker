@@ -78,7 +78,7 @@ service cloud.firestore {
       }
 
       match /amendment-details/{requestID} {
-        allow create: if isAuthenticated();
+        allow create: if true;
         allow read, update, delete: if isAdmin();
       }
 
@@ -86,8 +86,7 @@ service cloud.firestore {
         allow read: if true;
         allow create: if isAdmin() || isAuthorizedKiosk(incomingData().roomID);
         allow update: if isAdmin()
-          || (isAuthenticated()
-              && request.resource.data.diff(resource.data)
+          || (request.resource.data.diff(resource.data)
                   .affectedKeys().hasOnly(['hasPendingAmendment'])
               && request.resource.data.hasPendingAmendment == true
               && resource.data.get('hasPendingAmendment', false) == false);
