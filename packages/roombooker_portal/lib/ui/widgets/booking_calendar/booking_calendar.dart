@@ -42,10 +42,13 @@ class BookingCalendarView extends StatelessWidget {
             prev.dataSource == curr.dataSource &&
             // Note: appointments change is handled by DataSource.notifyListeners,
             // so we don't need to rebuild SfCalendar when only appointments change.
-            // listEquals(prev.appointments, curr.appointments) && 
+            // listEquals(prev.appointments, curr.appointments) &&
             listEquals(prev.specialRegions, curr.specialRegions) &&
             prev.currentView == curr.currentView &&
-            prev.activeRequestID == curr.activeRequestID;
+            prev.activeRequestID == curr.activeRequestID &&
+            // pendingAmendmentIDs lives in the builder closure, not the data
+            // source, so it needs an explicit rebuild when it changes.
+            setEquals(prev.pendingAmendmentIDs, curr.pendingAmendmentIDs);
             // currentDate change is handled by CalendarController, no need to rebuild.
       }),
       builder: (context, snapshot) {
