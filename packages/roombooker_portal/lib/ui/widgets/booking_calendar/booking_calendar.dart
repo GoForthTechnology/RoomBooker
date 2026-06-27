@@ -78,6 +78,7 @@ class BookingCalendarView extends StatelessWidget {
           appointmentBuilder: _appointmentBuilder(
             viewState.currentView,
             viewState.activeRequestID,
+            viewState.pendingAmendmentIDs,
           ),
         );
       },
@@ -85,7 +86,11 @@ class BookingCalendarView extends StatelessWidget {
   }
 
   Widget Function(BuildContext, CalendarAppointmentDetails)?
-  _appointmentBuilder(CalendarView view, String? activeRequestID) {
+  _appointmentBuilder(
+    CalendarView view,
+    String? activeRequestID,
+    Set<String> pendingAmendmentIDs,
+  ) {
     if (view == CalendarView.schedule) {
       return null;
     }
@@ -97,6 +102,8 @@ class BookingCalendarView extends StatelessWidget {
       final appointmentID = appointment.resourceIds?.first.toString();
       final isActive =
           activeRequestID != null && appointmentID == activeRequestID;
+      final isPending =
+          appointmentID != null && pendingAmendmentIDs.contains(appointmentID);
 
       Widget content = Text(
         appointment.subject,
@@ -111,7 +118,7 @@ class BookingCalendarView extends StatelessWidget {
           ? "${appointment.subject}\n${appointment.notes}"
           : appointment.subject;
 
-      final container = Container(
+      Widget container = Container(
         decoration: BoxDecoration(
           color: appointment.color,
           borderRadius: BorderRadius.circular(3),
@@ -131,12 +138,34 @@ class BookingCalendarView extends StatelessWidget {
         child: content,
       );
 
+      if (isPending) {
+        container = Stack(
+          children: [
+            container,
+            Positioned(
+              top: 2,
+              right: 2,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Colors.amber,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ],
+        );
+      }
+
       if (isActive) {
         return container;
       }
 
       return Tooltip(
-        message: tooltipMessage,
+        message: isPending
+            ? '$tooltipMessage\n⚠ Change pending'
+            : tooltipMessage,
         waitDuration: const Duration(milliseconds: 500),
         child: container,
       );

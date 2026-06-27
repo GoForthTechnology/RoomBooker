@@ -259,6 +259,10 @@ class CalendarViewModel extends ChangeNotifier {
 
         _dataSource.updateAppointments(out);
 
+        final pendingAmendmentIDs = {
+          for (final e in appointments.entries)
+            if (e.value.hasPendingAmendment) _appointmentID(e.key),
+        };
         return CalendarViewState(
           allowAppointmentResize:
               _allowAppointmentResize && newAppointment == null,
@@ -269,6 +273,7 @@ class CalendarViewModel extends ChangeNotifier {
           currentView: controller.view ?? CalendarView.month,
           currentDate: _safeDisplayDate,
           activeRequestID: newAppointment != null ? _id(newAppointment) : null,
+          pendingAmendmentIDs: pendingAmendmentIDs,
         );
       },
     );
@@ -768,6 +773,7 @@ class CalendarViewState {
   final CalendarView currentView;
   final DateTime currentDate;
   final String? activeRequestID;
+  final Set<String> pendingAmendmentIDs;
 
   CalendarViewState({
     required this.allowAppointmentResize,
@@ -778,6 +784,7 @@ class CalendarViewState {
     required this.currentView,
     required this.currentDate,
     this.activeRequestID,
+    this.pendingAmendmentIDs = const {},
   });
 
   @override
@@ -791,7 +798,8 @@ class CalendarViewState {
         listEquals(specialRegions, other.specialRegions) &&
         currentView == other.currentView &&
         currentDate == other.currentDate &&
-        activeRequestID == other.activeRequestID;
+        activeRequestID == other.activeRequestID &&
+        setEquals(pendingAmendmentIDs, other.pendingAmendmentIDs);
   }
 
   @override
@@ -804,6 +812,7 @@ class CalendarViewState {
     currentView,
     currentDate,
     activeRequestID,
+    Object.hashAll(pendingAmendmentIDs),
   );
 }
 
