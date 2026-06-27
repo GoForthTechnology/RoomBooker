@@ -196,161 +196,44 @@ class _AmendmentFormDialogState extends State<_AmendmentFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = MaterialLocalizations.of(context);
+    final isSmall = MediaQuery.sizeOf(context).width < 650;
+    return isSmall ? _buildFullscreen(context) : _buildDialog(context);
+  }
+
+  Widget _buildFullscreen(BuildContext context) {
+    return Dialog.fullscreen(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Propose a Change'),
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: _submitting ? null : () => Navigator.of(context).pop(),
+          ),
+          automaticallyImplyLeading: false,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: _submitButton(compact: true),
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: _buildFormContent(context),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialog(BuildContext context) {
     return AlertDialog(
       title: const Text('Propose a Change'),
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      _error!,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ),
-                const Text(
-                  'Booking Details',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                DateField(
-                  labelText: 'Date',
-                  initialValue: _startDate,
-                  readOnly: false,
-                  onChanged: (d) => setState(() => _startDate = d),
-                ),
-                const SizedBox(height: 8),
-                TimeField(
-                  labelText: 'Start Time',
-                  initialValue: _startTime,
-                  readOnly: false,
-                  localizations: localizations,
-                  onChanged: (t) => setState(() => _startTime = t),
-                ),
-                const SizedBox(height: 8),
-                TimeField(
-                  labelText: 'End Time',
-                  initialValue: _endTime,
-                  readOnly: false,
-                  localizations: localizations,
-                  onChanged: (t) => setState(() => _endTime = t),
-                ),
-                const SizedBox(height: 8),
-                RoomDropdownSelector(
-                  orgID: widget.orgID,
-                  readOnly: false,
-                  initialRoomID: _roomID,
-                  onChanged: (room) {
-                    if (room != null) {
-                      setState(() {
-                        _roomID = room.id!;
-                        _roomName = room.name;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  title: const Text('Public Event Name'),
-                  value: _isPublic,
-                  onChanged: (v) => setState(() => _isPublic = v),
-                  contentPadding: EdgeInsets.zero,
-                ),
-                if (_isPublic)
-                  TextFormField(
-                    controller: _publicNameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Public Name',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Required' : null,
-                  ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Event Details',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _eventNameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Event Name',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _meetingUrlCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Meeting URL (optional)',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.url,
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _messageCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Additional Notes (optional)',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Your Contact Details',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const Text(
-                  'Required so the admin can verify this request is from you.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _contactNameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Your Name',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _contactEmailCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Your Email',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _contactPhoneCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Your Phone',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.phone,
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Required' : null,
-                ),
-              ],
-            ),
-          ),
+          child: _buildFormContent(context),
         ),
       ),
       actions: [
@@ -358,17 +241,174 @@ class _AmendmentFormDialogState extends State<_AmendmentFormDialog> {
           onPressed: _submitting ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          onPressed: _submitting ? null : _submit,
-          child: _submitting
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Submit Proposal'),
-        ),
+        _submitButton(compact: false),
       ],
+    );
+  }
+
+  Widget _submitButton({required bool compact}) {
+    return FilledButton(
+      onPressed: _submitting ? null : _submit,
+      child: _submitting
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text(compact ? 'Submit' : 'Submit Proposal'),
+    );
+  }
+
+  Widget _buildFormContent(BuildContext context) {
+    final localizations = MaterialLocalizations.of(context);
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                _error!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          const Text(
+            'Booking Details',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          DateField(
+            labelText: 'Date',
+            initialValue: _startDate,
+            readOnly: false,
+            onChanged: (d) => setState(() => _startDate = d),
+          ),
+          const SizedBox(height: 8),
+          TimeField(
+            labelText: 'Start Time',
+            initialValue: _startTime,
+            readOnly: false,
+            localizations: localizations,
+            onChanged: (t) => setState(() => _startTime = t),
+          ),
+          const SizedBox(height: 8),
+          TimeField(
+            labelText: 'End Time',
+            initialValue: _endTime,
+            readOnly: false,
+            localizations: localizations,
+            onChanged: (t) => setState(() => _endTime = t),
+          ),
+          const SizedBox(height: 8),
+          RoomDropdownSelector(
+            orgID: widget.orgID,
+            readOnly: false,
+            initialRoomID: _roomID,
+            onChanged: (room) {
+              if (room != null) {
+                setState(() {
+                  _roomID = room.id!;
+                  _roomName = room.name;
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            title: const Text('Public Event Name'),
+            value: _isPublic,
+            onChanged: (v) => setState(() => _isPublic = v),
+            contentPadding: EdgeInsets.zero,
+          ),
+          if (_isPublic)
+            TextFormField(
+              controller: _publicNameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Public Name',
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) =>
+                  (v == null || v.isEmpty) ? 'Required' : null,
+            ),
+          const SizedBox(height: 16),
+          const Text(
+            'Event Details',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _eventNameCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Event Name',
+              border: OutlineInputBorder(),
+            ),
+            validator: (v) =>
+                (v == null || v.isEmpty) ? 'Required' : null,
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _meetingUrlCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Meeting URL (optional)',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.url,
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _messageCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Additional Notes (optional)',
+              border: OutlineInputBorder(),
+            ),
+            maxLines: 3,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Your Contact Details',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const Text(
+            'Required so the admin can verify this request is from you.',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _contactNameCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Your Name',
+              border: OutlineInputBorder(),
+            ),
+            validator: (v) =>
+                (v == null || v.isEmpty) ? 'Required' : null,
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _contactEmailCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Your Email',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.emailAddress,
+            validator: (v) =>
+                (v == null || v.isEmpty) ? 'Required' : null,
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _contactPhoneCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Your Phone',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.phone,
+            validator: (v) =>
+                (v == null || v.isEmpty) ? 'Required' : null,
+          ),
+        ],
+      ),
     );
   }
 }

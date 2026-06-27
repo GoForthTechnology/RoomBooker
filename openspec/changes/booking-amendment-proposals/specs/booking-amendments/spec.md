@@ -148,6 +148,26 @@ system using the same `logRepo.addLogEntry` pattern as other booking actions.
 - **THEN** an `amendmentApproved` or `amendmentRejected` log entry is
   written for the affected request ID.
 
+### Requirement: Amendment Form Uses Fullscreen Layout on Mobile
+On narrow viewports (width < 650 px) the amendment proposal form SHALL be
+presented as a fullscreen dialog (`Dialog.fullscreen`) with an AppBar
+containing the title, a close button, and the submit action — matching the
+presentation used for the new-booking editor. On wide viewports the existing
+constrained `AlertDialog` layout SHALL be used instead. The breakpoint of
+650 px matches the `isSmallView` threshold used elsewhere in the portal.
+
+#### Scenario: Amendment form is fullscreen on a mobile viewport
+- **WHEN** a user on a narrow screen (< 650 px wide) opens the amendment
+  proposal form
+- **THEN** the form occupies the full screen with an AppBar header and a
+  scrollable body, matching the new-booking editor presentation.
+
+#### Scenario: Amendment form is a dialog on a wide viewport
+- **WHEN** a user on a wide screen (≥ 650 px) opens the amendment proposal
+  form
+- **THEN** the form is presented as a constrained `AlertDialog` with Cancel
+  and Submit actions at the bottom.
+
 ### Requirement: Amendment Cleaned Up on Booking Deletion
 If an admin deletes a confirmed booking that has a pending amendment, the
 `amendment-details` document for that booking SHALL be deleted atomically
