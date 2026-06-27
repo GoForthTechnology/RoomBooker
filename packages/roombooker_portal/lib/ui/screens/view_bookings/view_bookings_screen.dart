@@ -335,7 +335,7 @@ class ViewBookingsScreen extends StatelessWidget {
     final isFuture = request.eventStartTime.isAfter(DateTime.now());
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(request.publicName ?? "Private Event"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -365,13 +365,13 @@ class ViewBookingsScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Close'),
           ),
           if (isFuture && !request.hasPendingAmendment)
             FilledButton.tonal(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
                 showProposeAmendmentDialog(
                   context: context,
                   orgID: orgID,
