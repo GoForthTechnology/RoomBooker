@@ -863,6 +863,76 @@ void main() {
         expect(viewState.showIgnoreOverlapsToggle, false);
         expect(viewState.showEventLog, false);
       });
+
+      group('pending amendment actions', () {
+        final futureConfirmedRequest = Request(
+          id: 'future_confirmed',
+          eventStartTime: DateTime(2099, 1, 1, 10, 0),
+          eventEndTime: DateTime(2099, 1, 1, 11, 0),
+          roomID: 'room1',
+          roomName: 'Test Room',
+          status: RequestStatus.confirmed,
+        );
+
+        test(
+          'Edit action is disabled with tooltip when hasPendingAmendment is true',
+          () async {
+            final pendingRequest = futureConfirmedRequest.copyWith(
+              hasPendingAmendment: true,
+            );
+
+            viewModel = createViewModel();
+            viewModel.initializeFromExistingRequest(pendingRequest, testDetails);
+
+            final viewState = await viewModel.viewStateStream.first;
+            final editAction = viewState.actions.first;
+
+            expect(editAction.title, 'Edit');
+            expect(editAction.disabledTooltip, isNotNull);
+            expect(
+              editAction.disabledTooltip,
+              'Resolve the pending amendment before editing.',
+            );
+          },
+        );
+
+        test(
+          'Revisit and Delete are still present when hasPendingAmendment is true',
+          () async {
+            final pendingRequest = futureConfirmedRequest.copyWith(
+              hasPendingAmendment: true,
+            );
+
+            viewModel = createViewModel();
+            viewModel.initializeFromExistingRequest(pendingRequest, testDetails);
+
+            final viewState = await viewModel.viewStateStream.first;
+            final titles = viewState.actions.map((a) => a.title).toList();
+
+            expect(titles, contains('Revisit'));
+            expect(titles, contains('Delete'));
+            expect(viewState.actions.length, greaterThanOrEqualTo(3));
+          },
+        );
+
+        test(
+          'Edit action is enabled with no tooltip when hasPendingAmendment is false',
+          () async {
+            viewModel = createViewModel();
+            viewModel.initializeFromExistingRequest(
+              futureConfirmedRequest,
+              testDetails,
+            );
+
+            final viewState = await viewModel.viewStateStream.first;
+            final editAction = viewState.actions.firstWhere(
+              (a) => a.title == 'Edit',
+            );
+
+            expect(editAction.disabledTooltip, isNull);
+          },
+        );
+      });
     });
   });
 }

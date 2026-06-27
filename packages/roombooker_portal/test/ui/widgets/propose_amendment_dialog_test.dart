@@ -169,4 +169,104 @@ void main() {
       expect(find.text('Propose a Change'), findsOneWidget);
     },
   );
+
+  // Helper that opens the amendment form for a non-recurring request directly.
+  Widget buildOneOffTestWidget(Request request) {
+    return MultiProvider(
+      providers: [
+        Provider<BookingService>.value(value: mockBookingService),
+        ChangeNotifierProvider<RoomRepo>.value(value: mockRoomRepo),
+      ],
+      child: MaterialApp(
+        home: Builder(
+          builder: (screenContext) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () {
+                showDialog<void>(
+                  context: screenContext,
+                  builder: (dialogContext) => AlertDialog(
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                          showProposeAmendmentDialog(
+                            context: screenContext,
+                            orgID: 'org1',
+                            request: request,
+                            bookingService: mockBookingService,
+                          );
+                        },
+                        child: const Text('Propose Change'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  testWidgets(
+    'amendment form uses fullscreen layout on narrow viewport',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final oneOffRequest = Request(
+        id: 'req3',
+        roomID: 'room1',
+        roomName: 'Room 1',
+        eventStartTime: DateTime.now().add(const Duration(days: 7)),
+        eventEndTime: DateTime.now().add(const Duration(days: 7, hours: 1)),
+        status: RequestStatus.confirmed,
+        recurrancePattern: RecurrancePattern.never(),
+      );
+
+      await tester.pumpWidget(buildOneOffTestWidget(oneOffRequest));
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Propose Change'));
+      await tester.pumpAndSettle();
+
+      // Narrow viewport → fullscreen scaffold with AppBar, no AlertDialog.
+      expect(find.byType(AppBar), findsOneWidget);
+      expect(find.byType(AlertDialog), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'amendment form uses AlertDialog layout on wide viewport',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final oneOffRequest = Request(
+        id: 'req4',
+        roomID: 'room1',
+        roomName: 'Room 1',
+        eventStartTime: DateTime.now().add(const Duration(days: 7)),
+        eventEndTime: DateTime.now().add(const Duration(days: 7, hours: 1)),
+        status: RequestStatus.confirmed,
+        recurrancePattern: RecurrancePattern.never(),
+      );
+
+      await tester.pumpWidget(buildOneOffTestWidget(oneOffRequest));
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Propose Change'));
+      await tester.pumpAndSettle();
+
+      // Wide viewport → constrained AlertDialog, no fullscreen AppBar.
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byType(AppBar), findsNothing);
+    },
+  );
 }

@@ -887,4 +887,82 @@ void main() {
       ).called(1);
     });
   });
+
+  group('CalendarViewState equality', () {
+    test('states with different pendingAmendmentIDs are not equal', () async {
+      final state = await viewModel.calendarViewState().first;
+      final ds = state.dataSource;
+
+      final a = CalendarViewState(
+        allowAppointmentResize: false,
+        allowDragAndDrop: false,
+        specialRegions: const [],
+        dataSource: ds,
+        appointments: const [],
+        currentView: CalendarView.month,
+        currentDate: DateTime(2024),
+        pendingAmendmentIDs: const {},
+      );
+      final b = CalendarViewState(
+        allowAppointmentResize: false,
+        allowDragAndDrop: false,
+        specialRegions: const [],
+        dataSource: ds,
+        appointments: const [],
+        currentView: CalendarView.month,
+        currentDate: DateTime(2024),
+        pendingAmendmentIDs: const {'req1'},
+      );
+
+      expect(a, isNot(equals(b)),
+          reason:
+              'distinct predicate must treat changed pendingAmendmentIDs as '
+              'a new state so the appointmentBuilder closure is refreshed');
+    });
+
+    test('states with identical pendingAmendmentIDs are equal', () async {
+      final state = await viewModel.calendarViewState().first;
+      final ds = state.dataSource;
+
+      final a = CalendarViewState(
+        allowAppointmentResize: false,
+        allowDragAndDrop: false,
+        specialRegions: const [],
+        dataSource: ds,
+        appointments: const [],
+        currentView: CalendarView.month,
+        currentDate: DateTime(2024),
+        pendingAmendmentIDs: const {'req1'},
+      );
+      final b = CalendarViewState(
+        allowAppointmentResize: false,
+        allowDragAndDrop: false,
+        specialRegions: const [],
+        dataSource: ds,
+        appointments: const [],
+        currentView: CalendarView.month,
+        currentDate: DateTime(2024),
+        pendingAmendmentIDs: const {'req1'},
+      );
+
+      expect(a, equals(b));
+    });
+
+    test('pendingAmendmentIDs defaults to empty set', () async {
+      final state = await viewModel.calendarViewState().first;
+      final ds = state.dataSource;
+
+      final s = CalendarViewState(
+        allowAppointmentResize: false,
+        allowDragAndDrop: false,
+        specialRegions: const [],
+        dataSource: ds,
+        appointments: const [],
+        currentView: CalendarView.month,
+        currentDate: DateTime(2024),
+      );
+
+      expect(s.pendingAmendmentIDs, isEmpty);
+    });
+  });
 }
