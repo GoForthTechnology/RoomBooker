@@ -135,6 +135,9 @@ enum Action {
   ignoreOverlaps,
   update,
   delete,
+  amendmentProposed,
+  amendmentApproved,
+  amendmentRejected,
 }
 
 class DecoratedLogEntry {

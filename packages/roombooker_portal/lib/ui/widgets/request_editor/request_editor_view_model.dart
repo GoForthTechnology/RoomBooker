@@ -24,8 +24,9 @@ class ActionResult {
 class EditorAction {
   final String title;
   final Future<ActionResult> Function() onPressed;
+  final String? disabledTooltip;
 
-  EditorAction(this.title, this.onPressed);
+  EditorAction(this.title, this.onPressed, {this.disabledTooltip});
 }
 
 class EditorViewState {
@@ -354,7 +355,16 @@ class RequestEditorViewModel extends ChangeNotifier {
 
   List<EditorAction> _getActionsForConfirmedRequest(Request initialRequest) {
     List<EditorAction> actions = [];
-    if (_editingEnabledSubject.value == false) {
+    if (initialRequest.hasPendingAmendment) {
+      actions.add(
+        EditorAction(
+          "Edit",
+          () async => ActionResult(false, "", false),
+          disabledTooltip:
+              "Resolve the pending amendment before editing.",
+        ),
+      );
+    } else if (_editingEnabledSubject.value == false) {
       actions.add(
         EditorAction("Edit", () async {
           _editingEnabledSubject.add(true);

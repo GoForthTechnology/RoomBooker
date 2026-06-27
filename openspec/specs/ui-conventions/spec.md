@@ -113,6 +113,46 @@ rather than wrapping a raw `Icon` in a `GestureDetector` or `InkWell`.
 
 ---
 
+## [UI-CONV-005] Dialog Presentation — Form vs. Simple
+
+### Requirement
+
+Portal dialogs fall into two categories, each with a distinct layout
+strategy that adapts to viewport width. The breakpoint **650 dp** matches
+the `isSmallView()` threshold used throughout the portal.
+
+#### Category A — Multi-field forms
+Dialogs that present a form with several fields (e.g. booking editor,
+amendment proposal form) where the content would require internal
+scrolling inside a constrained dialog on a narrow screen.
+
+| Viewport | Presentation |
+|---|---|
+| Narrow (< 650 dp) | `Dialog.fullscreen` wrapping a `Scaffold`: `AppBar` with title, leading close button (`Icons.close`), primary action in `actions`; scrollable body via `SingleChildScrollView` with 16 dp padding inside `SafeArea`. |
+| Wide (≥ 650 dp) | `AlertDialog` with `SizedBox(width: 480)` content, `SingleChildScrollView` inside, Cancel + primary action in `actions`. |
+
+#### Category B — Simple / confirmatory dialogs
+Dialogs with a small, fixed amount of content: scope pickers, confirm/
+cancel prompts, informational alerts, single-choice selectors. These
+MUST use a plain `AlertDialog` at all viewport sizes — fullscreen is
+reserved for forms.
+
+### Rationale
+On narrow mobile screens a multi-field form crammed into an `AlertDialog`
+creates awkward bounded scrolling and wastes vertical space with dialog
+chrome. A fullscreen layout gives the form its natural scroll axis and
+matches the mental model of a dedicated editor screen. Conversely,
+wrapping a two-item scope picker in a fullscreen dialog is disorienting
+and over-engineered.
+
+### Canonical implementation
+The `_showPannelAsDialog` method in `view_bookings_screen.dart`
+(`Dialog.fullscreen` + `RequestEditor`) and `showProposeAmendmentDialog`
+in `propose_amendment_dialog.dart` (responsive `_buildFullscreen` /
+`_buildDialog`) are the reference implementations for Category A.
+
+---
+
 ## Known Violations (to be remediated)
 
 The following existing widgets were identified as violating these

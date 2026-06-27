@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:roombooker_core/data/entities/booking_amendment.dart';
 import 'package:roombooker_core/data/entities/log_entry.dart';
 import 'package:roombooker_core/data/entities/request.dart';
 import 'package:roombooker_core/data/repos/booking_repo.dart';
@@ -322,6 +323,36 @@ class BookingService {
 
   Stream<Request?> getRequest(String orgID, String requestID) {
     return _bookingRepo.getRequest(orgID, requestID);
+  }
+
+  Stream<List<Request>> listPendingAmendments(String orgID) {
+    return _bookingRepo.listPendingAmendments(orgID);
+  }
+
+  // ── Amendment Pass-Throughs ─────────────────────────────────────────────
+
+  Future<void> submitAmendment(
+    String orgID,
+    Request confirmedRequest,
+    BookingAmendment amendment,
+  ) {
+    return _bookingRepo.submitAmendment(orgID, confirmedRequest, amendment);
+  }
+
+  Stream<BookingAmendment?> getAmendment(String orgID, String requestID) {
+    return _bookingRepo.getAmendment(orgID, requestID);
+  }
+
+  Future<void> applyAmendment(
+    String orgID,
+    Request originalRequest,
+    BookingAmendment amendment,
+  ) {
+    return _bookingRepo.applyAmendment(orgID, originalRequest, amendment);
+  }
+
+  Future<void> rejectAmendment(String orgID, String requestID) {
+    return _bookingRepo.rejectAmendment(orgID, requestID);
   }
 }
 

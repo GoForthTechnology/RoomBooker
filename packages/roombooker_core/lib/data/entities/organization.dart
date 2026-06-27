@@ -83,6 +83,9 @@ enum NotificationEvent {
   adminRequestCreated,
   adminRequestApproved,
   adminRequestRejected,
+  amendmentProposed,
+  amendmentApproved,
+  amendmentRejected,
 }
 
 @JsonSerializable(explicitToJson: true)

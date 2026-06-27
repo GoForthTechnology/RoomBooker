@@ -80,6 +80,19 @@ Run tests for all packages from the root:
 (cd packages/roombooker_portal && flutter test)
 ```
 
+### Running the Portal Web Dev Server
+
+For local manual testing in a browser:
+
+```bash
+# Kill any stale server on the port first, then start fresh
+fuser -k 8081/tcp 2>/dev/null; sleep 1 && \
+  cd packages/roombooker_portal && \
+  flutter run -d web-server --web-port 8081 --web-hostname 0.0.0.0
+```
+
+The app is served at **http://0.0.0.0:8081** once "is being served" appears. Port 8081 is preferred; 8080 is often occupied by other long-running processes.
+
 ## Testing Standards
 
 ### Test Maintenance
@@ -115,6 +128,15 @@ The project's infrastructure on Google Cloud and Firebase is managed using Terra
   - `terraform init`: Initialize the working directory.
   - `terraform plan`: Preview changes.
   - `terraform apply`: Apply changes to the infrastructure.
+
+### Deploying Firestore Rules
+
+The `FIREBASE_TOKEN` for `firebase deploy` is stored in `~/.bashrc`. Load it before deploying:
+
+```bash
+eval "$(grep FIREBASE_TOKEN ~/.bashrc)" && \
+  firebase deploy --only firestore:rules --token "$FIREBASE_TOKEN"
+```
 
 ## Security Guidelines
 
@@ -198,6 +220,11 @@ Request:
 6. **Archive and Merge** (`/opsx:archive`): Once the user approves, run `openspec archive <change>` to merge the change's spec deltas into the main specs, commit and push that as the **final commit** on the branch. The user then squash-merges the PR (`gh pr merge <pr> --squash --delete-branch`), keeping the spec delta reviewable for the life of the PR and `main`'s history at roughly one commit per change.
 
 If a change is abandoned, close its PR and delete its branch (`gh pr close <pr> --delete-branch`). All branch/PR steps require an authenticated `gh` CLI; if `gh` is unavailable, skip those steps and note it so the user can run them manually. Per standard git safety rules, Claude does not push to `main` or merge PRs without being explicitly asked.
+
+### Spec Placement
+
+- **Change-specific specs** (`openspec/changes/<change>/specs/`): requirements that are scoped to a single feature and unlikely to be referenced cross-cutting.
+- **Shared specs** (`openspec/specs/`): conventions, patterns, and requirements that multiple future changes may need to reference. When a requirement generalises beyond the current change (e.g. a UI convention that should apply project-wide), extract it to a shared spec and cross-reference it from the change spec using `[TAG-NNN]` notation.
 
 ### Kiosk Development Iteration (APK Server)
 

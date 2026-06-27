@@ -4,6 +4,7 @@ import 'package:roombooker_core/data/services/analytics_service.dart';
 import 'package:roombooker_core/data/services/logging_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:roombooker_core/data/entities/booking_amendment.dart';
 import 'package:roombooker_core/data/entities/log_entry.dart';
 import 'package:roombooker_core/data/entities/request.dart';
 import 'package:roombooker_core/data/repos/booking_repo.dart';
@@ -152,6 +153,276 @@ void main() {
       expect(confirmed.docs.length, 1);
       expect(confirmed.docs.first.data()['roomID'], "room1");
     });
+
+    // ── Amendment tests ────────────────────────────────────────────────────
+
+    group('submitAmendment', () {
+      final now = DateTime(2025, 6, 1, 10, 0);
+      final confirmedRequest = Request(
+        id: 'req1',
+        eventStartTime: now,
+        eventEndTime: now.add(const Duration(hours: 1)),
+        roomID: 'room1',
+        roomName: 'Room 1',
+        status: RequestStatus.confirmed,
+        recurrancePattern: RecurrancePattern.never(),
+      );
+      final details = PrivateRequestDetails(
+        eventName: 'Team Meeting',
+        name: 'Alice',
+        email: 'alice@example.com',
+        phone: '555-1234',
+      );
+
+      setUp(() async {
+        await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('confirmed-requests')
+            .doc('req1')
+            .set(confirmedRequest.toJson());
+      });
+
+      test('sets hasPendingAmendment and creates amendment-details doc',
+          () async {
+        final amendment = BookingAmendment(
+          proposedRequest: confirmedRequest.copyWith(roomID: 'room2'),
+          proposedDetails: details,
+          scope: AmendmentScope.thisInstance,
+          proposedAt: now,
+          instanceStartDate: now,
+        );
+
+        await bookingRepo.submitAmendment('org1', confirmedRequest, amendment);
+
+        final confirmed = await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('confirmed-requests')
+            .doc('req1')
+            .get();
+        expect(confirmed.data()!['hasPendingAmendment'], isTrue);
+
+        final amendmentDoc = await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('amendment-details')
+            .doc('req1')
+            .get();
+        expect(amendmentDoc.exists, isTrue);
+        expect(amendmentDoc.data()!['proposedDetails']['name'], 'Alice');
+      });
+
+      test('throws StateError when amendment already pending', () async {
+        await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('confirmed-requests')
+            .doc('req1')
+            .update({'hasPendingAmendment': true});
+
+        final pendingRequest =
+            confirmedRequest.copyWith(hasPendingAmendment: true);
+        final amendment = BookingAmendment(
+          proposedRequest: confirmedRequest,
+          proposedDetails: details,
+          scope: AmendmentScope.thisInstance,
+          proposedAt: now,
+          instanceStartDate: now,
+        );
+
+        expect(
+          () => bookingRepo.submitAmendment('org1', pendingRequest, amendment),
+          throwsStateError,
+        );
+      });
+    });
+
+    group('rejectAmendment', () {
+      final now = DateTime(2025, 6, 1, 10, 0);
+      final confirmedRequest = Request(
+        id: 'req1',
+        eventStartTime: now,
+        eventEndTime: now.add(const Duration(hours: 1)),
+        roomID: 'room1',
+        roomName: 'Room 1',
+        status: RequestStatus.confirmed,
+        recurrancePattern: RecurrancePattern.never(),
+      );
+
+      setUp(() async {
+        await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('confirmed-requests')
+            .doc('req1')
+            .set({...confirmedRequest.toJson(), 'hasPendingAmendment': true});
+        await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('amendment-details')
+            .doc('req1')
+            .set({'dummy': true});
+      });
+
+      test('clears hasPendingAmendment and deletes amendment-details', () async {
+        await bookingRepo.rejectAmendment('org1', 'req1');
+
+        final confirmed = await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('confirmed-requests')
+            .doc('req1')
+            .get();
+        expect(confirmed.data()!.containsKey('hasPendingAmendment'), isFalse);
+
+        final amendmentDoc = await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('amendment-details')
+            .doc('req1')
+            .get();
+        expect(amendmentDoc.exists, isFalse);
+      });
+    });
+
+    group('applyAmendment (one-off)', () {
+      final now = DateTime(2025, 6, 1, 10, 0);
+      final originalRequest = Request(
+        id: 'req1',
+        eventStartTime: now,
+        eventEndTime: now.add(const Duration(hours: 1)),
+        roomID: 'room1',
+        roomName: 'Room 1',
+        status: RequestStatus.confirmed,
+        recurrancePattern: RecurrancePattern.never(),
+        hasPendingAmendment: true,
+      );
+      final originalDetails = PrivateRequestDetails(
+        eventName: 'Original Name',
+        name: 'Alice',
+        email: 'alice@example.com',
+        phone: '555-1234',
+      );
+
+      setUp(() async {
+        await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('confirmed-requests')
+            .doc('req1')
+            .set({...originalRequest.toJson(), 'hasPendingAmendment': true});
+        await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('request-details')
+            .doc('req1')
+            .set(originalDetails.toJson());
+        await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('amendment-details')
+            .doc('req1')
+            .set({'dummy': true});
+      });
+
+      test('updates confirmed request, clears flag, deletes amendment-details',
+          () async {
+        final proposedRequest = originalRequest.copyWith(
+          roomID: 'room2',
+          roomName: 'Room 2',
+          eventStartTime: now.add(const Duration(hours: 1)),
+          eventEndTime: now.add(const Duration(hours: 2)),
+        );
+        final proposedDetails = PrivateRequestDetails(
+          eventName: 'Updated Name',
+          name: 'Alice',
+          email: 'alice@example.com',
+          phone: '555-1234',
+        );
+        final amendment = BookingAmendment(
+          proposedRequest: proposedRequest,
+          proposedDetails: proposedDetails,
+          scope: AmendmentScope.thisInstance,
+          proposedAt: now,
+          instanceStartDate: now,
+        );
+
+        await bookingRepo.applyAmendment('org1', originalRequest, amendment);
+
+        final confirmed = await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('confirmed-requests')
+            .doc('req1')
+            .get();
+        expect(confirmed.exists, isTrue);
+        expect(confirmed.data()!['roomID'], 'room2');
+        expect(
+            confirmed.data()!.containsKey('hasPendingAmendment'), isFalse);
+
+        final amendmentDoc = await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('amendment-details')
+            .doc('req1')
+            .get();
+        expect(amendmentDoc.exists, isFalse);
+      });
+    });
+
+    group('deleteBooking with pending amendment', () {
+      final now = DateTime(2025, 6, 1, 10, 0);
+      final confirmedRequest = Request(
+        id: 'req1',
+        eventStartTime: now,
+        eventEndTime: now.add(const Duration(hours: 1)),
+        roomID: 'room1',
+        roomName: 'Room 1',
+        status: RequestStatus.confirmed,
+        recurrancePattern: RecurrancePattern.never(),
+        hasPendingAmendment: true,
+      );
+
+      test('also deletes amendment-details doc', () async {
+        await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('confirmed-requests')
+            .doc('req1')
+            .set({...confirmedRequest.toJson(), 'hasPendingAmendment': true});
+        await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('request-details')
+            .doc('req1')
+            .set({});
+        await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('amendment-details')
+            .doc('req1')
+            .set({'dummy': true});
+
+        when(() => mockLogging.debug(any())).thenReturn(null);
+
+        await bookingRepo.deleteBooking(
+          'org1',
+          confirmedRequest,
+          () async => RecurringBookingEditChoice.all,
+        );
+
+        final amendmentDoc = await fakeFirestore
+            .collection('orgs')
+            .doc('org1')
+            .collection('amendment-details')
+            .doc('req1')
+            .get();
+        expect(amendmentDoc.exists, isFalse);
+      });
+    });
+
+    // ── End amendment tests ────────────────────────────────────────────────
 
     test("listRequests returns requests in range", () async {
       var startTime = DateTime(2023, 1, 1, 10, 0);

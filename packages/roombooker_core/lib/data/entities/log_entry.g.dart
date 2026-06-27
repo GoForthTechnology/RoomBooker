@@ -40,4 +40,7 @@ const _$ActionEnumMap = {
   Action.ignoreOverlaps: 'ignoreOverlaps',
   Action.update: 'update',
   Action.delete: 'delete',
+  Action.amendmentProposed: 'amendmentProposed',
+  Action.amendmentApproved: 'amendmentApproved',
+  Action.amendmentRejected: 'amendmentRejected',
 };

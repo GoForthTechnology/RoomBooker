@@ -48,6 +48,7 @@ Request _$RequestFromJson(Map<String, dynamic> json) => Request(
       ),
   ignoreOverlaps: json['ignoreOverlaps'] as bool? ?? false,
   bookedVia: $enumDecodeNullable(_$BookingSourceEnumMap, json['bookedVia']),
+  hasPendingAmendment: json['hasPendingAmendment'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$RequestToJson(Request instance) => <String, dynamic>{

@@ -527,6 +527,79 @@ void main() {
     });
   });
 
+  group('pending amendment state', () {
+    testWidgets(
+      'Edit button is disabled and has tooltip when hasPendingAmendment is true',
+      (tester) async {
+        when(() => mockViewModel.viewStateStream).thenAnswer(
+          (_) => Stream.value(
+            EditorViewState(
+              true,
+              showIgnoreOverlapsToggle: false,
+              showEventLog: false,
+              showID: false,
+              actions: [
+                EditorAction(
+                  'Edit',
+                  () async => ActionResult(false, '', false),
+                  disabledTooltip:
+                      'Resolve the pending amendment before editing.',
+                ),
+                EditorAction('Revisit', () async => ActionResult(true, '', false)),
+                EditorAction('Delete', () async => ActionResult(true, '', true)),
+              ],
+            ),
+          ),
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        final editButton = tester.widget<ElevatedButton>(
+          find.widgetWithText(ElevatedButton, 'Edit'),
+        );
+        expect(editButton.onPressed, isNull);
+
+        final tooltip = tester.widget<Tooltip>(
+          find.ancestor(
+            of: find.widgetWithText(ElevatedButton, 'Edit'),
+            matching: find.byType(Tooltip),
+          ),
+        );
+        expect(
+          tooltip.message,
+          'Resolve the pending amendment before editing.',
+        );
+      },
+    );
+
+    testWidgets('Edit button is enabled when hasPendingAmendment is false', (
+      tester,
+    ) async {
+      when(() => mockViewModel.viewStateStream).thenAnswer(
+        (_) => Stream.value(
+          EditorViewState(
+            true,
+            showIgnoreOverlapsToggle: false,
+            showEventLog: false,
+            showID: false,
+            actions: [
+              EditorAction('Edit', () async => ActionResult(true, '', false)),
+            ],
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
+
+      final editButton = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Edit'),
+      );
+      expect(editButton.onPressed, isNotNull);
+    });
+  });
+
   group('Validation', () {
     testWidgets('Validates Event Name (required)', (tester) async {
       final realFormKey = GlobalKey<FormState>();
