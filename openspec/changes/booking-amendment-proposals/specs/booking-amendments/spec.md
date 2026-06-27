@@ -148,25 +148,29 @@ system using the same `logRepo.addLogEntry` pattern as other booking actions.
 - **THEN** an `amendmentApproved` or `amendmentRejected` log entry is
   written for the affected request ID.
 
-### Requirement: Amendment Form Uses Fullscreen Layout on Mobile
-On narrow viewports (width < 650 px) the amendment proposal form SHALL be
-presented as a fullscreen dialog (`Dialog.fullscreen`) with an AppBar
-containing the title, a close button, and the submit action — matching the
-presentation used for the new-booking editor. On wide viewports the existing
-constrained `AlertDialog` layout SHALL be used instead. The breakpoint of
-650 px matches the `isSmallView` threshold used elsewhere in the portal.
+### Requirement: Amendment Form Follows [UI-CONV-005] Dialog Presentation
+The amendment proposal form is a multi-field form (Category A under
+[UI-CONV-005]) and MUST use the responsive layout defined by that
+convention: fullscreen on narrow viewports (< 650 dp) and a constrained
+`AlertDialog` on wide viewports.
 
 #### Scenario: Amendment form is fullscreen on a mobile viewport
-- **WHEN** a user on a narrow screen (< 650 px wide) opens the amendment
+- **WHEN** a user on a narrow screen (< 650 dp) opens the amendment
   proposal form
-- **THEN** the form occupies the full screen with an AppBar header and a
-  scrollable body, matching the new-booking editor presentation.
+- **THEN** the form occupies the full screen with an AppBar header
+  (title, close button, Submit action) and a scrollable body.
 
 #### Scenario: Amendment form is a dialog on a wide viewport
-- **WHEN** a user on a wide screen (≥ 650 px) opens the amendment proposal
-  form
-- **THEN** the form is presented as a constrained `AlertDialog` with Cancel
-  and Submit actions at the bottom.
+- **WHEN** a user on a wide screen (≥ 650 dp) opens the amendment
+  proposal form
+- **THEN** the form is presented as a constrained `AlertDialog` with
+  Cancel and Submit Proposal actions at the bottom.
+
+#### Scenario: Scope picker remains a simple dialog at all sizes
+- **WHEN** a user opens the recurring-scope picker ("Which events to
+  change?") at any viewport width
+- **THEN** it is presented as a plain `AlertDialog` (Category B under
+  [UI-CONV-005]), not fullscreen.
 
 ### Requirement: Amendment Cleaned Up on Booking Deletion
 If an admin deletes a confirmed booking that has a pending amendment, the
