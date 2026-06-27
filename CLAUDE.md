@@ -128,6 +128,14 @@ Run tests for all packages from the root:
 
 When a change requires multiple independent test files (e.g., a widget test, a view-model test, and a dialog test), write them in parallel using fork agents — one agent per file. Each fork should receive the full context it needs (file path, what to test, relevant implementation details) so it can work independently. Collect results before running the test suite.
 
+### Fork Agent Discipline
+
+Fork agents inherit full conversation context, including memory rules. When sending a fork for **research or audit** (not implementation), explicitly scope what it must not do:
+
+> "Read and analyze only. Do NOT run any `git`, `gh`, `openspec`, or destructive shell commands."
+
+This prevents a research fork from applying behavioral rules (e.g. auto-merge after archive) that are only appropriate when the user has explicitly requested an action.
+
 ## Code Generation
 
 This project uses `build_runner` for code generation, primarily for `auto_route` and `json_serializable`. If you make changes that require code generation (e.g., adding new routes or serializable classes), run the following command:

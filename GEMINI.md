@@ -93,12 +93,26 @@ fuser -k 8081/tcp 2>/dev/null; sleep 1 && \
 
 The app is served at **http://0.0.0.0:8081** once "is being served" appears. Port 8081 is preferred; 8080 is often occupied by other long-running processes.
 
+**Hot reload note**: `mcp__dart__hot_reload` / `mcp__dart__hot_restart` do not work reliably with the `web-server` device. Skip attempting them — restart the process directly instead.
+
 ## Testing Standards
 
 ### Test Maintenance
 - **Always update existing tests** to match new implementation logic or UI changes. 
 - **NEVER remove a test file** or test case without explicit permission from the user. If you believe a test is truly obsolete, you MUST ask for permission before deleting it.
 - **Coverage**: All new functionality, data entities, and business logic MUST be covered by appropriate unit or widget tests.
+
+### Writing Tests in Parallel
+
+When a change requires multiple independent test files (e.g. a widget test, a view-model test, and a dialog test), write them in parallel using fork agents — one agent per file. Each fork should receive the full context it needs (file path, what to test, relevant implementation details) so it can work independently. Collect results before running the test suite.
+
+### Fork Agent Discipline
+
+Fork agents inherit full conversation context, including memory rules. When sending a fork for **research or audit** (not implementation), explicitly scope what it must not do:
+
+> "Read and analyze only. Do NOT run any `git`, `gh`, `openspec`, or destructive shell commands."
+
+This prevents a research fork from applying behavioral rules (e.g. auto-merge after archive) that are only appropriate when the user has explicitly requested an action.
 
 ## Code Generation
 
