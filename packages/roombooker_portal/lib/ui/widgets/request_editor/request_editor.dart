@@ -377,28 +377,38 @@ class RequestEditor extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.max,
-      children: viewState.actions
-          .map(
-            (action) => ElevatedButton(
-              onPressed: () async {
-                try {
-                  var result = await action.onPressed();
-                  if (result.message.isNotEmpty) {
+      children: viewState.actions.map((action) {
+        final button = ElevatedButton(
+          onPressed: action.disabledTooltip != null
+              ? null
+              : () async {
+                  try {
+                    var result = await action.onPressed();
+                    if (result.message.isNotEmpty) {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(result.message)),
+                      );
+                    }
+                    if (result.shouldCloseEditor && onClose != null) {
+                      onClose!();
+                    }
+                  } catch (e) {
                     messenger.showSnackBar(
-                      SnackBar(content: Text(result.message)),
+                      SnackBar(content: Text(e.toString())),
                     );
                   }
-                  if (result.shouldCloseEditor && onClose != null) {
-                    onClose!();
-                  }
-                } catch (e) {
-                  messenger.showSnackBar(SnackBar(content: Text(e.toString())));
-                }
-              },
-              child: Text(action.title),
-            ),
-          )
-          .toList(),
+                },
+          child: Text(action.title),
+        );
+        if (action.disabledTooltip != null) {
+          return Tooltip(
+            message: action.disabledTooltip!,
+            triggerMode: TooltipTriggerMode.tap,
+            child: button,
+          );
+        }
+        return button;
+      }).toList(),
     );
   }
 }

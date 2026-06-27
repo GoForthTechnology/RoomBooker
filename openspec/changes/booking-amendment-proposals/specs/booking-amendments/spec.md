@@ -47,14 +47,25 @@ the UI.
 
 ### Requirement: Admin Cannot Directly Edit a Booking with a Pending Amendment
 When a confirmed booking has `hasPendingAmendment: true`, the admin's "Edit"
-action SHALL be replaced with a message instructing the admin to resolve the
-pending amendment first.
+button SHALL be rendered in a disabled state. Tapping (mobile) or hovering
+(desktop) the disabled button SHALL surface a tooltip explaining that the
+pending amendment must be resolved first. No inline text message or
+replacement button label SHALL be used — the explanation is conveyed
+exclusively through the tooltip so that the button row does not overflow
+on narrow viewports.
 
-#### Scenario: Edit action blocked for admin while amendment is pending
+#### Scenario: Edit action disabled for admin while amendment is pending
 - **WHEN** an admin opens the editor for a confirmed booking with
   `hasPendingAmendment: true`
-- **THEN** the "Edit" button is absent and a message directs the admin to
-  the pending amendment.
+- **THEN** the "Edit" button is present but disabled (greyed out, not
+  interactive), and tapping or hovering it shows a tooltip: "Resolve the
+  pending amendment before editing."
+
+#### Scenario: Disabled Edit button does not overflow button row
+- **WHEN** the editor is open for a booking with a pending amendment
+- **THEN** the button row fits within the editor panel width on a narrow
+  viewport without horizontal overflow, because the button label is "Edit"
+  (same width as the normal Edit button).
 
 ### Requirement: Amendments Surface in the Admin Pending Queue
 Pending amendments SHALL appear in the existing Pending booking list
