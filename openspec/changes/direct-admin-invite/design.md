@@ -17,31 +17,54 @@ Admin access is currently initiated by the user: they open a join link, submit a
 
 ## Decisions
 
-### 1. Top-level `pending-invites/{email}` collection (not a subcollection)
+### 1. Subcollection `orgs/{orgID}/pending-invites/{email}` (not top-level)
 
 **Alternatives considered:**
-- `orgs/{orgID}/pending-invites/{email}` subcollection — keeps data co-located with the org, but requires a Firestore `collectionGroup` query (or a wildcard security rule) for the claim lookup, adding complexity.
-- Subcollection with collectionGroup rule — workable but introduces `/{path=**}` wildcard rules that are harder to reason about and test.
+- Top-level `pending-invites/{email}` with `orgIDs` array — O(1) claim lookup and simpler rules, but write authorization cannot be scoped to a specific org at rule-evaluation time (Firestore rules cannot iterate arrays to call `isAdmin()` per orgID). This would require `isAuthenticated()` on writes, allowing any signed-in user to create invites for orgs they don't admin.
 
-**Decision:** Top-level collection keyed by email. Document structure:
+**Decision:** Subcollection under the org. The `orgID` is in the path, so the existing `isAdmin()` helper works for write authorization without any change.
+
+Doc structure — email stored in both the ID and the body (body needed for collectionGroup query):
 ```
-pending-invites/{email}:
-  orgIDs: [orgID1, orgID2]   // supports multi-org invites
-  createdAt: Timestamp
+orgs/{orgID}/pending-invites/{email}:
+  email: "user@example.com"   // duplicated from ID for collectionGroup query
+  invitedAt: Timestamp
 ```
 
-This gives O(1) claim lookup (`get pending-invites/{user.email}`), keeps the rule simple, and is consistent with how this codebase gates writes at the application layer (the Admin Settings UI is the access control, not the rule).
+One document per org per invited email. Cancellation is a simple doc delete.
 
-### 2. Firestore security rule: authenticated write, email-gated read
+### 2. Firestore security rules: three distinct rules required
 
+**Subcollection rule** (admin writes, email-gated reads within a known org):
 ```
-match /pending-invites/{email} {
-  allow read: if request.auth.token.email == email;
-  allow write: if isAuthenticated();
+match /orgs/{orgID}/pending-invites/{email} {
+  allow read: if request.auth.token.email == email || isAdmin();
+  allow create: if isAdmin();
+  allow delete: if isAdmin() || request.auth.token.email == email;
 }
 ```
+Delete allows either an admin (cancellation) or the invited user themselves (claim cleanup).
 
-Write is `isAuthenticated()` (not `isAdmin()`), consistent with patterns elsewhere in this codebase (e.g. `pending-requests` has `allow create: if true`). The UI is the gatekeeper — only the Admin Settings screen exposes the invite action.
+**CollectionGroup wildcard rule** (allows claiming without knowing which orgs to check):
+```
+match /{path=**}/pending-invites/{email} {
+  allow read: if isAuthenticated()
+    && resource.data.email == request.auth.token.email;
+}
+```
+The collectionGroup query in `claimPendingInvites()` uses `.where('email', '==', currentUser.email)`, which this rule satisfies. `FieldPath.documentId()` is not used because in a collectionGroup context it matches the full path, not just the last segment.
+
+**Self-claim exception on `active-admins`** (required for claim to succeed):
+The existing `active-admins` write rule is `isAdmin()` only. The claiming user is not yet an admin, so `claimPendingInvites()` would fail without a rule change. Add a self-claim exception:
+```
+match /active-admins/{userID} {
+  allow read: if request.auth.uid == userID || isAdmin();
+  allow write: if isAdmin()
+    || (request.auth.uid == userID
+        && exists(/databases/$(database)/documents/orgs/$(orgID)/pending-invites/$(request.auth.token.email)));
+}
+```
+The `exists()` check ensures the self-claim is only permitted when a valid, admin-created invite exists. Since `pending-invites` writes require `isAdmin()`, this chain cannot be forged by the claiming user.
 
 `request.auth.token.email` is reliably set by both Google Sign-In and email/password auth in Firebase.
 
@@ -57,24 +80,26 @@ Two complementary hooks cover all practical entry points:
 
 The `LandingViewModel` hook fires before the `lastOpenedOrgId` redirect, so the claim completes (fire-and-forget) before navigation. Already-active users (no login, no cold start) are not covered; restart is the workaround.
 
-### 4. Invite cancellation — remove orgID from array, delete doc when empty
+### 4. Invite cancellation — delete the subcollection doc directly
 
-`cancelAdminInvite(orgID, email)` uses `FieldValue.arrayRemove` on `orgIDs`. If the resulting array is empty, the doc is deleted. This keeps the collection clean and avoids orphan documents.
+`cancelAdminInvite(orgID, email)` deletes `orgs/{orgID}/pending-invites/{email}`. No array manipulation needed — one doc per org per email. The `isAdmin()` delete rule covers this.
 
 ### 5. `OrgRepo` owns all invite operations
 
 New methods on `OrgRepo` (consistent with existing admin-request methods):
-- `addAdminInvite(orgID, email)` — create/update the pending-invite doc
-- `cancelAdminInvite(orgID, email)` — remove orgID; delete doc if array empty
-- `pendingInvites(orgID)` — stream of pending email invites for owner UI
-- `claimPendingInvites()` — called at sign-in/cold-start; reads and claims the doc for the current user's email
+- `addAdminInvite(orgID, email)` — write `orgs/{orgID}/pending-invites/{email.toLowerCase()}`
+- `cancelAdminInvite(orgID, email)` — delete `orgs/{orgID}/pending-invites/{email}`
+- `pendingInvites(orgID)` — stream of pending invite docs for owner UI
+- `claimPendingInvites()` — collectionGroup query by email; for each match, transaction-writes `active-admins/{uid}`, adds org to user profile, and deletes the invite doc
 
 ## Risks / Trade-offs
 
-**Authorization is app-enforced, not rule-enforced** → Any authenticated user could technically call `addAdminInvite` directly. Accepted: consistent with the existing codebase posture; the invite only grants access to an org the caller must already be an admin of to know the orgID.
+**CollectionGroup wildcard rule covers any collection named `pending-invites`** → The `/{path=**}/pending-invites/{email}` rule allows reads from any subcollection with this name anywhere in the Firestore tree, not just under `/orgs`. Currently no other such collection exists; this is an accepted low risk, monitored by keeping the rule's `resource.data.email` filter tight.
+
+**Self-claim rule on `active-admins` increases write surface** → The added `exists()` check on pending-invites is the gating condition; since pending-invites can only be created by admins, the chain is not forgeable. The risk is that the `exists()` call adds one extra Firestore read per `active-admins` write — negligible cost.
 
 **Already-active-in-app users don't get auto-claimed** → Workaround: restart the app. A real-time Firestore listener would handle this but adds listener lifecycle complexity for an extremely rare scenario.
 
-**Email address as document ID** → Firestore allows `@` and `.` in doc IDs. Normalized to lowercase on write to avoid case-mismatch issues (Firebase Auth emails are lowercase by convention).
+**Email address as document ID** → Firestore allows `@` and `.` in doc IDs. Normalized to lowercase on write; `request.auth.token.email` from Firebase is already lowercase for Google and email/password accounts.
 
-**Multi-org invites share one doc** → If an invite is cancelled for one org while the user is in the process of signing in, a race condition could claim the removed orgID. Mitigation: `claimPendingInvites` uses a transaction to read-then-delete atomically.
+**Concurrent claim from multiple sessions** → Both would write `active-admins/{uid}` (idempotent) and race on deleting the invite doc. Firestore transaction semantics ensure one succeeds; the other retries and finds the doc gone — handled as a no-op.

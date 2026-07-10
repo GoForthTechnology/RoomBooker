@@ -1,14 +1,16 @@
 ## 1. Firestore Rules
 
-- [ ] 1.1 Add `pending-invites/{email}` match block to `firestore.rules`: read allowed if `request.auth.token.email == email`, write allowed if `isAuthenticated()`
-- [ ] 1.2 Deploy updated rules via `firebase deploy --only firestore:rules`
+- [ ] 1.1 Add `pending-invites/{email}` match block inside `match /orgs/{orgID}` in `firestore.rules`: `allow read` if `isAdmin() || request.auth.token.email == email`; `allow create` if `isAdmin()`; `allow delete` if `isAdmin() || request.auth.token.email == email`
+- [ ] 1.2 Add top-level collectionGroup wildcard rule `match /{path=**}/pending-invites/{email}`: `allow read` if `isAuthenticated() && resource.data.email == request.auth.token.email`
+- [ ] 1.3 Update `active-admins/{userID}` write rule to add self-claim exception: `allow write: if isAdmin() || (request.auth.uid == userID && exists(/databases/$(database)/documents/orgs/$(orgID)/pending-invites/$(request.auth.token.email)))`
+- [ ] 1.4 Deploy updated rules via `firebase deploy --only firestore:rules`
 
 ## 2. Core — OrgRepo
 
-- [ ] 2.1 Add `addAdminInvite(String orgID, String email)` to `OrgRepo`: normalise email to lowercase, upsert `pending-invites/{email}` using `FieldValue.arrayUnion([orgID])` and set `createdAt` on create
-- [ ] 2.2 Add `cancelAdminInvite(String orgID, String email)` to `OrgRepo`: `FieldValue.arrayRemove([orgID])`; delete the doc if `orgIDs` becomes empty
-- [ ] 2.3 Add `pendingInvites(String orgID)` stream to `OrgRepo`: queries `pending-invites` where `orgIDs` array-contains `orgID`, returns list of email strings
-- [ ] 2.4 Add `claimPendingInvites()` to `OrgRepo`: reads `pending-invites/{currentUser.email}`, then in a transaction writes `active-admins/{uid}` for each orgID and adds each org to the user profile, then deletes the invite doc; no-op if doc doesn't exist
+- [ ] 2.1 Add `addAdminInvite(String orgID, String email)` to `OrgRepo`: normalise email to lowercase, write `orgs/{orgID}/pending-invites/{email}` with `{ email, invitedAt }`
+- [ ] 2.2 Add `cancelAdminInvite(String orgID, String email)` to `OrgRepo`: delete `orgs/{orgID}/pending-invites/{email}`
+- [ ] 2.3 Add `pendingInvites(String orgID)` stream to `OrgRepo`: snapshot listener on `orgs/{orgID}/pending-invites`, returns list of email strings
+- [ ] 2.4 Add `claimPendingInvites()` to `OrgRepo`: collectionGroup query `pending-invites` where `email == currentUser.email`; for each result, run a transaction that writes `active-admins/{uid}` (with the email and timestamp) and adds the orgID to the user profile, then deletes the invite doc; entire method is a no-op if no results found
 - [ ] 2.5 Add analytics events: `AdminInviteCreated`, `AdminInviteCancelled`, `AdminInviteClaimed`
 
 ## 3. Core — Tests
