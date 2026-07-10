@@ -179,7 +179,7 @@ class OrgRepo extends ChangeNotifier {
     try {
       final user = _auth.currentUser;
       if (user == null || user.email == null) return;
-      final email = user.email!;
+      final email = user.email!.toLowerCase();
 
       final results = await _db
           .collectionGroup('pending-invites')
@@ -188,9 +188,9 @@ class OrgRepo extends ChangeNotifier {
 
       if (results.docs.isEmpty) return;
 
-      for (final doc in results.docs) {
+      await Future.wait(results.docs.map((doc) async {
         final orgID = doc.reference.parent.parent?.id;
-        if (orgID == null) continue;
+        if (orgID == null) return;
         try {
           await _db.runTransaction((t) async {
             final fresh = await t.get(doc.reference);
@@ -211,7 +211,7 @@ class OrgRepo extends ChangeNotifier {
         } catch (e) {
           log('claimPendingInvites: failed for org $orgID: $e');
         }
-      }
+      }));
     } catch (e) {
       log('claimPendingInvites: unexpected error: $e');
     }

@@ -199,17 +199,28 @@ class _AdminWidgetState extends State<AdminWidget> {
             child: const Text('Invite'),
             onPressed: () async {
               final email = _inviteController.text.trim();
-              if (email.isEmpty || !email.contains('@')) {
+              final emailRegex = RegExp(
+                r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+              );
+              if (!emailRegex.hasMatch(email)) {
                 setState(() => _inviteError = 'Enter a valid email address');
                 return;
               }
               setState(() => _inviteError = null);
-              await widget.repo.addAdminInvite(widget.org.id!, email);
-              _inviteController.clear();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Invite sent to $email')),
-                );
+              try {
+                await widget.repo.addAdminInvite(widget.org.id!, email);
+                _inviteController.clear();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Invite sent to $email')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  setState(
+                    () => _inviteError = 'Failed to send invite. Try again.',
+                  );
+                }
               }
             },
           ),

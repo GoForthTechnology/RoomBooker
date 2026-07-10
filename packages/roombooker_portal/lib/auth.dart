@@ -67,11 +67,11 @@ class LoginScreen extends StatelessWidget {
             if (profile == null) {
               await userRepo.addUser(user);
             }
-            // ignore: unawaited_futures
-            orgRepo.claimPendingInvites();
             if (!user.emailVerified) {
               router.push(const EmailVerifyRoute());
             } else {
+              // ignore: unawaited_futures
+              orgRepo.claimPendingInvites();
               router.pop(true);
             }
           }),
@@ -80,11 +80,11 @@ class LoginScreen extends StatelessWidget {
             if (user == null) return;
 
             final orgRepo = Provider.of<OrgRepo>(context, listen: false);
-            // ignore: unawaited_futures
-            orgRepo.claimPendingInvites();
             if (!user.emailVerified) {
               AutoRouter.of(context).push(const EmailVerifyRoute());
             } else {
+              // ignore: unawaited_futures
+              orgRepo.claimPendingInvites();
               AutoRouter.of(context).push(const LandingRoute());
             }
           }),
