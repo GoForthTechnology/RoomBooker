@@ -57,7 +57,16 @@ service cloud.firestore {
       
       match /active-admins/{userID} {
         allow read: if request.auth.uid == userID || isAdmin();
-        allow write: if isAdmin();
+        allow create: if isAdmin()
+          || (request.auth.uid == userID
+              && exists(/databases/$(database)/documents/orgs/$(orgID)/pending-invites/$(request.auth.token.email)));
+        allow update, delete: if isAdmin();
+      }
+
+      match /pending-invites/{email} {
+        allow read: if request.auth.token.email == email || isAdmin();
+        allow create: if isAdmin();
+        allow delete: if isAdmin() || request.auth.token.email == email;
       }
       
       match /pending-requests/{requestID} {
@@ -113,6 +122,12 @@ service cloud.firestore {
         allow create: if isAdmin()
           || isAuthorizedKiosk(get(/databases/$(database)/documents/orgs/$(orgID)/confirmed-requests/$(incomingData().requestID)).data.roomID);
       }
+    }
+
+    // CollectionGroup rule for pending-invites claim lookup
+    match /{path=**}/pending-invites/{email} {
+      allow read: if isAuthenticated()
+        && resource.data.email == request.auth.token.email;
     }
 
     // Provisioning Handshake Rules

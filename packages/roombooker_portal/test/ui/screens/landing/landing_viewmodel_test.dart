@@ -56,6 +56,9 @@ void main() {
       when(
         () => mockPrefsRepo.setLastOpenedOrgId(any()),
       ).thenAnswer((_) async {});
+      when(
+        () => mockOrgRepo.claimPendingInvites(),
+      ).thenAnswer((_) async {});
     });
 
     LandingViewModel createSut() {

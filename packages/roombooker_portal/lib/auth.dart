@@ -6,6 +6,7 @@ import 'package:firebase_ui_oauth_google/firebase_ui_oauth_google.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:roombooker_portal/router.dart';
+import 'package:roombooker_core/data/repos/org_repo.dart';
 import 'package:roombooker_core/data/repos/user_repo.dart';
 
 const googleClientId =
@@ -61,10 +62,13 @@ class LoginScreen extends StatelessWidget {
 
             var router = AutoRouter.of(context);
             var userRepo = Provider.of<UserRepo>(context, listen: false);
+            var orgRepo = Provider.of<OrgRepo>(context, listen: false);
             var profile = await userRepo.getUser(user.uid);
             if (profile == null) {
               await userRepo.addUser(user);
             }
+            // ignore: unawaited_futures
+            orgRepo.claimPendingInvites();
             if (!user.emailVerified) {
               router.push(const EmailVerifyRoute());
             } else {
@@ -75,6 +79,9 @@ class LoginScreen extends StatelessWidget {
             final user = state.credential.user;
             if (user == null) return;
 
+            final orgRepo = Provider.of<OrgRepo>(context, listen: false);
+            // ignore: unawaited_futures
+            orgRepo.claimPendingInvites();
             if (!user.emailVerified) {
               AutoRouter.of(context).push(const EmailVerifyRoute());
             } else {

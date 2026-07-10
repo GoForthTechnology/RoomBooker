@@ -41,6 +41,9 @@ void main() {
         () => mockOrgRepo.activeAdmins(any()),
       ).thenAnswer((_) => Stream.value([]));
       when(
+        () => mockOrgRepo.pendingInvites(any()),
+      ).thenAnswer((_) => Stream.value([]));
+      when(
         () => mockOrgRepo.approveAdminRequest(any(), any()),
       ).thenAnswer((_) async {});
       when(
@@ -48,6 +51,12 @@ void main() {
       ).thenAnswer((_) async {});
       when(
         () => mockOrgRepo.removeAdmin(any(), any()),
+      ).thenAnswer((_) async {});
+      when(
+        () => mockOrgRepo.addAdminInvite(any(), any()),
+      ).thenAnswer((_) async {});
+      when(
+        () => mockOrgRepo.cancelAdminInvite(any(), any()),
       ).thenAnswer((_) async {});
       when(() => mockStackRouter.push(any())).thenAnswer((_) async {
         return null;
@@ -75,10 +84,9 @@ void main() {
 
         await tester.pumpWidget(createWidgetUnderTest(org: testOrg));
 
-        expect(
-          find.byType(CircularProgressIndicator),
-          findsNWidgets(2),
-        ); // One for each stream builder
+        // One for each stream builder (admin requests, active admins,
+        // pending invites)
+        expect(find.byType(CircularProgressIndicator), findsNWidgets(3));
       },
     );
 
@@ -232,6 +240,74 @@ void main() {
         );
       },
     );
+
+    testWidgets('shows "No pending invites" when list is empty', (
+      WidgetTester tester,
+    ) async {
+      when(
+        () => mockOrgRepo.pendingInvites(any()),
+      ).thenAnswer((_) => Stream.value([]));
+
+      await tester.pumpWidget(createWidgetUnderTest(org: testOrg));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No pending invites'), findsOneWidget);
+    });
+
+    testWidgets('displays pending invites with cancel button', (
+      WidgetTester tester,
+    ) async {
+      when(
+        () => mockOrgRepo.pendingInvites(any()),
+      ).thenAnswer((_) => Stream.value(['invited@example.com']));
+
+      await tester.pumpWidget(createWidgetUnderTest(org: testOrg));
+      await tester.pumpAndSettle();
+
+      expect(find.text('invited@example.com'), findsOneWidget);
+      expect(find.byIcon(Icons.cancel), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.cancel));
+      await tester.pumpAndSettle();
+      verify(
+        () => mockOrgRepo.cancelAdminInvite('org1', 'invited@example.com'),
+      ).called(1);
+    });
+
+    testWidgets('invite input shows error for invalid email', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(createWidgetUnderTest(org: testOrg));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Invite'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Enter a valid email address'), findsOneWidget);
+      verifyNever(() => mockOrgRepo.addAdminInvite(any(), any()));
+    });
+
+    testWidgets('invite input calls addAdminInvite and clears field', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(createWidgetUnderTest(org: testOrg));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byType(TextField).last,
+        'new@example.com',
+      );
+      await tester.tap(find.text('Invite'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => mockOrgRepo.addAdminInvite('org1', 'new@example.com'),
+      ).called(1);
+      expect(
+        tester.widget<TextField>(find.byType(TextField).last).controller?.text,
+        isEmpty,
+      );
+    });
   });
 
   group('Subheading', () {

@@ -138,6 +138,85 @@ class OrgRepo extends ChangeNotifier {
     );
   }
 
+  Future<void> addAdminInvite(String orgID, String email) async {
+    final normalised = email.toLowerCase();
+    await _db
+        .collection('orgs')
+        .doc(orgID)
+        .collection('pending-invites')
+        .doc(normalised)
+        .set({'email': normalised, 'invitedAt': DateTime.now()});
+    _analytics.logEvent(
+      name: 'AdminInviteCreated',
+      parameters: {'orgID': orgID, 'email': normalised},
+    );
+  }
+
+  Future<void> cancelAdminInvite(String orgID, String email) async {
+    final normalised = email.toLowerCase();
+    await _db
+        .collection('orgs')
+        .doc(orgID)
+        .collection('pending-invites')
+        .doc(normalised)
+        .delete();
+    _analytics.logEvent(
+      name: 'AdminInviteCancelled',
+      parameters: {'orgID': orgID, 'email': normalised},
+    );
+  }
+
+  Stream<List<String>> pendingInvites(String orgID) {
+    return _db
+        .collection('orgs')
+        .doc(orgID)
+        .collection('pending-invites')
+        .snapshots()
+        .map((s) => s.docs.map((d) => d.id).toList());
+  }
+
+  Future<void> claimPendingInvites() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null || user.email == null) return;
+      final email = user.email!;
+
+      final results = await _db
+          .collectionGroup('pending-invites')
+          .where('email', isEqualTo: email)
+          .get();
+
+      if (results.docs.isEmpty) return;
+
+      for (final doc in results.docs) {
+        final orgID = doc.reference.parent.parent?.id;
+        if (orgID == null) continue;
+        try {
+          await _db.runTransaction((t) async {
+            final fresh = await t.get(doc.reference);
+            if (!fresh.exists) return;
+            final entry = AdminEntry(
+              email: email,
+              lastUpdated: DateTime.now(),
+            );
+            t.set(_activeAdminRef(orgID, user.uid), entry);
+            t.delete(doc.reference);
+            // addOrg ignores the transaction internally (see TODO in UserRepo)
+            _userRepo.addOrg(t, user.uid, orgID);
+          });
+          _analytics.logEvent(
+            name: 'AdminInviteClaimed',
+            parameters: {'orgID': orgID, 'email': email},
+          );
+        } catch (e) {
+          log('claimPendingInvites: failed for org $orgID: $e');
+        }
+      }
+    } catch (e) {
+      log('claimPendingInvites: unexpected error: $e');
+    }
+  }
+
   Future<void> removeAdmin(String orgID, String userID) async {
     await _db.runTransaction((t) async {
       var adminRef = _activeAdminRef(orgID, userID);
