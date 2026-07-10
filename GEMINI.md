@@ -49,6 +49,13 @@ The Kiosk is designed for a **USB-C Hub** connection:
 - **Shared Core:** All booking-related logic and data access lives in `packages/roombooker_core`. UI components MUST NOT implement business logic or direct repository access.
 - **Portal App:** The primary interface for users and admins lives in `packages/roombooker_portal`.
 
+## Known Technical Debt
+
+These pre-existing limitations affect any feature that adds or removes users from orgs:
+
+- **`removeAdmin` leaves orphan org in user profile**: `OrgRepo.removeAdmin` has `_userRepo.removeOrg(t, userID, orgID)` commented out. Removing an admin does not remove the org from their `UserProfile.orgIDs`, so the org still appears on their landing screen (all reads/writes are denied by Firestore rules, but the entry persists). Do not assume org removal is clean end-to-end.
+- **`_userRepo.addOrg` is not transactional**: The method has a `TODO: Move this back into the transaction` comment and performs its own Firestore write outside any transaction it is called from. If you need to add a user to an org as part of a transaction, call `addOrg` separately after the transaction commits (fire-and-forget), matching the existing pattern in `approveAdminRequest`.
+
 ## Getting Started
 
 ### Workspace Setup
@@ -163,6 +170,13 @@ This includes, but is not limited to:
 - `.env` files or the `.secrets` file used for local CI testing.
 
 If you are working with tools or scripts that require these files locally, ensure they are listed in `.gitignore`. Any changes involving new types of credentials must also include an update to `.gitignore` to prevent accidental exposure.
+
+### Firebase Security Rules
+
+When writing or modifying Firestore security rules:
+
+- **Use specific operations, not `write`**: Prefer `allow create`, `allow update`, `allow delete` over the broad `allow write`. `write` covers all three simultaneously — most self-serve or conditional exceptions should only permit `create`. Granting `write` where only `create` is intended is a privilege-widening bug.
+- **CollectionGroup queries require a Firestore index**: Any `collectionGroup().where(field, ...)` query needs a corresponding collectionGroup index entry in `firestore.indexes.json`. Without it the query throws a runtime error in production with no compile-time warning. Always add the index entry and deploy it alongside the rule change: `firebase deploy --only firestore:rules,firestore:indexes`.
 
 ## CI/CD (Android)
 
