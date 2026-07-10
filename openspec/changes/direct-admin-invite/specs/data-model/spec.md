@@ -17,9 +17,9 @@ Each org document SHALL have a `pending-invites` subcollection at `orgs/{orgID}/
 
 ### Requirement: Firestore security rules for pending-invites subcollection
 The `orgs/{orgID}/pending-invites/{email}` subcollection SHALL enforce the following access rules:
-- An org owner or active admin MAY create or delete a pending invite document (via `isAdmin()`).
-- The invited user (matched by `request.auth.token.email == email`) MAY delete their own pending invite document (to support claim cleanup).
-- The invited user or any admin MAY read a pending invite document.
+- An org owner or active admin SHALL be permitted to create or delete a pending invite document (via `isAdmin()`).
+- The invited user (matched by `request.auth.token.email == email`) SHALL be permitted to delete their own pending invite document (to support claim cleanup).
+- The invited user or any admin SHALL be permitted to read a pending invite document.
 - Unauthenticated users and non-admin, non-invited users SHALL NOT read or write pending invite documents.
 
 #### Scenario: Admin creates an invite
@@ -52,12 +52,16 @@ A Firestore collectionGroup rule at `/{path=**}/pending-invites/{docID}` SHALL p
 ### Requirement: active-admins self-claim rule
 The `orgs/{orgID}/active-admins/{userID}` write rule SHALL permit a user to write their own entry when a valid pending invite exists for their email in that org. This is the mechanism by which `claimPendingInvites()` promotes an invite to active admin status without requiring prior admin rights.
 
-The self-claim condition SHALL be: `request.auth.uid == userID AND exists(orgs/{orgID}/pending-invites/{request.auth.token.email})`.
+The self-claim condition SHALL be: `request.auth.uid == userID AND exists(orgs/{orgID}/pending-invites/{request.auth.token.email})`. The `create`-only exception (not `write`) ensures an invited-but-not-yet-admin user cannot update or delete an existing `active-admins` entry.
 
 #### Scenario: Invited user claims their invite
-- **WHEN** a signed-in user with email `user@example.com` writes `orgs/orgABC/active-admins/{theirUID}` and `orgs/orgABC/pending-invites/user@example.com` exists
+- **WHEN** a signed-in user with email `user@example.com` creates `orgs/orgABC/active-admins/{theirUID}` and `orgs/orgABC/pending-invites/user@example.com` exists
 - **THEN** the write is permitted
 
 #### Scenario: User cannot self-promote without a pending invite
-- **WHEN** a signed-in user attempts to write `orgs/orgABC/active-admins/{theirUID}` and no pending invite exists for their email
+- **WHEN** a signed-in user attempts to create `orgs/orgABC/active-admins/{theirUID}` and no pending invite exists for their email
 - **THEN** the write is denied (unless they are already an admin via the existing `isAdmin()` rule)
+
+#### Scenario: User cannot claim a different user's active-admins slot
+- **WHEN** a signed-in user with email `user@example.com` attempts to create `orgs/orgABC/active-admins/{someOtherUID}` even if a pending invite for their email exists
+- **THEN** the write is denied because `request.auth.uid != someOtherUID`

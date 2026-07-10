@@ -55,16 +55,17 @@ match /{path=**}/pending-invites/{email} {
 The collectionGroup query in `claimPendingInvites()` uses `.where('email', '==', currentUser.email)`, which this rule satisfies. `FieldPath.documentId()` is not used because in a collectionGroup context it matches the full path, not just the last segment.
 
 **Self-claim exception on `active-admins`** (required for claim to succeed):
-The existing `active-admins` write rule is `isAdmin()` only. The claiming user is not yet an admin, so `claimPendingInvites()` would fail without a rule change. Add a self-claim exception:
+The existing `active-admins` write rule is `isAdmin()` only. The claiming user is not yet an admin, so `claimPendingInvites()` would fail without a rule change. Add a self-claim `create` exception (not `write` — that would also allow update/delete before the user is a full admin):
 ```
 match /active-admins/{userID} {
   allow read: if request.auth.uid == userID || isAdmin();
-  allow write: if isAdmin()
+  allow create: if isAdmin()
     || (request.auth.uid == userID
         && exists(/databases/$(database)/documents/orgs/$(orgID)/pending-invites/$(request.auth.token.email)));
+  allow update, delete: if isAdmin();
 }
 ```
-The `exists()` check ensures the self-claim is only permitted when a valid, admin-created invite exists. Since `pending-invites` writes require `isAdmin()`, this chain cannot be forged by the claiming user.
+The `exists()` check ensures the self-claim is only permitted when a valid, admin-created invite exists. Since `pending-invites` creates require `isAdmin()`, this chain cannot be forged by the claiming user. The `request.auth.uid == userID` guard prevents writing to a different user's `active-admins` entry.
 
 `request.auth.token.email` is reliably set by both Google Sign-In and email/password auth in Firebase.
 
@@ -90,16 +91,26 @@ New methods on `OrgRepo` (consistent with existing admin-request methods):
 - `addAdminInvite(orgID, email)` — write `orgs/{orgID}/pending-invites/{email.toLowerCase()}`
 - `cancelAdminInvite(orgID, email)` — delete `orgs/{orgID}/pending-invites/{email}`
 - `pendingInvites(orgID)` — stream of pending invite docs for owner UI
-- `claimPendingInvites()` — collectionGroup query by email; for each match, transaction-writes `active-admins/{uid}`, adds org to user profile, and deletes the invite doc
+- `claimPendingInvites()` — collectionGroup query by email; for each match, transaction-writes `active-admins/{uid}` and deletes the invite doc, then calls `_userRepo.addOrg` separately (fire-and-forget, see Risks); entire method wraps all errors in try/catch and logs them rather than propagating, since all callers are fire-and-forget
+
+**`AdminEntry` construction during claim:** `_activeAdminsRef` expects an `AdminEntry` with `email` and `lastUpdated` fields. The pending-invite doc stores `invitedAt`, not `lastUpdated`. `claimPendingInvites()` MUST construct a new `AdminEntry(email: claimedEmail, lastUpdated: DateTime.now())` rather than converting the invite doc directly.
 
 ## Risks / Trade-offs
 
 **CollectionGroup wildcard rule covers any collection named `pending-invites`** → The `/{path=**}/pending-invites/{email}` rule allows reads from any subcollection with this name anywhere in the Firestore tree, not just under `/orgs`. Currently no other such collection exists; this is an accepted low risk, monitored by keeping the rule's `resource.data.email` filter tight.
 
-**Self-claim rule on `active-admins` increases write surface** → The added `exists()` check on pending-invites is the gating condition; since pending-invites can only be created by admins, the chain is not forgeable. The risk is that the `exists()` call adds one extra Firestore read per `active-admins` write — negligible cost.
+**Self-claim rule on `active-admins` increases write surface** → Scoped to `create` only (not `update`/`delete`), so an invited-but-not-yet-admin user cannot modify or remove an existing `active-admins` entry. The `exists()` check is the gating condition; since pending-invites can only be created by admins, the chain is not forgeable.
+
+**`_userRepo.addOrg` is not transactional** → The existing `addOrg` implementation has a `TODO: Move this back into the transaction` comment and performs its own separate Firestore write. `claimPendingInvites()` cannot include it in the claim transaction. If `addOrg` fails after `active-admins` succeeds, the user is an admin but the org won't appear on their landing screen until the next successful call. This is pre-existing debt; the claim method calls `addOrg` fire-and-forget after the transaction, matching the existing pattern in `approveAdminRequest`.
+
+**Multiple orgs = multiple independent transactions** → If a user has pending invites in two orgs, each is claimed in a separate transaction. If the second fails, they become admin in org 1 but not org 2, with the invite for org 2 preserved for retry on next sign-in. This is correct behavior.
+
+**Unhandled errors in fire-and-forget callers** → `claimPendingInvites()` is called unawaited. If it throws, it becomes an unhandled `Future` error. The method MUST catch all errors internally and log them (using `LoggingService` or `log()`), never propagate.
 
 **Already-active-in-app users don't get auto-claimed** → Workaround: restart the app. A real-time Firestore listener would handle this but adds listener lifecycle complexity for an extremely rare scenario.
 
 **Email address as document ID** → Firestore allows `@` and `.` in doc IDs. Normalized to lowercase on write; `request.auth.token.email` from Firebase is already lowercase for Google and email/password accounts.
 
-**Concurrent claim from multiple sessions** → Both would write `active-admins/{uid}` (idempotent) and race on deleting the invite doc. Firestore transaction semantics ensure one succeeds; the other retries and finds the doc gone — handled as a no-op.
+**Concurrent claim from multiple sessions** → Both would write `active-admins/{uid}` (idempotent via `create` rule) and race on deleting the invite doc. Firestore transaction semantics ensure one succeeds; the other retries and finds the doc gone — handled as a no-op.
+
+**`removeAdmin` leaves orphan org in user profile** → The existing `removeAdmin` method has `_userRepo.removeOrg` commented out. When an invited admin is removed, the org remains in their `UserProfile.orgIDs` and still appears on their landing screen (but all org reads/writes will be denied). This is pre-existing debt, out of scope for this change.

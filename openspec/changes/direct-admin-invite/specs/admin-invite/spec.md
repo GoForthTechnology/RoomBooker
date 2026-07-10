@@ -25,7 +25,7 @@ The Admin Settings screen SHALL display a list of pending (unclaimed) invites fo
 
 #### Scenario: Owner cancels a pending invite
 - **WHEN** an owner taps the cancel action on a pending invite
-- **THEN** the org ID is removed from the pending invite document
+- **THEN** the pending invite document at `orgs/{orgID}/pending-invites/{email}` is deleted
 - **AND** the email no longer appears in the Pending Invites list
 
 #### Scenario: No pending invites exist
@@ -50,6 +50,11 @@ When a user completes sign-in (Google or email/password), the system SHALL check
 - **THEN** the invite is claimed during account creation
 - **AND** the user appears as an active admin in the invited org
 
+#### Scenario: Invite created before user has a Firebase account
+- **WHEN** an admin creates an invite for an email address that has no Firebase account yet
+- **THEN** the pending invite document is stored and remains dormant
+- **AND** the invite is claimed when the user eventually creates an account and completes sign-in
+
 #### Scenario: No pending invite exists at sign-in
 - **WHEN** a user signs in and there is no pending invite for their email
 - **THEN** sign-in proceeds normally with no side effects
@@ -69,9 +74,14 @@ When a user opens the app with an existing authenticated session (no login scree
 ### Requirement: Invite claim is transactional and idempotent
 The claim operation SHALL use a Firestore transaction to atomically read the pending invite and write to `active-admins`. Repeating the claim for an already-active admin SHALL be a no-op.
 
-#### Scenario: Claim completes atomically
-- **WHEN** `claimPendingInvites` is called and a pending invite exists
-- **THEN** the write to `active-admins/{uid}` and the deletion of the pending invite doc occur in a single transaction
+#### Scenario: Claim for a single org completes atomically
+- **WHEN** `claimPendingInvites` is called and a pending invite exists for one org
+- **THEN** the write to `active-admins/{uid}` and the deletion of the pending invite doc for that org occur in a single Firestore transaction
+
+#### Scenario: Claim for multiple orgs processes each independently
+- **WHEN** `claimPendingInvites` is called and pending invites exist for two orgs
+- **THEN** each org's claim runs as a separate transaction
+- **AND** a failure on the second org's transaction leaves the first org's claim intact and the second org's invite preserved for retry
 
 #### Scenario: User is already an active admin
 - **WHEN** `claimPendingInvites` is called but the user is already in `active-admins`

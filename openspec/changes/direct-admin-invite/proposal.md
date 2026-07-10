@@ -4,8 +4,8 @@ Org owners regularly receive out-of-band requests (Slack, email) to add someone 
 
 ## What Changes
 
-- Owners can type an email address in Admin Settings to send a pre-approved invite
-- A new `pending-invites/{email}` Firestore collection stores dormant invites
+- Owners can type an email address in Admin Settings to create a pre-approved invite
+- A new `orgs/{orgID}/pending-invites/{email}` Firestore subcollection stores dormant invites
 - When the invited user signs in (Google or email/password), the invite is auto-claimed: they are written directly to `active-admins/{uid}` with no owner approval step
 - Cold-start with an existing session also triggers the claim (via `LandingViewModel`)
 - Owners can cancel a pending invite before it is claimed
@@ -25,5 +25,5 @@ Org owners regularly receive out-of-band requests (Slack, email) to add someone 
 
 - **`roombooker_core`**: `OrgRepo` — new `addAdminInvite`, `cancelAdminInvite`, `claimPendingInvites`, and `pendingInvites` stream methods
 - **`roombooker_portal`**: `AdminWidget` — new "Invite by Email" input and pending invites list section; `auth.dart` — claim call in `AuthStateChangeAction<SignedIn>` and `<UserCreated>`; `LandingViewModel` — claim call in `init()`
-- **Firestore rules**: new `pending-invites/{email}` match block with email-claim rule
+- **Firestore rules**: three distinct changes — (1) `orgs/{orgID}/pending-invites/{email}` subcollection rule (admin-only create, email-match delete); (2) collectionGroup wildcard rule for claim lookup; (3) `active-admins/{userID}` self-claim create exception gated on a valid pending invite
 - No new packages required
