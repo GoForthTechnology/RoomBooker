@@ -464,6 +464,37 @@ void main() {
       await expectLater(orgRepo.claimPendingInvites(), completes);
     });
 
+    test(
+      'claimPendingInvites normalises auth email to lowercase before query',
+      () async {
+        const orgId = 'test-org-id';
+        when(
+          () => mockUserRepo.addOrg(any(), any(), any()),
+        ).thenAnswer((_) async {});
+        // Auth returns mixed-case email (Firebase email/password preserves casing)
+        when(() => mockUser.email).thenReturn('Test@Example.COM');
+        await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('pending-invites')
+            .doc('test@example.com') // stored as lowercase by addAdminInvite
+            .set({'email': 'test@example.com', 'invitedAt': DateTime.now()});
+
+        await orgRepo.claimPendingInvites();
+
+        final adminDoc = await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('active-admins')
+            .doc('test-user-id')
+            .get();
+        expect(adminDoc.exists, isTrue,
+            reason: 'invite should be claimed despite mixed-case auth email');
+        // email stored on the AdminEntry must be the normalised form
+        expect(adminDoc.data()?['email'], 'test@example.com');
+      },
+    );
+
     test('removeOrg deletes org and updates user', () async {
       const orgId = 'test-org-id';
       await fakeFirestore.collection('orgs').doc(orgId).set({
