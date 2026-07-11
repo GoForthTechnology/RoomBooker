@@ -68,6 +68,10 @@ void main() {
         parameters: any(named: 'parameters'),
       ),
     ).thenAnswer((_) async {});
+    when(() => mockLogging.debug(any())).thenAnswer((_) {});
+    when(
+      () => mockLogging.error(any(), any(), any()),
+    ).thenAnswer((_) {});
   });
 
   group('OrgRepo', () {
@@ -494,6 +498,95 @@ void main() {
         expect(adminDoc.data()?['email'], 'test@example.com');
       },
     );
+
+    test('claimPendingInvites calls addOrg with correct orgID and userID',
+        () async {
+      const orgId = 'test-org-id';
+      when(
+        () => mockUserRepo.addOrg(any(), any(), any()),
+      ).thenAnswer((_) async {});
+      await fakeFirestore
+          .collection('orgs')
+          .doc(orgId)
+          .collection('pending-invites')
+          .doc('test@example.com')
+          .set({'email': 'test@example.com', 'invitedAt': DateTime.now()});
+
+      await orgRepo.claimPendingInvites();
+
+      verify(
+        () => mockUserRepo.addOrg(any(), 'test-user-id', orgId),
+      ).called(1);
+    });
+
+    test(
+      'claimPendingInvites still claims admin even if addOrg throws',
+      () async {
+        const orgId = 'test-org-id';
+        when(
+          () => mockUserRepo.addOrg(any(), any(), any()),
+        ).thenThrow('addOrg failed');
+        await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('pending-invites')
+            .doc('test@example.com')
+            .set({'email': 'test@example.com', 'invitedAt': DateTime.now()});
+
+        await orgRepo.claimPendingInvites();
+
+        final adminDoc = await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('active-admins')
+            .doc('test-user-id')
+            .get();
+        expect(adminDoc.exists, isTrue,
+            reason:
+                'active-admin entry must be written even when addOrg rejects');
+      },
+    );
+
+    test('claimPendingInvites handles multiple invites across orgs', () async {
+      when(
+        () => mockUserRepo.addOrg(any(), any(), any()),
+      ).thenAnswer((_) async {});
+
+      for (final orgId in ['org-a', 'org-b']) {
+        await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('pending-invites')
+            .doc('test@example.com')
+            .set({'email': 'test@example.com', 'invitedAt': DateTime.now()});
+      }
+
+      await orgRepo.claimPendingInvites();
+
+      for (final orgId in ['org-a', 'org-b']) {
+        final adminDoc = await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('active-admins')
+            .doc('test-user-id')
+            .get();
+        expect(adminDoc.exists, isTrue,
+            reason: 'invite for $orgId should be claimed');
+
+        final inviteDoc = await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('pending-invites')
+            .doc('test@example.com')
+            .get();
+        expect(inviteDoc.exists, isFalse,
+            reason: 'invite for $orgId should be deleted after claim');
+      }
+
+      verify(
+        () => mockUserRepo.addOrg(any(), 'test-user-id', any()),
+      ).called(2);
+    });
 
     test('removeOrg deletes org and updates user', () async {
       const orgId = 'test-org-id';

@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -66,7 +64,7 @@ class OrgRepo extends ChangeNotifier {
     try {
       await _roomRepo.addRoom(orgID, Room(name: firstRoomName));
     } catch (e) {
-      log("Failed to create initial room: $e");
+      _logging.debug("Failed to create initial room: $e");
       // Consider if we should rollback org creation or just let it be without a room for now.
       // For now, logging error.
     }
@@ -181,17 +179,22 @@ class OrgRepo extends ChangeNotifier {
       if (user == null || user.email == null) return;
       final email = user.email!.toLowerCase();
 
+      _logging.debug('claimPendingInvites: querying for email=$email');
       final results = await _db
           .collectionGroup('pending-invites')
           .where('email', isEqualTo: email)
           .get();
 
+      _logging.debug(
+        'claimPendingInvites: found ${results.docs.length} invite(s)',
+      );
       if (results.docs.isEmpty) return;
 
       await Future.wait(results.docs.map((doc) async {
         final orgID = doc.reference.parent.parent?.id;
         if (orgID == null) return;
         try {
+          _logging.debug('claimPendingInvites: claiming invite for org=$orgID');
           await _db.runTransaction((t) async {
             final fresh = await t.get(doc.reference);
             if (!fresh.exists) return;
@@ -202,18 +205,31 @@ class OrgRepo extends ChangeNotifier {
             t.set(_activeAdminRef(orgID, user.uid), entry);
             t.delete(doc.reference);
             // addOrg ignores the transaction internally (see TODO in UserRepo)
-            _userRepo.addOrg(t, user.uid, orgID);
+            try {
+              _userRepo.addOrg(t, user.uid, orgID);
+            } catch (e) {
+              _logging.debug(
+                'claimPendingInvites: addOrg failed for org=$orgID: $e',
+              );
+            }
           });
           _analytics.logEvent(
             name: 'AdminInviteClaimed',
             parameters: {'orgID': orgID, 'email': email},
           );
-        } catch (e) {
-          log('claimPendingInvites: failed for org $orgID: $e');
+          _logging.debug(
+            'claimPendingInvites: claimed org=$orgID uid=${user.uid}',
+          );
+        } catch (e, stack) {
+          _logging.error(
+            'claimPendingInvites: failed for org $orgID',
+            e,
+            stack,
+          );
         }
       }));
-    } catch (e) {
-      log('claimPendingInvites: unexpected error: $e');
+    } catch (e, stack) {
+      _logging.error('claimPendingInvites: unexpected error', e, stack);
     }
   }
 

@@ -12,7 +12,7 @@ const {
   assertFails,
   assertSucceeds,
 } = require('@firebase/rules-unit-testing');
-const {doc, setDoc, getDoc, deleteDoc} = require('firebase/firestore');
+const {doc, setDoc, getDoc, deleteDoc, collectionGroup, getDocs, query, where} = require('firebase/firestore');
 const {readFileSync} = require('fs');
 const {resolve} = require('path');
 
@@ -248,6 +248,38 @@ describe('case-insensitive invite claim', () => {
     const db = verifiedUserContext('USER@EXAMPLE.COM').firestore();
     await assertSucceeds(
       deleteDoc(doc(db, `orgs/${ORG_ID}/pending-invites/${USER_EMAIL}`)),
+    );
+  });
+});
+
+// ── 7. collectionGroup query (claimPendingInvites path) ───────────────────────
+
+describe('collectionGroup query (claimPendingInvites path)', () => {
+  test('allows an authenticated invited user to query their own pending invites', async () => {
+    await testEnv.withSecurityRulesDisabled((ctx) => seedInvite(ctx, USER_EMAIL));
+
+    const db = verifiedUserContext().firestore();
+    await assertSucceeds(
+      getDocs(query(collectionGroup(db, 'pending-invites'), where('email', '==', USER_EMAIL))),
+    );
+  });
+
+  test('denies an unauthenticated user from querying pending-invites', async () => {
+    await testEnv.withSecurityRulesDisabled((ctx) => seedInvite(ctx, USER_EMAIL));
+
+    const db = testEnv.unauthenticatedContext().firestore();
+    await assertFails(
+      getDocs(query(collectionGroup(db, 'pending-invites'), where('email', '==', USER_EMAIL))),
+    );
+  });
+
+  test("denies a user from querying another user's pending invites", async () => {
+    await testEnv.withSecurityRulesDisabled((ctx) => seedInvite(ctx, USER_EMAIL));
+
+    // uninvitedContext has email: 'uninvited@example.com', querying for USER_EMAIL
+    const db = uninvitedContext().firestore();
+    await assertFails(
+      getDocs(query(collectionGroup(db, 'pending-invites'), where('email', '==', USER_EMAIL))),
     );
   });
 });
