@@ -42,7 +42,6 @@ class OrgStateProvider extends StatefulWidget {
 
 class _OrgStateProviderState extends State<OrgStateProvider> {
   Future<OrgState?>? _future;
-  OrgState? _resolvedState;
   bool _inviteCheckStarted = false;
 
   Future<bool> _currentUserIsAdmin(
@@ -63,7 +62,6 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
     final userRepo = Provider.of<UserRepo>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
 
-    _resolvedState = null;
     _inviteCheckStarted = false;
     _future = () async {
       _statusController.add("Fetching organization details...");
@@ -228,7 +226,6 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
         if (!snapshot.hasData || data == null) {
           return const Center(child: Text('Organization not found'));
         }
-        _resolvedState = data;
         if (!_inviteCheckStarted) {
           _inviteCheckStarted = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -1,8 +1,3 @@
-import 'package:json_annotation/json_annotation.dart';
-
-part 'user_profile.g.dart';
-
-@JsonSerializable(explicitToJson: true)
 class UserProfile {
   final List<String> orgIDs;
 
@@ -13,5 +8,6 @@ class UserProfile {
         (json['orgIDs'] as List<dynamic>?)?.map((e) => e as String).toList() ??
         [],
   );
-  Map<String, dynamic> toJson() => _$UserProfileToJson(this);
+
+  Map<String, dynamic> toJson() => {'orgIDs': orgIDs};
 }
