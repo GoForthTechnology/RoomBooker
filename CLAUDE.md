@@ -112,6 +112,8 @@ The app is served at **http://0.0.0.0:8081** once "is being served" appears. Por
 
 **Hot reload note**: `mcp__dart__hot_reload` / `mcp__dart__hot_restart` do not work reliably with the `web-server` device. Skip attempting them — restart the process directly instead.
 
+**Browser cache note**: After restarting the dev server, do a cache-clearing hard refresh — in Chrome: DevTools → right-click the reload button → "Empty Cache and Hard Reload". A plain Ctrl+Shift+R may serve the stale JS bundle from the previous server instance.
+
 ### Running Tests
 
 Run tests for all packages from the root:
@@ -198,7 +200,7 @@ If you are working with tools or scripts that require these files locally, ensur
 When writing or modifying Firestore security rules:
 
 - **Use specific operations, not `write`**: Prefer `allow create`, `allow update`, `allow delete` over the broad `allow write`. `write` covers all three simultaneously — most self-serve or conditional exceptions should only permit `create`. Granting `write` where only `create` is intended is a privilege-widening bug.
-- **CollectionGroup queries require a Firestore index**: Any `collectionGroup().where(field, ...)` query needs a corresponding collectionGroup index entry in `firestore.indexes.json`. Without it the query throws a runtime error in production with no compile-time warning. Always add the index entry and deploy it alongside the rule change: `firebase deploy --only firestore:rules,firestore:indexes`.
+- **CollectionGroup queries require a Firestore index**: Any `collectionGroup().where(field, ...)` query needs a corresponding collectionGroup index entry in `firestore.indexes.json`. Without it the query throws a runtime error in production with no compile-time warning. Always add the index entry and deploy it alongside the rule change: `firebase deploy --only firestore:rules,firestore:indexes`. For single-field collection-group queries, use a `fieldOverrides` entry rather than a composite index — Firebase rejects composite indexes when only one field is involved, with no clear error at deploy time.
 
 ## CI/CD (Android)
 
