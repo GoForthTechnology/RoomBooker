@@ -64,8 +64,6 @@ class LandingViewModel extends ChangeNotifier {
       name: 'screen_view',
       parameters: {'screen_name': 'Landing'},
     );
-    // ignore: unawaited_futures
-    _orgRepo.claimPendingInvites();
     _handleInitialNavigation();
   }
 

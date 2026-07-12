@@ -173,6 +173,46 @@ class OrgRepo extends ChangeNotifier {
         .map((s) => s.docs.map((d) => d.id).toList());
   }
 
+  Future<bool> hasPendingInviteForOrg(String orgID) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) return false;
+    final email = user.email!.toLowerCase();
+    final doc = await _db
+        .collection('orgs')
+        .doc(orgID)
+        .collection('pending-invites')
+        .doc(email)
+        .get();
+    return doc.exists;
+  }
+
+  Future<void> claimInviteForOrg(String orgID) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) return;
+    final email = user.email!.toLowerCase();
+    final inviteRef = _db
+        .collection('orgs')
+        .doc(orgID)
+        .collection('pending-invites')
+        .doc(email);
+    await _db.runTransaction((t) async {
+      final fresh = await t.get(inviteRef);
+      if (!fresh.exists) return;
+      final entry = AdminEntry(email: email, lastUpdated: DateTime.now());
+      t.set(_activeAdminRef(orgID, user.uid), entry);
+      t.delete(inviteRef);
+      try {
+        _userRepo.addOrg(t, user.uid, orgID);
+      } catch (e) {
+        _logging.debug('claimInviteForOrg: addOrg failed: $e');
+      }
+    });
+    _analytics.logEvent(
+      name: 'AdminInviteClaimed',
+      parameters: {'orgID': orgID, 'email': email},
+    );
+  }
+
   Future<void> claimPendingInvites() async {
     try {
       final user = _auth.currentUser;

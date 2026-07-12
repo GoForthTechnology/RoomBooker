@@ -44,6 +44,7 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
   Future<OrgState?>? _future;
   OrgState? _resolvedState;
   StreamSubscription? _adminSub;
+  bool _inviteCheckStarted = false;
 
   Future<bool> _currentUserIsAdmin(
     AuthService authService,
@@ -51,11 +52,11 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
   ) async {
     var userID = authService.getCurrentUserID();
     if (userID == null) {
-      return false; // not logged in
+      return false;
     }
     var profile = await userRepo.getUser(userID);
     if (profile == null) {
-      return false; // user doesn't exist
+      return false;
     }
     return profile.orgIDs.contains(widget.orgID);
   }
@@ -68,6 +69,7 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
     var authService = Provider.of<AuthService>(context, listen: false);
 
     _resolvedState = null;
+    _inviteCheckStarted = false;
     _future = () async {
       _statusController.add("Fetching organization details...");
       var org = await orgRepo.getOrg(widget.orgID).first;
@@ -98,6 +100,58 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
       final isAdmin = admins.any((a) => a.id == uid);
       _resolvedState?.updateAdminStatus(isAdmin);
     });
+  }
+
+  Future<void> _maybeShowInviteDialog(OrgState orgState) async {
+    final orgRepo = Provider.of<OrgRepo>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    final hasInvite = await orgRepo.hasPendingInviteForOrg(widget.orgID);
+    if (!mounted || !hasInvite) return;
+
+    final accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Admin Invitation'),
+        content: Text(
+          'You have been invited to become an administrator of '
+          '"${orgState.org.name}". Would you like to accept?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Decline'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Accept'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (accepted == true) {
+      try {
+        await orgRepo.claimInviteForOrg(widget.orgID);
+        if (!mounted) return;
+        _resolvedState?.updateAdminStatus(true);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'You are now an admin of "${orgState.org.name}".',
+            ),
+          ),
+        );
+      } catch (e) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Failed to accept invitation. Please try again.'),
+          ),
+        );
+      }
+    }
   }
 
   final StreamController<String> _statusController =
@@ -176,6 +230,12 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
           return const Center(child: Text('Organization not found'));
         }
         _resolvedState = data;
+        if (!data.currentUserIsAdmin && !_inviteCheckStarted) {
+          _inviteCheckStarted = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _maybeShowInviteDialog(data);
+          });
+        }
         return ChangeNotifierProvider.value(
           value: data,
           child: widget.child,

@@ -157,6 +157,9 @@ void main() {
 
     // UserRepo
     when(() => mockUserRepo.getUser(any())).thenAnswer((_) async => null);
+    when(
+      () => mockOrgRepo.hasPendingInviteForOrg(any()),
+    ).thenAnswer((_) async => false);
   });
 
   Widget createWidgetUnderTest() {
