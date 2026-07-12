@@ -1,57 +1,74 @@
 ## Context
 
 `UserProfile.orgIDs` is the source of truth for which orgs appear on a user's
-landing screen. It is updated (added) whenever a user joins an org via request,
-invite, or org creation. The removal side was never completed: `removeAdmin` has
-the call commented out since the original codebase, and `denyAdminRequest` never
-had one.
+landing screen. Keeping it in sync on the addition side always works because
+users add themselves to orgs — they write to their own profile. On the removal
+side, a third party (the org admin) is doing the removing, so client-side
+writes to `users/{userID}` are rejected by the Firestore rule
+`allow write: if request.auth.uid == userID`.
 
-The existing `UserRepo.removeOrg(Transaction t, String userID, String orgID)`
-method is already implemented and correct — it uses `t.update()` with
-`FieldValue.arrayRemove`, which is idempotent and requires no prior read.
+The project already uses Cloud Functions with the Admin SDK for all privileged
+writes (kiosk grants, etc.). Two existing triggers on admin lifecycle events
+(`onAdminRequestRevoked` on `active-admins` deletion, `onAdminRequestApproved`
+on `active-admins` creation) confirm the pattern is established. The
+`onAdminRequestRevoked` trigger is the natural hook for `removeAdmin` cleanup.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- `UserProfile.orgIDs` is cleaned up atomically when an admin is removed.
-- `UserProfile.orgIDs` is cleaned up atomically when an admin request is denied.
+- `UserProfile.orgIDs` is cleaned up when an active admin is removed.
+- `UserProfile.orgIDs` is cleaned up when an admin request is denied.
 
 **Non-Goals:**
-- Backfilling existing stale `orgIDs` for users who were removed before this fix.
-- Fixing the `addOrg` transaction issue (separate known tech debt, tracked in
-  `UserRepo`).
-- Any UI changes.
+- Backfilling stale `orgIDs` for users affected before this fix.
+- Fixing the `addOrg` transaction issue in `UserRepo` (separate tech debt).
+- Any UI or Flutter changes.
 
 ## Decisions
 
-### `removeAdmin`: uncomment the existing call
+### Extend `onAdminRequestRevoked` for remove-admin cleanup
 
-`UserRepo.removeOrg` uses only `t.update()` — no read — so it is safe to call
-inside the existing transaction in `removeAdmin`. The defensive comment-out was
-not warranted. Uncommenting is the full fix.
+The existing `onDelete` trigger on `orgs/{orgID}/active-admins/{userID}` sends
+the "access revoked" email. Adding `arrayRemove` of `orgID` from
+`users/{userID}.orgIDs` is a natural extension of the same event. One function,
+one trigger path, no duplication.
 
-_Alternative considered_: call `removeOrg` outside the transaction (fire-and-
-forget). Rejected — the transaction already exists and `removeOrg` is
-transaction-safe, so there's no reason not to use it.
+### New `onAdminRequestDenied` trigger for deny-request cleanup
 
-### `denyAdminRequest`: introduce a transaction
+`orgs/{orgID}/admin-requests/{userID}` is deleted on both approval and denial.
+To distinguish them: since approval always writes `active-admins/{userID}` in
+the same Firestore transaction as deleting the request, by the time the
+`onDelete` trigger fires the `active-admins` doc either exists (approved) or
+does not (denied). The check is safe because Firestore transactions commit
+atomically.
 
-`denyAdminRequest` currently issues a bare `.delete()` with no transaction.
-Introducing `_db.runTransaction` lets us call `_userRepo.removeOrg` inside it,
-keeping the profile update atomic with the request deletion.
+_Alternative_: Use a Firestore rule to allow admins to strip a single orgID
+from another user's profile. Rejected — the rule would need to compute a set
+difference and then look up admin status on the inferred org, which Firestore
+rule expressions cannot do cleanly.
 
-_Alternative considered_: add a second non-transactional `UserRepo.removeOrgDirectly`
-method that doesn't require a `Transaction`. Rejected — introduces API surface
-for a problem that is solved cleanly by adding a transaction.
+### No Dart changes required
+
+The commented-out `_userRepo.removeOrg` call in `removeAdmin` becomes dead
+code and should be removed for clarity. No other Dart changes are needed.
 
 ## Risks / Trade-offs
 
-[Stale profiles for previously-removed admins] → Not fixed by this change. The
-org entry persists in their profile but all Firestore operations on that org are
-denied by security rules, so no data is accessible. A one-time migration is out
-of scope.
+[Async delivery] → Cloud Function triggers are eventually consistent. There is
+a brief window after removal where the org still appears in the user's profile.
+Acceptable: the same window exists today (infinite). Firestore rules already
+block all access for the removed user.
 
-[`t.update()` fails if user profile doc does not exist] → `UserProfile` is
-created on first login and is never deleted during normal operation. This edge
-case cannot occur in practice. `arrayRemove` is also a no-op if the orgID is not
-present, making the call safe even if the profile existed but lacked the entry.
+[Approval race condition] → If the `admin-requests` onDelete trigger fires
+before the `active-admins` write in an approval transaction, it could
+incorrectly remove the org. This cannot happen: Firestore document triggers
+fire after the write that caused them, and a transaction is atomic — both
+writes commit together before any trigger fires.
+
+[User profile doc not found] → `arrayRemove` on a missing document would
+throw. User profiles are created on first login and are never deleted during
+normal operation. Guard with a `.exists()` check in the function as a
+defensive measure.
+
+[`arrayRemove` when org not present] → Idempotent no-op. Safe in all cases,
+including if `addOrg` had failed when the user originally submitted the request.
