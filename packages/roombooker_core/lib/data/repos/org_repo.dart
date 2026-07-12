@@ -289,7 +289,6 @@ class OrgRepo extends ChangeNotifier {
     await _db.runTransaction((t) async {
       var adminRef = _activeAdminRef(orgID, userID);
       t.delete(adminRef);
-      //_userRepo.removeOrg(t, userID, orgID);
     });
     _analytics.logEvent(
       name: "RemoveAdmin",

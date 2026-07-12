@@ -388,16 +388,47 @@ exports.onAdminRequestRevoked = functions.firestore
     .document("orgs/{orgID}/active-admins/{requestID}")
     .onDelete(async (snap, context) => {
       const orgID = context.params.orgID;
-      const requestID = context.params.requestID;
+      const userID = context.params.requestID;
       const email = snap.data().email;
       const org = await getOrg(orgID);
-      logger.log(`Got admin removal for ${email} to leave ${org.name} ${requestID}`);
+      logger.log(`Got admin removal for ${email} to leave ${org.name} ${userID}`);
       await sendEmail(
           email,
           "Admin Access Revoked",
           `Your admin access for ${org.name} has been revoked.`,
       );
-      logger.log(`Function finished for admin removal ${requestID}`);
+      const profileRef = db.collection("users").doc(userID);
+      const profile = await profileRef.get();
+      if (profile.exists) {
+        await profileRef.update({
+          orgIDs: admin.firestore.FieldValue.arrayRemove(orgID),
+        });
+      }
+      logger.log(`Function finished for admin removal ${userID}`);
+    });
+
+exports.onAdminRequestDenied = functions.firestore
+    .document("orgs/{orgID}/admin-requests/{userID}")
+    .onDelete(async (snap, context) => {
+      const orgID = context.params.orgID;
+      const userID = context.params.userID;
+      const activeAdminRef = db
+          .collection("orgs").doc(orgID)
+          .collection("active-admins").doc(userID);
+      const activeAdmin = await activeAdminRef.get();
+      if (activeAdmin.exists) {
+        // Request was approved — active-admins entry was created in the same
+        // transaction that deleted the request. Do not remove the org.
+        return;
+      }
+      const profileRef = db.collection("users").doc(userID);
+      const profile = await profileRef.get();
+      if (profile.exists) {
+        await profileRef.update({
+          orgIDs: admin.firestore.FieldValue.arrayRemove(orgID),
+        });
+      }
+      logger.log(`Removed org ${orgID} from profile for denied request ${userID}`);
     });
 
 /**
