@@ -16,7 +16,8 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:roombooker_portal/app_router_observer.dart';
 
-bool useEmulator = false;
+const bool useEmulator =
+    bool.fromEnvironment('USE_EMULATOR', defaultValue: false);
 
 void main() async {
   debugPrint('MAIN: Starting...');
@@ -52,7 +53,7 @@ void main() async {
 
   if (useEmulator && kDebugMode) {
     try {
-      FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8081);
+      FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8082);
       await FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
       loggingService.info('Using Firebase Emulators');
     } catch (e, stack) {

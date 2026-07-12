@@ -85,6 +85,9 @@ void main() {
     mockAuthService = MockAuthService();
 
     when(() => mockAuthService.getCurrentUserID()).thenReturn(null);
+    when(
+      () => mockOrgRepo.hasPendingInviteForOrg(any()),
+    ).thenAnswer((_) async => false);
 
     when(
       () => mockBookingService.getRequestsStream(

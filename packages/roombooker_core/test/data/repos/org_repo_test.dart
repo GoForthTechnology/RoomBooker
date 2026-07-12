@@ -68,6 +68,10 @@ void main() {
         parameters: any(named: 'parameters'),
       ),
     ).thenAnswer((_) async {});
+    when(() => mockLogging.debug(any())).thenAnswer((_) {});
+    when(
+      () => mockLogging.error(any(), any(), any()),
+    ).thenAnswer((_) {});
   });
 
   group('OrgRepo', () {
@@ -323,6 +327,265 @@ void main() {
       await orgRepo.hideOrg(orgId);
       orgDoc = await fakeFirestore.collection('orgs').doc(orgId).get();
       expect(orgDoc.data()?['publiclyVisible'], isFalse);
+    });
+
+    test('addAdminInvite creates doc with correct fields', () async {
+      const orgId = 'test-org-id';
+      await orgRepo.addAdminInvite(orgId, 'User@Example.COM');
+
+      final doc = await fakeFirestore
+          .collection('orgs')
+          .doc(orgId)
+          .collection('pending-invites')
+          .doc('user@example.com')
+          .get();
+      expect(doc.exists, isTrue);
+      expect(doc.data()?['email'], 'user@example.com');
+      expect(doc.data()?['invitedAt'], isNotNull);
+      verify(
+        () => mockAnalytics.logEvent(
+          name: 'AdminInviteCreated',
+          parameters: {'orgID': orgId, 'email': 'user@example.com'},
+        ),
+      ).called(1);
+    });
+
+    test('addAdminInvite overwrites duplicate without corruption', () async {
+      const orgId = 'test-org-id';
+      await orgRepo.addAdminInvite(orgId, 'user@example.com');
+      await orgRepo.addAdminInvite(orgId, 'user@example.com');
+
+      final snap = await fakeFirestore
+          .collection('orgs')
+          .doc(orgId)
+          .collection('pending-invites')
+          .get();
+      expect(snap.docs.length, 1);
+      expect(snap.docs.first.data()['email'], 'user@example.com');
+    });
+
+    test('cancelAdminInvite deletes the doc', () async {
+      const orgId = 'test-org-id';
+      await fakeFirestore
+          .collection('orgs')
+          .doc(orgId)
+          .collection('pending-invites')
+          .doc('user@example.com')
+          .set({'email': 'user@example.com', 'invitedAt': DateTime.now()});
+
+      await orgRepo.cancelAdminInvite(orgId, 'user@example.com');
+
+      final doc = await fakeFirestore
+          .collection('orgs')
+          .doc(orgId)
+          .collection('pending-invites')
+          .doc('user@example.com')
+          .get();
+      expect(doc.exists, isFalse);
+      verify(
+        () => mockAnalytics.logEvent(
+          name: 'AdminInviteCancelled',
+          parameters: {'orgID': orgId, 'email': 'user@example.com'},
+        ),
+      ).called(1);
+    });
+
+    test('pendingInvites stream returns email list', () async {
+      const orgId = 'test-org-id';
+      await fakeFirestore
+          .collection('orgs')
+          .doc(orgId)
+          .collection('pending-invites')
+          .doc('a@example.com')
+          .set({'email': 'a@example.com'});
+      await fakeFirestore
+          .collection('orgs')
+          .doc(orgId)
+          .collection('pending-invites')
+          .doc('b@example.com')
+          .set({'email': 'b@example.com'});
+
+      final emails = await orgRepo.pendingInvites(orgId).first;
+      expect(emails, containsAll(['a@example.com', 'b@example.com']));
+    });
+
+    test('claimPendingInvites claims invite and writes AdminEntry', () async {
+      const orgId = 'test-org-id';
+      when(
+        () => mockUserRepo.addOrg(any(), any(), any()),
+      ).thenAnswer((_) async {});
+      await fakeFirestore
+          .collection('orgs')
+          .doc(orgId)
+          .collection('pending-invites')
+          .doc('test@example.com')
+          .set({'email': 'test@example.com', 'invitedAt': DateTime.now()});
+
+      await orgRepo.claimPendingInvites();
+
+      final adminDoc = await fakeFirestore
+          .collection('orgs')
+          .doc(orgId)
+          .collection('active-admins')
+          .doc('test-user-id')
+          .get();
+      expect(adminDoc.exists, isTrue);
+      expect(adminDoc.data()?['email'], 'test@example.com');
+      expect(adminDoc.data()?['lastUpdated'], isNotNull);
+
+      final inviteDoc = await fakeFirestore
+          .collection('orgs')
+          .doc(orgId)
+          .collection('pending-invites')
+          .doc('test@example.com')
+          .get();
+      expect(inviteDoc.exists, isFalse);
+
+      verify(
+        () => mockAnalytics.logEvent(
+          name: 'AdminInviteClaimed',
+          parameters: {'orgID': orgId, 'email': 'test@example.com'},
+        ),
+      ).called(1);
+    });
+
+    test('claimPendingInvites is no-op when no invite exists', () async {
+      when(
+        () => mockUserRepo.addOrg(any(), any(), any()),
+      ).thenAnswer((_) async {});
+
+      await expectLater(orgRepo.claimPendingInvites(), completes);
+      verifyNever(
+        () => mockAnalytics.logEvent(
+          name: 'AdminInviteClaimed',
+          parameters: any(named: 'parameters'),
+        ),
+      );
+    });
+
+    test('claimPendingInvites does not propagate errors', () async {
+      when(() => mockAuth.currentUser).thenReturn(null);
+      await expectLater(orgRepo.claimPendingInvites(), completes);
+    });
+
+    test(
+      'claimPendingInvites normalises auth email to lowercase before query',
+      () async {
+        const orgId = 'test-org-id';
+        when(
+          () => mockUserRepo.addOrg(any(), any(), any()),
+        ).thenAnswer((_) async {});
+        // Auth returns mixed-case email (Firebase email/password preserves casing)
+        when(() => mockUser.email).thenReturn('Test@Example.COM');
+        await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('pending-invites')
+            .doc('test@example.com') // stored as lowercase by addAdminInvite
+            .set({'email': 'test@example.com', 'invitedAt': DateTime.now()});
+
+        await orgRepo.claimPendingInvites();
+
+        final adminDoc = await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('active-admins')
+            .doc('test-user-id')
+            .get();
+        expect(adminDoc.exists, isTrue,
+            reason: 'invite should be claimed despite mixed-case auth email');
+        // email stored on the AdminEntry must be the normalised form
+        expect(adminDoc.data()?['email'], 'test@example.com');
+      },
+    );
+
+    test('claimPendingInvites calls addOrg with correct orgID and userID',
+        () async {
+      const orgId = 'test-org-id';
+      when(
+        () => mockUserRepo.addOrg(any(), any(), any()),
+      ).thenAnswer((_) async {});
+      await fakeFirestore
+          .collection('orgs')
+          .doc(orgId)
+          .collection('pending-invites')
+          .doc('test@example.com')
+          .set({'email': 'test@example.com', 'invitedAt': DateTime.now()});
+
+      await orgRepo.claimPendingInvites();
+
+      verify(
+        () => mockUserRepo.addOrg(any(), 'test-user-id', orgId),
+      ).called(1);
+    });
+
+    test(
+      'claimPendingInvites still claims admin even if addOrg throws',
+      () async {
+        const orgId = 'test-org-id';
+        when(
+          () => mockUserRepo.addOrg(any(), any(), any()),
+        ).thenThrow('addOrg failed');
+        await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('pending-invites')
+            .doc('test@example.com')
+            .set({'email': 'test@example.com', 'invitedAt': DateTime.now()});
+
+        await orgRepo.claimPendingInvites();
+
+        final adminDoc = await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('active-admins')
+            .doc('test-user-id')
+            .get();
+        expect(adminDoc.exists, isTrue,
+            reason:
+                'active-admin entry must be written even when addOrg rejects');
+      },
+    );
+
+    test('claimPendingInvites handles multiple invites across orgs', () async {
+      when(
+        () => mockUserRepo.addOrg(any(), any(), any()),
+      ).thenAnswer((_) async {});
+
+      for (final orgId in ['org-a', 'org-b']) {
+        await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('pending-invites')
+            .doc('test@example.com')
+            .set({'email': 'test@example.com', 'invitedAt': DateTime.now()});
+      }
+
+      await orgRepo.claimPendingInvites();
+
+      for (final orgId in ['org-a', 'org-b']) {
+        final adminDoc = await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('active-admins')
+            .doc('test-user-id')
+            .get();
+        expect(adminDoc.exists, isTrue,
+            reason: 'invite for $orgId should be claimed');
+
+        final inviteDoc = await fakeFirestore
+            .collection('orgs')
+            .doc(orgId)
+            .collection('pending-invites')
+            .doc('test@example.com')
+            .get();
+        expect(inviteDoc.exists, isFalse,
+            reason: 'invite for $orgId should be deleted after claim');
+      }
+
+      verify(
+        () => mockUserRepo.addOrg(any(), 'test-user-id', any()),
+      ).called(2);
     });
 
     test('removeOrg deletes org and updates user', () async {

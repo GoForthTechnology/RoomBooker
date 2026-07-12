@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -59,14 +57,18 @@ class OrgRepo extends ChangeNotifier {
 
     var orgID = await _db.runTransaction((t) async {
       var orgRef = await _db.collection("orgs").add(org.toJson());
-      _userRepo.addOrg(t, user.uid, orgRef.id);
+      try {
+        await _userRepo.addOrg(t, user.uid, orgRef.id);
+      } catch (e) {
+        _logging.debug("addOrgForCurrentUser: addOrg failed: $e");
+      }
       return orgRef.id;
     });
 
     try {
       await _roomRepo.addRoom(orgID, Room(name: firstRoomName));
     } catch (e) {
-      log("Failed to create initial room: $e");
+      _logging.debug("Failed to create initial room: $e");
       // Consider if we should rollback org creation or just let it be without a room for now.
       // For now, logging error.
     }
@@ -98,7 +100,11 @@ class OrgRepo extends ChangeNotifier {
     }
     var entry = AdminEntry(email: user.email!, lastUpdated: DateTime.now());
     await _db.runTransaction((t) async {
-      _userRepo.addOrg(t, user.uid, orgID);
+      try {
+        await _userRepo.addOrg(t, user.uid, orgID);
+      } catch (e) {
+        _logging.debug("addAdminRequestForCurrentUser: addOrg failed: $e");
+      }
       t.set(_adminRequestRef(orgID, user.uid), entry);
     });
     _analytics.logEvent(
@@ -136,6 +142,147 @@ class OrgRepo extends ChangeNotifier {
       name: "ApproveAdminRequest",
       parameters: {"orgID": orgID, "userID": userID},
     );
+  }
+
+  Future<void> addAdminInvite(String orgID, String email) async {
+    final normalised = email.toLowerCase();
+    await _db
+        .collection('orgs')
+        .doc(orgID)
+        .collection('pending-invites')
+        .doc(normalised)
+        .set({'email': normalised, 'invitedAt': DateTime.now()});
+    _analytics.logEvent(
+      name: 'AdminInviteCreated',
+      parameters: {'orgID': orgID, 'email': normalised},
+    );
+  }
+
+  Future<void> cancelAdminInvite(String orgID, String email) async {
+    final normalised = email.toLowerCase();
+    await _db
+        .collection('orgs')
+        .doc(orgID)
+        .collection('pending-invites')
+        .doc(normalised)
+        .delete();
+    _analytics.logEvent(
+      name: 'AdminInviteCancelled',
+      parameters: {'orgID': orgID, 'email': normalised},
+    );
+  }
+
+  Stream<List<String>> pendingInvites(String orgID) {
+    return _db
+        .collection('orgs')
+        .doc(orgID)
+        .collection('pending-invites')
+        .snapshots()
+        .map((s) => s.docs.map((d) => d.id).toList());
+  }
+
+  Future<bool> hasPendingInviteForOrg(String orgID) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) return false;
+    final email = user.email!.toLowerCase();
+    final doc = await _db
+        .collection('orgs')
+        .doc(orgID)
+        .collection('pending-invites')
+        .doc(email)
+        .get();
+    return doc.exists;
+  }
+
+  Future<bool> claimInviteForOrg(String orgID) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) return false;
+    final email = user.email!.toLowerCase();
+    final inviteRef = _db
+        .collection('orgs')
+        .doc(orgID)
+        .collection('pending-invites')
+        .doc(email);
+    final claimed = await _db.runTransaction<bool>((t) async {
+      final fresh = await t.get(inviteRef);
+      if (!fresh.exists) return false;
+      final entry = AdminEntry(email: email, lastUpdated: DateTime.now());
+      t.set(_activeAdminRef(orgID, user.uid), entry);
+      t.delete(inviteRef);
+      try {
+        await _userRepo.addOrg(t, user.uid, orgID);
+      } catch (e) {
+        _logging.debug('claimInviteForOrg: addOrg failed: $e');
+      }
+      return true;
+    });
+    if (claimed) {
+      _analytics.logEvent(
+        name: 'AdminInviteClaimed',
+        parameters: {'orgID': orgID, 'email': email},
+      );
+    }
+    return claimed;
+  }
+
+  Future<void> claimPendingInvites() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null || user.email == null) return;
+      final email = user.email!.toLowerCase();
+
+      _logging.debug('claimPendingInvites: querying for email=$email');
+      final results = await _db
+          .collectionGroup('pending-invites')
+          .where('email', isEqualTo: email)
+          .get();
+
+      _logging.debug(
+        'claimPendingInvites: found ${results.docs.length} invite(s)',
+      );
+      if (results.docs.isEmpty) return;
+
+      await Future.wait(results.docs.map((doc) async {
+        final orgID = doc.reference.parent.parent?.id;
+        if (orgID == null) return;
+        try {
+          _logging.debug('claimPendingInvites: claiming invite for org=$orgID');
+          await _db.runTransaction((t) async {
+            final fresh = await t.get(doc.reference);
+            if (!fresh.exists) return;
+            final entry = AdminEntry(
+              email: email,
+              lastUpdated: DateTime.now(),
+            );
+            t.set(_activeAdminRef(orgID, user.uid), entry);
+            t.delete(doc.reference);
+            // addOrg ignores the transaction internally (see TODO in UserRepo)
+            try {
+              await _userRepo.addOrg(t, user.uid, orgID);
+            } catch (e) {
+              _logging.debug(
+                'claimPendingInvites: addOrg failed for org=$orgID: $e',
+              );
+            }
+          });
+          _analytics.logEvent(
+            name: 'AdminInviteClaimed',
+            parameters: {'orgID': orgID, 'email': email},
+          );
+          _logging.debug(
+            'claimPendingInvites: claimed org=$orgID uid=${user.uid}',
+          );
+        } catch (e, stack) {
+          _logging.error(
+            'claimPendingInvites: failed for org $orgID',
+            e,
+            stack,
+          );
+        }
+      }));
+    } catch (e, stack) {
+      _logging.error('claimPendingInvites: unexpected error', e, stack);
+    }
   }
 
   Future<void> removeAdmin(String orgID, String userID) async {

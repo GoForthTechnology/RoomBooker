@@ -84,6 +84,15 @@ void main() {
       () => mockOrgRepo.activeAdmins(testOrgID),
     ).thenAnswer((_) => Stream.value([]));
     when(
+      () => mockOrgRepo.pendingInvites(testOrgID),
+    ).thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockOrgRepo.addAdminInvite(any(), any()),
+    ).thenAnswer((_) async {});
+    when(
+      () => mockOrgRepo.cancelAdminInvite(any(), any()),
+    ).thenAnswer((_) async {});
+    when(
       () => mockRoomRepo.listRooms(testOrgID),
     ).thenAnswer((_) => Stream.value([]));
 

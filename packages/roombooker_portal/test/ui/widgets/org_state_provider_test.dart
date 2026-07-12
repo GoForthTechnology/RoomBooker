@@ -59,6 +59,12 @@ void main() {
     when(() => mockOrgRepo.removeListener(any())).thenReturn(null);
     when(() => mockUserRepo.addListener(any())).thenReturn(null);
     when(() => mockUserRepo.removeListener(any())).thenReturn(null);
+    when(
+      () => mockOrgRepo.activeAdmins(any()),
+    ).thenAnswer((_) => Stream.value([]));
+    when(
+      () => mockOrgRepo.hasPendingInviteForOrg(any()),
+    ).thenAnswer((_) async => false);
   });
 
   testWidgets('OrgStateProvider updates when auth state changes', (

@@ -86,6 +86,9 @@ void main() {
     mockAuthService = MockAuthService();
 
     when(() => mockAuthService.getCurrentUserID()).thenReturn(null);
+    when(
+      () => mockOrgRepo.hasPendingInviteForOrg(any()),
+    ).thenAnswer((_) async => false);
 
     // Default BookingRepo stubs
     when(
