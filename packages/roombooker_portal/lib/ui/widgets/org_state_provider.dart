@@ -43,43 +43,38 @@ class OrgStateProvider extends StatefulWidget {
 class _OrgStateProviderState extends State<OrgStateProvider> {
   Future<OrgState?>? _future;
   OrgState? _resolvedState;
-  StreamSubscription? _adminSub;
   bool _inviteCheckStarted = false;
 
   Future<bool> _currentUserIsAdmin(
     AuthService authService,
     UserRepo userRepo,
   ) async {
-    var userID = authService.getCurrentUserID();
-    if (userID == null) {
-      return false;
-    }
-    var profile = await userRepo.getUser(userID);
-    if (profile == null) {
-      return false;
-    }
+    final userID = authService.getCurrentUserID();
+    if (userID == null) return false;
+    final profile = await userRepo.getUser(userID);
+    if (profile == null) return false;
     return profile.orgIDs.contains(widget.orgID);
   }
 
   String? _lastUserID;
 
   void _loadState() {
-    var orgRepo = Provider.of<OrgRepo>(context, listen: false);
-    var userRepo = Provider.of<UserRepo>(context, listen: false);
-    var authService = Provider.of<AuthService>(context, listen: false);
+    final orgRepo = Provider.of<OrgRepo>(context, listen: false);
+    final userRepo = Provider.of<UserRepo>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
 
     _resolvedState = null;
     _inviteCheckStarted = false;
     _future = () async {
       _statusController.add("Fetching organization details...");
-      var org = await orgRepo.getOrg(widget.orgID).first;
+      final org = await orgRepo.getOrg(widget.orgID).first;
       if (org == null) {
         _statusController.add("Organization not found.");
         return null;
       }
 
       _statusController.add("Checking admin permissions...");
-      var isAdmin = await _currentUserIsAdmin(authService, userRepo);
+      final isAdmin = await _currentUserIsAdmin(authService, userRepo);
 
       _statusController.add("Ready.");
       return OrgState(
@@ -88,69 +83,66 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
         authService: authService,
       );
     }();
-
-    _subscribeToAdminStatus(orgRepo, authService);
-  }
-
-  void _subscribeToAdminStatus(OrgRepo orgRepo, AuthService authService) {
-    _adminSub?.cancel();
-    final uid = authService.getCurrentUserID();
-    if (uid == null) return;
-    _adminSub = orgRepo.activeAdmins(widget.orgID).listen((admins) {
-      final isAdmin = admins.any((a) => a.id == uid);
-      _resolvedState?.updateAdminStatus(isAdmin);
-    });
   }
 
   Future<void> _maybeShowInviteDialog(OrgState orgState) async {
-    final orgRepo = Provider.of<OrgRepo>(context, listen: false);
-    final messenger = ScaffoldMessenger.of(context);
-    final hasInvite = await orgRepo.hasPendingInviteForOrg(widget.orgID);
-    if (!mounted || !hasInvite) return;
+    try {
+      final orgRepo = Provider.of<OrgRepo>(context, listen: false);
+      final messenger = ScaffoldMessenger.of(context);
+      debugPrint(
+        'OrgStateProvider: checking pending invite for org=${widget.orgID}',
+      );
+      final hasInvite = await orgRepo.hasPendingInviteForOrg(widget.orgID);
+      debugPrint('OrgStateProvider: hasPendingInvite=$hasInvite');
+      if (!mounted || !hasInvite) return;
 
-    final accepted = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Admin Invitation'),
-        content: Text(
-          'You have been invited to become an administrator of '
-          '"${orgState.org.name}". Would you like to accept?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Decline'),
+      final accepted = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Admin Invitation'),
+          content: Text(
+            'You have been invited to become an administrator of '
+            '"${orgState.org.name}". Would you like to accept?',
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Accept'),
-          ),
-        ],
-      ),
-    );
-
-    if (!mounted) return;
-
-    if (accepted == true) {
-      try {
-        await orgRepo.claimInviteForOrg(widget.orgID);
-        if (!mounted) return;
-        _resolvedState?.updateAdminStatus(true);
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              'You are now an admin of "${orgState.org.name}".',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Decline'),
             ),
-          ),
-        );
-      } catch (e) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Failed to accept invitation. Please try again.'),
-          ),
-        );
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Accept'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (accepted == true) {
+        try {
+          await orgRepo.claimInviteForOrg(widget.orgID);
+          if (!mounted) return;
+          _resolvedState?.updateAdminStatus(true);
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                'You are now an admin of "${orgState.org.name}".',
+              ),
+            ),
+          );
+        } catch (e, stack) {
+          log('OrgStateProvider: claimInviteForOrg failed', error: e, stackTrace: stack);
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Failed to accept invitation. Please try again.'),
+            ),
+          );
+        }
       }
+    } catch (e, stack) {
+      log('OrgStateProvider: _maybeShowInviteDialog failed', error: e, stackTrace: stack);
     }
   }
 
@@ -167,7 +159,6 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
 
   @override
   void dispose() {
-    _adminSub?.cancel();
     _statusController.close();
     super.dispose();
   }
@@ -183,8 +174,8 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    var authService = Provider.of<AuthService>(context, listen: true);
-    var currentUserID = authService.getCurrentUserID();
+    final authService = Provider.of<AuthService>(context, listen: true);
+    final currentUserID = authService.getCurrentUserID();
     if (_lastUserID != currentUserID) {
       _lastUserID = currentUserID;
       _loadState();
