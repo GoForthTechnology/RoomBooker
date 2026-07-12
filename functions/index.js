@@ -384,25 +384,44 @@ exports.onAdminRequestApproved = functions.firestore
       logger.log(`Function finished for admin request approval ${requestID}`);
     });
 
+/**
+ * Removes orgID from a user's profile. No-op if the profile does not exist
+ * or the orgID is not present (arrayRemove is idempotent).
+ *
+ * @param {string} userID
+ * @param {string} orgID
+ * @return {Promise<void>}
+ */
+async function removeOrgFromProfile(userID, orgID) {
+  const profileRef = db.collection("users").doc(userID);
+  const profile = await profileRef.get();
+  if (profile.exists) {
+    await profileRef.update({
+      orgIDs: admin.firestore.FieldValue.arrayRemove(orgID),
+    });
+  }
+}
+
 exports.onAdminRequestRevoked = functions.firestore
     .document("orgs/{orgID}/active-admins/{requestID}")
     .onDelete(async (snap, context) => {
       const orgID = context.params.orgID;
       const userID = context.params.requestID;
       const email = snap.data().email;
+
+      await removeOrgFromProfile(userID, orgID);
+
       const org = await getOrg(orgID);
-      logger.log(`Got admin removal for ${email} to leave ${org.name} ${userID}`);
-      await sendEmail(
-          email,
-          "Admin Access Revoked",
-          `Your admin access for ${org.name} has been revoked.`,
-      );
-      const profileRef = db.collection("users").doc(userID);
-      const profile = await profileRef.get();
-      if (profile.exists) {
-        await profileRef.update({
-          orgIDs: admin.firestore.FieldValue.arrayRemove(orgID),
-        });
+      const orgName = org ? org.name : orgID;
+      logger.log(`Got admin removal for ${email} to leave ${orgName} ${userID}`);
+      try {
+        await sendEmail(
+            email,
+            "Admin Access Revoked",
+            `Your admin access for ${orgName} has been revoked.`,
+        );
+      } catch (e) {
+        logger.error(`Failed to send revocation email to ${email}:`, e);
       }
       logger.log(`Function finished for admin removal ${userID}`);
     });
@@ -421,13 +440,7 @@ exports.onAdminRequestDenied = functions.firestore
         // transaction that deleted the request. Do not remove the org.
         return;
       }
-      const profileRef = db.collection("users").doc(userID);
-      const profile = await profileRef.get();
-      if (profile.exists) {
-        await profileRef.update({
-          orgIDs: admin.firestore.FieldValue.arrayRemove(orgID),
-        });
-      }
+      await removeOrgFromProfile(userID, orgID);
       logger.log(`Removed org ${orgID} from profile for denied request ${userID}`);
     });
 
