@@ -17,7 +17,7 @@ class UserRepo extends ChangeNotifier {
     }
   }
 
-  void addOrg(Transaction t, String userID, String orgID) async {
+  Future<void> addOrg(Transaction t, String userID, String orgID) async {
     var profileRef = _userRef(userID);
     /*var profile = await t.get(profileRef).then((s) => s.data());
     if (profile == null) {

@@ -8,7 +8,10 @@ class UserProfile {
 
   UserProfile({required this.orgIDs});
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) =>
-      _$UserProfileFromJson(json);
+  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
+    orgIDs:
+        (json['orgIDs'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+        [],
+  );
   Map<String, dynamic> toJson() => _$UserProfileToJson(this);
 }

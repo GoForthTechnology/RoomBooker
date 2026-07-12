@@ -57,7 +57,7 @@ class OrgRepo extends ChangeNotifier {
 
     var orgID = await _db.runTransaction((t) async {
       var orgRef = await _db.collection("orgs").add(org.toJson());
-      _userRepo.addOrg(t, user.uid, orgRef.id);
+      await _userRepo.addOrg(t, user.uid, orgRef.id);
       return orgRef.id;
     });
 
@@ -96,7 +96,7 @@ class OrgRepo extends ChangeNotifier {
     }
     var entry = AdminEntry(email: user.email!, lastUpdated: DateTime.now());
     await _db.runTransaction((t) async {
-      _userRepo.addOrg(t, user.uid, orgID);
+      await _userRepo.addOrg(t, user.uid, orgID);
       t.set(_adminRequestRef(orgID, user.uid), entry);
     });
     _analytics.logEvent(
@@ -202,7 +202,7 @@ class OrgRepo extends ChangeNotifier {
       t.set(_activeAdminRef(orgID, user.uid), entry);
       t.delete(inviteRef);
       try {
-        _userRepo.addOrg(t, user.uid, orgID);
+        await _userRepo.addOrg(t, user.uid, orgID);
       } catch (e) {
         _logging.debug('claimInviteForOrg: addOrg failed: $e');
       }
@@ -246,7 +246,7 @@ class OrgRepo extends ChangeNotifier {
             t.delete(doc.reference);
             // addOrg ignores the transaction internally (see TODO in UserRepo)
             try {
-              _userRepo.addOrg(t, user.uid, orgID);
+              await _userRepo.addOrg(t, user.uid, orgID);
             } catch (e) {
               _logging.debug(
                 'claimPendingInvites: addOrg failed for org=$orgID: $e',
