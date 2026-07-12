@@ -57,7 +57,11 @@ class OrgRepo extends ChangeNotifier {
 
     var orgID = await _db.runTransaction((t) async {
       var orgRef = await _db.collection("orgs").add(org.toJson());
-      await _userRepo.addOrg(t, user.uid, orgRef.id);
+      try {
+        await _userRepo.addOrg(t, user.uid, orgRef.id);
+      } catch (e) {
+        _logging.debug("addOrgForCurrentUser: addOrg failed: $e");
+      }
       return orgRef.id;
     });
 
@@ -96,7 +100,11 @@ class OrgRepo extends ChangeNotifier {
     }
     var entry = AdminEntry(email: user.email!, lastUpdated: DateTime.now());
     await _db.runTransaction((t) async {
-      await _userRepo.addOrg(t, user.uid, orgID);
+      try {
+        await _userRepo.addOrg(t, user.uid, orgID);
+      } catch (e) {
+        _logging.debug("addAdminRequestForCurrentUser: addOrg failed: $e");
+      }
       t.set(_adminRequestRef(orgID, user.uid), entry);
     });
     _analytics.logEvent(
@@ -186,18 +194,18 @@ class OrgRepo extends ChangeNotifier {
     return doc.exists;
   }
 
-  Future<void> claimInviteForOrg(String orgID) async {
+  Future<bool> claimInviteForOrg(String orgID) async {
     final user = _auth.currentUser;
-    if (user == null || user.email == null) return;
+    if (user == null || user.email == null) return false;
     final email = user.email!.toLowerCase();
     final inviteRef = _db
         .collection('orgs')
         .doc(orgID)
         .collection('pending-invites')
         .doc(email);
-    await _db.runTransaction((t) async {
+    final claimed = await _db.runTransaction<bool>((t) async {
       final fresh = await t.get(inviteRef);
-      if (!fresh.exists) return;
+      if (!fresh.exists) return false;
       final entry = AdminEntry(email: email, lastUpdated: DateTime.now());
       t.set(_activeAdminRef(orgID, user.uid), entry);
       t.delete(inviteRef);
@@ -206,11 +214,15 @@ class OrgRepo extends ChangeNotifier {
       } catch (e) {
         _logging.debug('claimInviteForOrg: addOrg failed: $e');
       }
+      return true;
     });
-    _analytics.logEvent(
-      name: 'AdminInviteClaimed',
-      parameters: {'orgID': orgID, 'email': email},
-    );
+    if (claimed) {
+      _analytics.logEvent(
+        name: 'AdminInviteClaimed',
+        parameters: {'orgID': orgID, 'email': email},
+      );
+    }
+    return claimed;
   }
 
   Future<void> claimPendingInvites() async {

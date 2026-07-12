@@ -122,16 +122,24 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
 
       if (accepted == true) {
         try {
-          await orgRepo.claimInviteForOrg(widget.orgID);
+          final claimed = await orgRepo.claimInviteForOrg(widget.orgID);
           if (!mounted) return;
-          _resolvedState?.updateAdminStatus(true);
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text(
-                'You are now an admin of "${orgState.org.name}".',
+          if (claimed) {
+            orgState.updateAdminStatus(true);
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  'You are now an admin of "${orgState.org.name}".',
+                ),
               ),
-            ),
-          );
+            );
+          } else {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text('Invitation is no longer available.'),
+              ),
+            );
+          }
         } catch (e, stack) {
           log('OrgStateProvider: claimInviteForOrg failed', error: e, stackTrace: stack);
           messenger.showSnackBar(
