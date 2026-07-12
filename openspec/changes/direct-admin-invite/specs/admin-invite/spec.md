@@ -32,44 +32,41 @@ The Admin Settings screen SHALL display a list of pending (unclaimed) invites fo
 - **WHEN** there are no unclaimed invites for the org
 - **THEN** the Pending Invites section SHALL display an empty state message
 
-### Requirement: Invite is auto-claimed on sign-in
-When a user completes sign-in (Google or email/password), the system SHALL check for a pending invite matching their email. If one is found, the invite SHALL be claimed automatically: the user is written to `active-admins/{uid}` for each invited org, the org is added to their user profile, and the pending invite document is deleted.
+### Requirement: Invite is claimed via confirmation dialog on org page load
+When a signed-in user navigates to an org page that has a pending invite for their email, a confirmation dialog SHALL be shown. The user must explicitly accept before the invite is claimed.
 
-#### Scenario: Invited user signs in with Google
-- **WHEN** a user with a pending invite signs in via Google Sign-In
-- **THEN** the invite is claimed during the sign-in action
-- **AND** the user appears as an active admin in the invited org without any additional steps
+#### Scenario: Invited user navigates to the org page
+- **WHEN** a signed-in user with a pending invite for org `orgABC` navigates to that org's booking page
+- **THEN** a dialog is shown explaining they have been invited to become an administrator
+- **AND** the dialog offers Accept and Decline buttons
 
-#### Scenario: Invited user signs in with email/password
-- **WHEN** a user with a pending invite signs in via email and password
-- **THEN** the invite is claimed during the sign-in action
-- **AND** the user appears as an active admin in the invited org
+#### Scenario: User accepts the invitation
+- **WHEN** the user taps Accept in the invite dialog
+- **THEN** `claimInviteForOrg` is called for that org
+- **AND** if the invite still exists, the user is written to `active-admins/{uid}`, the pending invite is deleted, and the org is added to their user profile
+- **AND** admin controls appear immediately without a page reload
+- **AND** a snackbar confirms "You are now an admin of `<org name>`"
 
-#### Scenario: First-time registration by invited user
-- **WHEN** a user with a pending invite creates a new account (Google or email/password)
-- **THEN** the invite is claimed during account creation
-- **AND** the user appears as an active admin in the invited org
+#### Scenario: User declines the invitation
+- **WHEN** the user taps Decline in the invite dialog
+- **THEN** the dialog closes and no claim is made
+- **AND** the pending invite document remains in Firestore
+- **AND** the dialog will appear again the next time the user loads that org's page
+
+#### Scenario: Invite cancelled between dialog display and accept
+- **WHEN** the owner cancels the invite after the dialog is already showing and the user clicks Accept
+- **THEN** `claimInviteForOrg` finds the invite document gone and returns false
+- **AND** a snackbar "Invitation is no longer available" is shown
+- **AND** no admin entry is written and no analytics event is fired
+
+#### Scenario: No pending invite exists when org page loads
+- **WHEN** a user navigates to an org page and has no pending invite for that org
+- **THEN** no dialog is shown and the page loads normally
 
 #### Scenario: Invite created before user has a Firebase account
 - **WHEN** an admin creates an invite for an email address that has no Firebase account yet
 - **THEN** the pending invite document is stored and remains dormant
-- **AND** the invite is claimed when the user eventually creates an account and completes sign-in
-
-#### Scenario: No pending invite exists at sign-in
-- **WHEN** a user signs in and there is no pending invite for their email
-- **THEN** sign-in proceeds normally with no side effects
-
-### Requirement: Invite is auto-claimed on cold start with existing session
-When a user opens the app with an existing authenticated session (no login screen shown), the system SHALL check for a pending invite on the landing screen and claim it if found.
-
-#### Scenario: User cold-starts app with a pending invite
-- **WHEN** a user who is already logged in opens the app cold
-- **THEN** the landing screen checks for a pending invite for their email
-- **AND** if found, the invite is claimed before or alongside the initial navigation
-
-#### Scenario: Claim does not block navigation
-- **WHEN** a pending invite is claimed on cold start
-- **THEN** the claim SHALL be initiated fire-and-forget so it does not delay the redirect to the last-opened org
+- **AND** the invite dialog appears when the user eventually creates an account and navigates to that org's page
 
 ### Requirement: Invite claim is transactional and idempotent
 The claim operation SHALL use a Firestore transaction to atomically read the pending invite and write to `active-admins`. Repeating the claim for an already-active admin SHALL be a no-op.

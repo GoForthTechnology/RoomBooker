@@ -69,17 +69,34 @@ The `exists()` check ensures the self-claim is only permitted when a valid, admi
 
 `request.auth.token.email` is reliably set by both Google Sign-In and email/password auth in Firebase.
 
-### 3. Claim hooks: login actions + LandingViewModel
+### 3. Claim hook: dialog on org page load (replaces auth/LandingViewModel hooks)
 
-Two complementary hooks cover all practical entry points:
+**Original design** used fire-and-forget claim calls in `auth.dart` `SignedIn`/`UserCreated` actions and `LandingViewModel.init()`. This was abandoned because:
+- Silent auto-claim gave users no visibility into why they suddenly had admin access
+- The `FutureBuilder` in `OrgStateProvider` is one-shot; after auto-claim the page never re-evaluated admin status, so admin controls didn't appear without a manual page reload
+- Removing the stream subscription used to track admin status live caused regressions for org owners
 
-| Entry point | Hook | Covers |
-|---|---|---|
-| Fresh login (existing account) | `AuthStateChangeAction<SignedIn>` in `auth.dart` | Google SSO, email/password re-login |
-| First registration | `AuthStateChangeAction<UserCreated>` in `auth.dart` | New Google or email account |
-| Cold start with existing session | `LandingViewModel.init()` | App reopen without login screen |
+**Adopted approach**: `OrgStateProvider` checks for a pending invite immediately after the org loads (via a post-frame callback), shows a confirmation dialog, and on acceptance calls `claimInviteForOrg`:
 
-The `LandingViewModel` hook fires before the `lastOpenedOrgId` redirect, so the claim completes (fire-and-forget) before navigation. Already-active users (no login, no cold start) are not covered; restart is the workaround.
+```
+OrgStateProvider.build()
+  └─ FutureBuilder resolves with OrgState
+  └─ addPostFrameCallback → _maybeShowInviteDialog(orgState)
+       ├─ orgRepo.hasPendingInviteForOrg(orgID) → bool
+       ├─ if true: showDialog → user accepts/declines
+       └─ if accepted: claimInviteForOrg(orgID) → bool
+            ├─ if true (claimed): orgState.updateAdminStatus(true) + snackbar
+            └─ if false (invite gone): "Invitation no longer available" snackbar
+```
+
+`_inviteCheckStarted` guards against re-firing on widget rebuilds; it is reset by `_loadState()` so the check runs once per session/auth-change.
+
+**New OrgRepo methods:**
+- `hasPendingInviteForOrg(orgID)` — reads `orgs/{orgID}/pending-invites/{email}` directly (single-org check, no collectionGroup query)
+- `claimInviteForOrg(orgID)` — runs a transaction that checks `!fresh.exists` and returns `false` if the invite is gone (race condition safety); returns `true` and fires `AdminInviteClaimed` analytics only if the write actually happened
+
+**OrgState as ChangeNotifier:**
+`OrgState` exposes `updateAdminStatus(bool)` which sets `_currentUserIsAdmin` and calls `notifyListeners()`. Consumers (e.g. `Consumer<OrgState>`) rebuild automatically, showing admin controls without a page reload. The `_resolvedState` field in `OrgStateProvider` is kept for snackbar access but `updateAdminStatus` is called via the `orgState` parameter (not `_resolvedState?`) to avoid a null race if `_loadState()` fires during the Firestore round-trip.
 
 ### 4. Invite cancellation — delete the subcollection doc directly
 
@@ -101,13 +118,13 @@ New methods on `OrgRepo` (consistent with existing admin-request methods):
 
 **Self-claim rule on `active-admins` increases write surface** → Scoped to `create` only (not `update`/`delete`), so an invited-but-not-yet-admin user cannot modify or remove an existing `active-admins` entry. The `exists()` check is the gating condition; since pending-invites can only be created by admins, the chain is not forgeable.
 
-**`_userRepo.addOrg` is not transactional** → The existing `addOrg` implementation has a `TODO: Move this back into the transaction` comment and performs its own separate Firestore write. `claimPendingInvites()` cannot include it in the claim transaction. If `addOrg` fails after `active-admins` succeeds, the user is an admin but the org won't appear on their landing screen until the next successful call. This is pre-existing debt; the claim method calls `addOrg` fire-and-forget after the transaction, matching the existing pattern in `approveAdminRequest`.
+**`_userRepo.addOrg` is not transactional** → `addOrg` performs its own separate Firestore write outside any transaction. It is wrapped in try/catch inside all transaction callbacks that call it — a failure logs a debug message but does not abort the surrounding transaction. The user becomes an admin (`active-admins` written) even if `addOrg` fails; the org will appear on their landing screen on the next successful call. Any call site that calls `addOrg` inside a Firestore transaction MUST wrap it in try/catch.
 
-**Multiple orgs = multiple independent transactions** → If a user has pending invites in two orgs, each is claimed in a separate transaction. If the second fails, they become admin in org 1 but not org 2, with the invite for org 2 preserved for retry on next sign-in. This is correct behavior.
+**`claimInviteForOrg` returns bool for race safety** → If the owner cancels the invite between `hasPendingInviteForOrg` returning true and the user clicking Accept, the transaction finds `!fresh.exists` and returns `false`. The caller treats `false` as "invite no longer available" and shows an informational snackbar without updating admin status or firing analytics.
 
-**Unhandled errors in fire-and-forget callers** → `claimPendingInvites()` is called unawaited. If it throws, it becomes an unhandled `Future` error. The method MUST catch all errors internally and log them (using `LoggingService` or `log()`), never propagate.
+**Multiple orgs = multiple independent transactions** → If a user has pending invites in two orgs, each is claimed in a separate transaction. If the second fails, they become admin in org 1 but not org 2, with the invite for org 2 preserved for retry on next org page load. This is correct behavior.
 
-**Already-active-in-app users don't get auto-claimed** → Workaround: restart the app. A real-time Firestore listener would handle this but adds listener lifecycle complexity for an extremely rare scenario.
+**Already-active-in-app users on other pages don't get prompted** → The dialog only fires when the user navigates to the invited org's page. If the user never visits that page in the current session, the invite remains pending. This is acceptable — the invite is dormant until the user chooses to visit the org.
 
 **Email address as document ID** → Firestore allows `@` and `.` in doc IDs. Normalized to lowercase on write; `request.auth.token.email` from Firebase is already lowercase for Google and email/password accounts.
 
