@@ -1,6 +1,6 @@
 name: roombooker_portal
 description: "The primary user and admin portal for RoomBooker."
-version: 1.4.0+57
+version: 1.4.1+58
 publish_to: 'none'
 
 resolution: workspace
