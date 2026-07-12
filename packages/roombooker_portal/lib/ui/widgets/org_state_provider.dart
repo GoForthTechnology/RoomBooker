@@ -230,7 +230,7 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
           return const Center(child: Text('Organization not found'));
         }
         _resolvedState = data;
-        if (!data.currentUserIsAdmin && !_inviteCheckStarted) {
+        if (!_inviteCheckStarted) {
           _inviteCheckStarted = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _maybeShowInviteDialog(data);
