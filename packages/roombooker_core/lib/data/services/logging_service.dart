@@ -64,17 +64,28 @@ class DebugLoggingService extends ChangeNotifier implements LoggingService {
   }
 }
 
-class CustomLogPrinter extends PrettyPrinter {
-  CustomLogPrinter({
-    int super.methodCount,
-    int super.errorMethodCount,
-    super.lineLength,
-    super.colors,
-    super.printEmojis,
-    super.dateTimeFormat = DateTimeFormat.none,
-  }) : super(
-         stackTraceBeginIndex: 1, // This ignores the first frame
-       );
+class CustomLogPrinter extends LogPrinter {
+  static const _levelLabels = {
+    Level.trace: 'T',
+    Level.debug: 'D',
+    Level.info: 'I',
+    Level.warning: 'W',
+    Level.error: 'E',
+    Level.fatal: 'F',
+  };
+
+  @override
+  List<String> log(LogEvent event) {
+    final now = event.time;
+    final ts =
+        '[${now.hour.toString().padLeft(2, '0')}:'
+        '${now.minute.toString().padLeft(2, '0')}:'
+        '${now.second.toString().padLeft(2, '0')}]';
+    final label = '[${_levelLabels[event.level]}]';
+    final msg = event.message?.toString() ?? '';
+    final err = event.error != null ? ' — ${event.error}' : '';
+    return ['$ts$label $msg$err'];
+  }
 }
 
 class SentryLoggingService extends ChangeNotifier implements LoggingService {
