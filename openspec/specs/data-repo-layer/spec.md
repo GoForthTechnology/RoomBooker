@@ -223,10 +223,12 @@ updates, and removal (including removing the org from the owning user's
   `orgIDs`.
 
 ### Requirement: Admin Request Workflow
-`OrgRepo` SHALL support a request/approve/deny workflow for organization
+`OrgRepo` SHALL support a request/approve/deny/remove workflow for organization
 admin access, storing pending requests in
 `orgs/{orgID}/admin-requests/{userID}` and approved admins in
-`orgs/{orgID}/active-admins/{userID}`.
+`orgs/{orgID}/active-admins/{userID}`. Every operation that ends a user's
+relationship with an org SHALL also remove `orgID` from that user's
+`UserProfile.orgIDs` atomically.
 
 #### Scenario: Requesting admin access
 - **WHEN** `addAdminRequestForCurrentUser(orgID)` is called by an
@@ -252,7 +254,14 @@ admin access, storing pending requests in
 #### Scenario: Denying an admin request
 - **WHEN** `denyAdminRequest(orgID, userID)` is called
 - **THEN** the document at `orgs/{orgID}/admin-requests/{userID}` SHALL be
-  deleted.
+  deleted and `orgID` SHALL be removed from `users/{userID}.orgIDs` via
+  `FieldValue.arrayRemove`, both within a single transaction.
+
+#### Scenario: Removing an active admin
+- **WHEN** `removeAdmin(orgID, userID)` is called
+- **THEN** the document at `orgs/{orgID}/active-admins/{userID}` SHALL be
+  deleted and `orgID` SHALL be removed from `users/{userID}.orgIDs` via
+  `FieldValue.arrayRemove`, both within a single transaction.
 
 ### Requirement: Organization Listing for Current User
 `OrgRepo.getOrgsForCurrentUser` SHALL return a real-time stream of the
