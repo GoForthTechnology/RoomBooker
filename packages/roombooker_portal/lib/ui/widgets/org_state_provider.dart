@@ -3,23 +3,31 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:roombooker_core/data/services/auth_service.dart';
 import 'package:roombooker_core/data/entities/organization.dart';
 import 'package:roombooker_core/data/repos/org_repo.dart';
 import 'package:roombooker_core/data/repos/user_repo.dart';
+import 'package:roombooker_core/data/services/auth_service.dart';
 
 class OrgState extends ChangeNotifier {
   final Organization org;
   // NOTE: This is just a hint that the user is an admin. It is not a guarantee.
   // The final check is done in the database.
-  final bool currentUserIsAdmin;
+  bool _currentUserIsAdmin;
+  bool get currentUserIsAdmin => _currentUserIsAdmin;
   final AuthService authService;
 
   OrgState({
     required this.org,
-    required this.currentUserIsAdmin,
+    required bool currentUserIsAdmin,
     required this.authService,
-  });
+  }) : _currentUserIsAdmin = currentUserIsAdmin;
+
+  void updateAdminStatus(bool isAdmin) {
+    if (_currentUserIsAdmin != isAdmin) {
+      _currentUserIsAdmin = isAdmin;
+      notifyListeners();
+    }
+  }
 }
 
 class OrgStateProvider extends StatefulWidget {
@@ -34,6 +42,8 @@ class OrgStateProvider extends StatefulWidget {
 
 class _OrgStateProviderState extends State<OrgStateProvider> {
   Future<OrgState?>? _future;
+  OrgState? _resolvedState;
+  StreamSubscription? _adminSub;
 
   Future<bool> _currentUserIsAdmin(
     AuthService authService,
@@ -57,6 +67,7 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
     var userRepo = Provider.of<UserRepo>(context, listen: false);
     var authService = Provider.of<AuthService>(context, listen: false);
 
+    _resolvedState = null;
     _future = () async {
       _statusController.add("Fetching organization details...");
       var org = await orgRepo.getOrg(widget.orgID).first;
@@ -64,10 +75,10 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
         _statusController.add("Organization not found.");
         return null;
       }
-      
+
       _statusController.add("Checking admin permissions...");
       var isAdmin = await _currentUserIsAdmin(authService, userRepo);
-      
+
       _statusController.add("Ready.");
       return OrgState(
         org: org,
@@ -75,19 +86,34 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
         authService: authService,
       );
     }();
+
+    _subscribeToAdminStatus(orgRepo, authService);
   }
 
-  final StreamController<String> _statusController = StreamController<String>.broadcast();
+  void _subscribeToAdminStatus(OrgRepo orgRepo, AuthService authService) {
+    _adminSub?.cancel();
+    final uid = authService.getCurrentUserID();
+    if (uid == null) return;
+    _adminSub = orgRepo.activeAdmins(widget.orgID).listen((admins) {
+      final isAdmin = admins.any((a) => a.id == uid);
+      _resolvedState?.updateAdminStatus(isAdmin);
+    });
+  }
+
+  final StreamController<String> _statusController =
+      StreamController<String>.broadcast();
 
   @override
   void initState() {
     super.initState();
-    _lastUserID = Provider.of<AuthService>(context, listen: false).getCurrentUserID();
+    _lastUserID =
+        Provider.of<AuthService>(context, listen: false).getCurrentUserID();
     _loadState();
   }
 
   @override
   void dispose() {
+    _adminSub?.cancel();
     _statusController.close();
     super.dispose();
   }
@@ -132,7 +158,7 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
                         statusSnapshot.data ?? "",
                         style: const TextStyle(color: Colors.grey),
                       );
-                    }
+                    },
                   ),
                 ],
               ),
@@ -141,12 +167,15 @@ class _OrgStateProviderState extends State<OrgStateProvider> {
         }
         if (snapshot.hasError) {
           log('Error loading organization state', error: snapshot.error);
-          return Center(child: Text('Error loading organization: ${snapshot.error}'));
+          return Center(
+            child: Text('Error loading organization: ${snapshot.error}'),
+          );
         }
         final data = snapshot.data;
         if (!snapshot.hasData || data == null) {
           return const Center(child: Text('Organization not found'));
         }
+        _resolvedState = data;
         return ChangeNotifierProvider.value(
           value: data,
           child: widget.child,
