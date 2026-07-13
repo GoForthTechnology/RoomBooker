@@ -444,6 +444,33 @@ exports.onAdminRequestDenied = functions.firestore
       logger.log(`Removed org ${orgID} from profile for denied request ${userID}`);
     });
 
+exports.onAdminInviteCreated = functions.firestore
+    .document("orgs/{orgID}/pending-invites/{email}")
+    .onCreate(async (snap, context) => {
+      const orgID = context.params.orgID;
+      const email = context.params.email;
+      const org = await getOrg(orgID);
+      const orgName = org ? org.name : orgID;
+      const baseUrl = process.env.PORTAL_BASE_URL ||
+          "https://roombooker-5e947.web.app";
+      logger.log(`Sending invite email to ${email} for org ${orgName}`);
+      try {
+        await sendEmail(
+            email,
+            `You've been invited to join ${orgName}`,
+            `You have been invited to become an administrator of ${orgName}.
+
+To accept, sign in to Room Booker and visit:
+${baseUrl}/join/${orgID}
+
+If you do not have an account yet, create one with this email address and the invitation will be waiting for you.`,
+        );
+      } catch (e) {
+        logger.error(`Failed to send invite email to ${email}:`, e);
+      }
+      logger.log(`Function finished for admin invite to ${email}`);
+    });
+
 /**
  * Compares two versions of a booking request and generates a human-readable list of changes.
  * It checks for modifications in basic fields like start time, end time, and room name.
